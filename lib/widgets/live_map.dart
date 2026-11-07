@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/models.dart';
+import '../services/location_service.dart';
 
 class LiveMap extends StatefulWidget {
+  final LocationService location;
   final List<MapPin> pins;
   final ValueChanged<MapPin> onOpenPin;
   final double topInset;
@@ -15,6 +16,7 @@ class LiveMap extends StatefulWidget {
   const LiveMap({
     super.key,
     required this.topInset,
+    required this.location,
     required this.pins,
     required this.onOpenPin,
     required this.bottomInset,
@@ -29,6 +31,7 @@ class _LiveMapState extends State<LiveMap> {
   LatLng? _position;
   MapPin? _selected;
   bool _busy = false;
+  bool _approximate = false;
   bool _tileError = false;
   LatLng get _initialCenter {
     final pin = widget.pins
@@ -43,30 +46,23 @@ class _LiveMapState extends State<LiveMap> {
     if (_busy) return;
     setState(() => _busy = true);
     try {
-      if (!await Geolocator.isLocationServiceEnabled()) {
+      final position = await widget.location.current();
+      if (!position.real) {
         throw Exception(
-          'Activa la ubicación del teléfono para encontrar tu posición.',
+          'No se pudo obtener la ubicación. Activa el GPS o revisa tu conexión.',
         );
       }
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        throw Exception(
-          'Permite el acceso a tu ubicación en los ajustes del dispositivo.',
-        );
-      }
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 15),
-        ),
-      );
       if (!mounted) return;
-      final point = LatLng(position.latitude, position.longitude);
-      setState(() => _position = point);
+      final point = LatLng(position.lat, position.lng);
+      setState(() {
+        _position = point;
+        _approximate = widget.location.approximate;
+      });
+      if (_approximate) {
+        widget.onMessage(
+          'Posición aproximada por red. Activa el GPS para mayor precisión.',
+        );
+      }
       _map.move(point, 16);
     } catch (error) {
       if (mounted) {
@@ -135,8 +131,10 @@ class _LiveMapState extends State<LiveMap> {
                   point: _position!,
                   width: 44,
                   height: 44,
-                  child: const Tooltip(
-                    message: 'Tu ubicación',
+                  child: Tooltip(
+                    message: _approximate
+                        ? 'Ubicación aproximada por red'
+                        : 'Tu ubicación',
                     child: Icon(
                       Icons.my_location,
                       color: Color(0xFF007D69),
@@ -206,6 +204,8 @@ class _LiveMapState extends State<LiveMap> {
                       ? 'No se pudo cargar la cartografía. Revisa tu conexión.'
                       : _position == null
                       ? 'Explora el mapa o pulsa Mi ubicación.'
+                      : _approximate
+                      ? 'Ubicación aproximada por red · Revisa tu posición'
                       : 'Ubicación del dispositivo · Acerca y desplaza el mapa',
                   textAlign: TextAlign.center,
                 ),

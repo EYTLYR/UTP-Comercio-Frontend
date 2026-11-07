@@ -76,6 +76,16 @@ class ApiClient {
       if (v != null) q[k] = '$v';
     });
     final full = path.startsWith('/') ? path : '/api/v1/$path';
+    final base = Uri.tryParse(ApiConfig.baseUrl);
+    if (base == null ||
+        !base.hasAuthority ||
+        (base.scheme != 'http' && base.scheme != 'https')) {
+      throw const ApiException(
+        0,
+        'CONFIG',
+        'Configura una URL válida del backend en API_BASE_URL (.env).',
+      );
+    }
     return Uri.parse('${ApiConfig.baseUrl}$full')
         .replace(queryParameters: q.isEmpty ? null : q);
   }
@@ -101,7 +111,7 @@ class ApiClient {
     http.Response res;
     try {
       final streamed = await _http.send(request).timeout(ApiConfig.timeout);
-      res = await http.Response.fromStream(streamed);
+      res = await http.Response.fromStream(streamed).timeout(ApiConfig.timeout);
     } on TimeoutException {
       throw const ApiException(
         0,
@@ -130,7 +140,7 @@ class ApiClient {
       onSessionExpired?.call();
     }
 
-    final text = utf8.decode(res.bodyBytes);
+    final text = utf8.decode(res.bodyBytes, allowMalformed: true);
     if (res.statusCode >= 200 && res.statusCode < 300) {
       if (text.isEmpty) return null;
       try {
@@ -172,6 +182,9 @@ class ApiClient {
           await store.save(refreshToken: refreshToken!);
           return true;
         }
+        return false;
+      } on ApiException catch (error) {
+        if (error.isNetwork) rethrow;
         return false;
       } catch (_) {
         return false;

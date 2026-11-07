@@ -83,6 +83,11 @@ class AppState extends ChangeNotifier {
   })?
   _tourBefore;
 
+  @override
+  void notifyListeners() {
+    if (!_disposed) super.notifyListeners();
+  }
+
   void refresh() => notifyListeners();
 
   @override
@@ -301,6 +306,7 @@ class AppState extends ChangeNotifier {
   }
 
   void toast(String msg, {String icon = 'check_circle'}) {
+    if (_disposed) return;
     toastId++;
     toastMessage = msg;
     toastIcon = icon;

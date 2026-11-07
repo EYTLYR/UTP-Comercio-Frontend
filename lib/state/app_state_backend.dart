@@ -13,6 +13,7 @@ extension NearbyBackend on AppState {
     useApi = true;
     api.onSessionExpired = _sessionExpired;
     final saved = await api.store.readRefreshToken();
+    if (_disposed) return;
     if (saved == null) {
       _showSplash();
       return;
@@ -214,7 +215,9 @@ extension NearbyBackend on AppState {
 
       if (pos.city != null && pos.city!.isNotEmpty) {
         resolvedZone = pos.city;
-        resolvedAddress = pos.region != null ? '${pos.city}, ${pos.region}' : pos.city;
+        resolvedAddress = pos.region != null
+            ? '${pos.city}, ${pos.region}'
+            : pos.city;
       }
 
       try {
@@ -238,7 +241,8 @@ extension NearbyBackend on AppState {
                 addr['city_district'] ??
                 addr['suburb'] ??
                 addr['city'] ??
-                addr['town'] ?? pos.city ??
+                addr['town'] ??
+                pos.city ??
                 '';
             if (road.isNotEmpty && district.isNotEmpty) {
               resolvedAddress = '$road $num, $district'
@@ -262,6 +266,13 @@ extension NearbyBackend on AppState {
           'Ubicación actual (${pos.lat.toStringAsFixed(4)}, ${pos.lng.toStringAsFixed(4)})';
     } else {
       regAddress = 'Jr. Las Flores 245, SJL';
+    }
+    if (pos.real && location.approximate) {
+      regAddress = 'Ubicación aproximada: $regAddress';
+      toast(
+        'Ubicación aproximada por red. Revisa la zona antes de continuar.',
+        icon: 'location_on',
+      );
     }
     regLoc = 'ok';
     refresh();
@@ -615,6 +626,7 @@ extension NearbyBackend on AppState {
   // ================================================================ sondeo
 
   void _startPolling() {
+    if (_disposed) return;
     _stopPolling();
     _pollTimer = Timer.periodic(const Duration(seconds: 20), (_) => _poll());
     _chatTimer = Timer.periodic(const Duration(seconds: 4), (_) {

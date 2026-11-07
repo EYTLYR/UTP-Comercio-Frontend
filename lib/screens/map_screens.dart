@@ -596,6 +596,7 @@ class _MapScreenState extends State<MapScreen> {
           child: _demo
               ? DemoMapScreen(state: widget.state, theme: widget.theme)
               : LiveMap(
+                  location: widget.state.location,
                   pins: filtered,
                   onOpenPin: (pin) {
                     if (pin.svc != null) {

@@ -118,3 +118,5 @@ Los números de emergencia abren el marcador para confirmar la llamada. Otros n�
 El mapa usa OpenStreetMap y los pines con coordenadas del backend. «Mi ubicación» solicita acceso al GPS. Se puede navegar sin concederlo; la cartografía necesita conexión. Los ejemplos siguen disponibles únicamente en desarrollo y no se colocan sobre la posición real del usuario. Los avisos aparecen al pie con una barra de duración y se descartan con un deslizamiento o el botón cerrar.
 
 Si aparece el error de SDK `android-37`, ejecuta `flutter pub get` con este `pubspec.lock`: `permission_handler` permanece fijado en `12.0.1`, compatible con el SDK del proyecto. Los avisos de versiones más nuevas disponibles no son errores y no requieren actualizar las versiones principales.
+
+La detección de ubicación es compartida por registro y mapa: intenta GPS y después usa la red/IP si está disponible. La posición por IP se muestra como aproximada y debe revisarse al confirmar la zona. Si el backend está apagado, la app puede abrirse, pero solicitar/verificar SMS y sincronizar datos requiere levantar el servidor; un fallo temporal de red durante la renovación no cierra la sesión.

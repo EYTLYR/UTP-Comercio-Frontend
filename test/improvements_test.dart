@@ -302,8 +302,10 @@ void main() {
     final voice = FakeSpeechInput();
     final state = AppState(voice: voice)..openSheet('voice');
     await tester.pumpWidget(harness(state));
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(find.text('Activar micrófono'));
     await tester.pump();
+    expect(voice.listening, isTrue);
     voice.recognize('Texto sin confirmar');
     await tester.pump();
     await tester.tapAt(const Offset(10, 20));
