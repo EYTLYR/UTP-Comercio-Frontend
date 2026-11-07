@@ -19,185 +19,221 @@ class SosScreen extends StatelessWidget {
     return Container(
       color: NearbyColors.sos,
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Top bar
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  InkWell(
-                    onTap: () => state.back(),
-                    borderRadius: BorderRadius.circular(999),
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.18),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.close, color: Colors.white),
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      Icon(
-                        state.offline ? Icons.sms : Icons.my_location,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        state.offline ? 'Modo SMS' : 'Ubicación lista',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              Text(
-                'Emergencia',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight - 34,
                 ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Mantén presionado el botón 2 segundos.',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
-
-              // Big Center Hold Button
-              Center(
-                child: SosHoldButton(
-                  size: 200,
-                  isLarge: true,
-                  onComplete: () {
-                    state.sosType = null;
-                    state.go('sos-countdown');
-                  },
-                  onCancelShort: () {
-                    state.toast(
-                      'Mantén presionado 2 segundos para enviar la alerta',
-                      icon: 'touch_app',
-                    );
-                  },
-                ),
-              ),
-              const Spacer(),
-
-              // What happens info list
-              _whatRow(
-                Icons.groups,
-                'Alerta a los vecinos y la brigada en 500 m',
-              ),
-              const SizedBox(height: 8),
-              _whatRow(
-                Icons.share_location,
-                'Tu ubicación a 3 contactos ${state.offline ? "por SMS" : "(en vivo)"}',
-              ),
-              const SizedBox(height: 8),
-              _whatRow(Icons.crisis_alert, 'Puedes activar el modo emergencia'),
-
-              const SizedBox(height: 18),
-              const Text(
-                'O llama directo',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              // 4 Direct emergency call buttons
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 8,
-                childAspectRatio: 2.4,
-                children: kCalls.map((c) {
-                  return InkWell(
-                    onTap: () => state.startCall(c.num),
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.surface,
-                        border: Border.all(color: theme.line),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              color: theme.sosSoft,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              c.icon,
-                              color: NearbyColors.sos,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  c.num,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 16,
-                                    color: theme.ink,
-                                    height: 1.1,
-                                  ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Top bar + Header
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            PressableScale(
+                              scale: 0.92,
+                              onTap: () => state.back(),
+                              child: Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.18),
+                                  shape: BoxShape.circle,
                                 ),
+                                child: const Icon(Icons.close, color: Colors.white),
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                Icon(
+                                  state.offline ? Icons.sms : Icons.my_location,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 6),
                                 Text(
-                                  c.label,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: theme.muted,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
+                                  state.offline ? 'Modo SMS' : 'Ubicación lista',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 13,
                                   ),
                                 ),
                               ],
                             ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        const Text(
+                          'Emergencia',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            letterSpacing: -0.5,
                           ),
-                        ],
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Mantén presionado el botón 2 segundos.',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // Big Center Hold Button
+                    Center(
+                      child: SosHoldButton(
+                        size: constraints.maxHeight < 680 ? 172 : 196,
+                        isLarge: true,
+                        onComplete: () {
+                          state.sosType = null;
+                          state.go('sos-countdown');
+                        },
+                        onCancelShort: () {
+                          state.toast(
+                            'Mantén presionado 2 segundos para enviar la alerta',
+                            icon: 'touch_app',
+                          );
+                        },
                       ),
                     ),
-                  );
-                }).toList(),
+
+                    const SizedBox(height: 18),
+
+                    // Info pills
+                    Column(
+                      children: [
+                        _whatRow(
+                          Icons.groups,
+                          'Alerta a los vecinos y la brigada en 500 m',
+                        ),
+                        const SizedBox(height: 8),
+                        _whatRow(
+                          Icons.share_location,
+                          'Tu ubicación a 3 contactos ${state.offline ? "por SMS" : "(en vivo)"}',
+                        ),
+                        const SizedBox(height: 8),
+                        _whatRow(
+                          Icons.crisis_alert,
+                          'Puedes activar el modo emergencia',
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // Direct Emergency Call Buttons
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text(
+                          'O llama directo',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        GridView.count(
+                          crossAxisCount: 2,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                          childAspectRatio: 2.45,
+                          children: kCalls.map((c) {
+                            return PressableScale(
+                              scale: 0.96,
+                              onTap: () => state.startCall(c.num),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: theme.surface,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.08),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 38,
+                                      height: 38,
+                                      decoration: BoxDecoration(
+                                        color: theme.sosSoft,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Icon(
+                                        c.icon,
+                                        color: NearbyColors.sos,
+                                        size: 20,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            c.num,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 16,
+                                              color: theme.ink,
+                                              height: 1.1,
+                                            ),
+                                          ),
+                                          Text(
+                                            c.label,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: theme.muted,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
