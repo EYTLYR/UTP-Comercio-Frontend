@@ -131,6 +131,6 @@ La barra de ubicación muestra la zona guardada en el perfil. Al tocarla se abre
 
 El tutorial desplaza automáticamente la vista hasta la acción de cada paso, incluso si se inicia desde el pie de la página. Los servicios de práctica se aíslan de los datos del backend y se restauran al salir.
 
-Los filtros del mapa se abren desde el botón de capas en la esquina superior derecha y «Mi ubicación» queda en el borde inferior derecho, por encima de la navegación. El mapa no muestra un panel informativo permanente: la ficha aparece solo al tocar un punto y se cierra al tocar el mapa. La atribución cartográfica permanece en una esquina.
+Los filtros del mapa se muestran en una fila con desplazamiento horizontal cuando no caben y «Mi ubicación» queda en el borde inferior derecho, por encima de la navegación. El mapa no muestra un panel informativo permanente: la ficha aparece solo al tocar un punto y se cierra al tocar el mapa. La atribución cartográfica permanece en una esquina.
 
 Los controles del mapa tienen un margen de 4 px respecto al área visible entre las barras. Solo la cartografía se desvanece bajo la navegación; los botones permanecen opacos y accesibles.

@@ -623,29 +623,50 @@ class _MapScreenState extends State<MapScreen> {
         Positioned(
           key: const ValueKey('map-filter-control'),
           top: insets.top + 4,
+          left: 4,
           right: 4,
-          child: Material(
-            color: widget.theme.surface,
-            elevation: 3,
-            shape: const CircleBorder(),
-            child: PopupMenuButton<String>(
-              tooltip: 'Filtrar puntos del mapa',
-              icon: const Icon(Icons.layers_outlined),
-              initialValue: widget.state.mapFilter,
-              onSelected: (id) {
-                widget.state.mapFilter = id;
-                widget.state.mapSel = null;
-                widget.state.refresh();
+          child: SizedBox(
+            height: MediaQuery.textScalerOf(context).scale(16) + 32,
+            child: ListView.separated(
+              key: const ValueKey('map-filter-strip'),
+              scrollDirection: Axis.horizontal,
+              padding: EdgeInsets.zero,
+              itemCount: filters.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (_, index) {
+                final filter = filters[index];
+                final selected = widget.state.mapFilter == filter.$1;
+                return FilterChip(
+                  label: Text(filter.$2, maxLines: 1),
+                  selected: selected,
+                  onSelected: (_) {
+                    widget.state.mapFilter = filter.$1;
+                    widget.state.mapSel = null;
+                    widget.state.refresh();
+                  },
+                  backgroundColor: widget.theme.surface,
+                  selectedColor: widget.theme.primarySoft,
+                  checkmarkColor: widget.theme.primaryDark,
+                  labelStyle: TextStyle(
+                    color: selected
+                        ? widget.theme.primaryDark
+                        : widget.theme.ink,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  side: BorderSide(
+                    color: selected
+                        ? widget.theme.primarySoft
+                        : widget.theme.line,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                );
               },
-              itemBuilder: (_) => filters
-                  .map(
-                    (filter) => CheckedPopupMenuItem<String>(
-                      value: filter.$1,
-                      checked: widget.state.mapFilter == filter.$1,
-                      child: Text(filter.$2),
-                    ),
-                  )
-                  .toList(),
             ),
           ),
         ),

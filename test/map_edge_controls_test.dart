@@ -60,19 +60,48 @@ void main() {
       expect(find.text('Explora el mapa o pulsa Mi ubicación.'), findsNothing);
       expect(find.text('© OpenStreetMap contributors'), findsOneWidget);
       expect(find.byTooltip('Ver ejemplos'), findsNothing);
-      await tester.tap(find.byTooltip('Filtrar puntos del mapa'));
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is CheckedPopupMenuItem<String> && widget.value == 'svc',
-        ),
-      );
-      await tester.pumpAndSettle();
+      await tester.tap(find.text('Servicios'));
+      await tester.pump();
       expect(state.mapFilter, 'svc');
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
       state.dispose();
     },
   );
+  testWidgets('emergency filters scroll horizontally to the last option', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final state = AppState()..emergency = true;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MapScreen(
+            state: state,
+            theme: NearbyThemeData.build(
+              dark: false,
+              lg: false,
+              hc: false,
+              emergency: true,
+            ),
+            tileProvider: LocalTiles(),
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+    final strip = find.byKey(const ValueKey('map-filter-strip'));
+    expect(tester.widget<ListView>(strip).scrollDirection, Axis.horizontal);
+    await tester.drag(strip, const Offset(-500, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Apoyo'));
+    await tester.pump();
+    expect(state.mapFilter, 'group');
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    state.dispose();
+  });
 }
