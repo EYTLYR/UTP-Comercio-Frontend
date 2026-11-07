@@ -110,9 +110,7 @@ class NearbyBottomSheetModal extends StatelessWidget {
               ),
             ),
           ),
-        ),
-      ],
-    );
+        );
   }
 
   Widget _buildAiRunSheet(BuildContext context) {

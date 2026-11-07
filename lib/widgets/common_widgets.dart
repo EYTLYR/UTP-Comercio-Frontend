@@ -910,7 +910,7 @@ class _PressableScaleState extends State<PressableScale> {
     return GestureDetector(
       onTapDown: widget.onTap != null ? (_) => setState(() => _pressed = true) : null,
       onTapUp: widget.onTap != null ? (_) => setState(() => _pressed = false) : null,
-      onTapCancel: widget.onTap != null ? (_) => setState(() => _pressed = false) : null,
+      onTapCancel: widget.onTap != null ? () => setState(() => _pressed = false) : null,
       onTap: widget.onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedScale(
