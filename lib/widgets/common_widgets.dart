@@ -6,6 +6,7 @@ import '../models/models.dart';
 import '../state/app_state.dart';
 import '../theme/nearby_theme.dart';
 import 'nearby_logo.dart';
+import 'zone_picker.dart';
 
 // --- Animated SOS Hold Button ---
 class SosHoldButton extends StatefulWidget {
@@ -251,7 +252,10 @@ class NearbyTopBar extends StatelessWidget {
           Expanded(
             child: PressableScale(
               key: const ValueKey('zone-map'),
-              onTap: () => state.selectTab('mapa'),
+              onTap: () {
+                state.selectTab('mapa');
+                showZonePicker(context, state, theme);
+              },
               child: Container(
                 constraints: const BoxConstraints(minHeight: 42),
                 padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -276,7 +280,7 @@ class NearbyTopBar extends StatelessWidget {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        'Zona 3 · Las Flores',
+                        state.visibleZoneName,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 13.5,
@@ -365,12 +369,14 @@ class NearbyTopBarBack extends StatelessWidget {
   final NearbyThemeData theme;
   final AppState state;
   final String title;
+  final bool emergencyStyle;
 
   const NearbyTopBarBack({
     super.key,
     required this.theme,
     required this.state,
     required this.title,
+    this.emergencyStyle = false,
   });
 
   @override
@@ -386,11 +392,21 @@ class NearbyTopBarBack extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: theme.surface,
+                color: emergencyStyle
+                    ? Colors.white.withValues(alpha: .08)
+                    : theme.surface,
                 shape: BoxShape.circle,
-                border: Border.all(color: theme.line),
+                border: Border.all(
+                  color: emergencyStyle
+                      ? Colors.white.withValues(alpha: .2)
+                      : theme.line,
+                ),
               ),
-              child: Icon(Icons.arrow_back, color: theme.ink, size: 22),
+              child: Icon(
+                Icons.arrow_back,
+                color: emergencyStyle ? Colors.white : theme.ink,
+                size: 22,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -401,7 +417,7 @@ class NearbyTopBarBack extends StatelessWidget {
               style: TextStyle(
                 fontSize: 19,
                 fontWeight: FontWeight.w800,
-                color: theme.ink,
+                color: emergencyStyle ? Colors.white : theme.ink,
               ),
             ),
           ),
@@ -457,7 +473,6 @@ class NearbyEmergencyBanner extends StatelessWidget {
       key: state.tourTarget('em-banner'),
       onTap: () => state.openSheet('em'),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
         decoration: const BoxDecoration(
           color: NearbyColors.navy,

@@ -132,6 +132,8 @@ void main() {
         'home-large',
         'home-scrolled',
         'profile-toggles',
+        'profile-emergency',
+        'publish-emergency',
         'home-contrast',
         'sos-countdown',
         'login',
@@ -144,12 +146,17 @@ void main() {
         'voice',
         'permissions',
       ]) {
+        state.emergency = screen.endsWith('-emergency');
         state.lg = screen == 'home-large';
         state.hc = screen == 'home-contrast';
         if (screen == 'home-large' ||
             screen == 'home-contrast' ||
             screen == 'home-scrolled') {
           state.go('home');
+        } else if (screen == 'profile-emergency') {
+          state.go('perfil');
+        } else if (screen == 'publish-emergency') {
+          state.go('publicar');
         } else if (screen == 'profile-toggles') {
           state.go('perfil');
         } else if (screen == 'tutorial') {
@@ -169,7 +176,7 @@ void main() {
                 : harness(state),
           ),
         );
-        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump(const Duration(milliseconds: 350));
         if (screen == 'profile-toggles') {
           await Scrollable.ensureVisible(
             tester.element(find.text('Texto grande')),

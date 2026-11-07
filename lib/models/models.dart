@@ -188,6 +188,28 @@ class PublishType {
   });
 }
 
+class BrowseZone {
+  final String id, name, district;
+  final double latitude, longitude;
+  final int radius;
+  const BrowseZone({
+    required this.id,
+    required this.name,
+    required this.district,
+    required this.latitude,
+    required this.longitude,
+    required this.radius,
+  });
+  factory BrowseZone.fromJson(Map<String, dynamic> json) => BrowseZone(
+    id: json['id'] as String,
+    name: json['name'] as String,
+    district: json['district'] as String? ?? '',
+    latitude: (json['centerLat'] as num).toDouble(),
+    longitude: (json['centerLng'] as num).toDouble(),
+    radius: (json['radiusM'] as num).toInt(),
+  );
+}
+
 class MapPin {
   final double? latitude;
   final double? longitude;

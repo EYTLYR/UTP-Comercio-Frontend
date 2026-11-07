@@ -36,7 +36,7 @@ final List<TourStepDef> kMainTourSteps = [
   ),
   const TourStepDef(
     title: 'Llamadas de emergencia',
-    desc: 'Con un toque llamas a la Policía (105), Bomberos (116) o SAMU (106). La app comparte tu ubicación con la central.',
+    desc: 'Puedes abrir una llamada a la Policía (105), Bomberos (116) o SAMU (106). Confirma el número en el marcador del teléfono.',
     btn: 'Siguiente',
   ),
   const TourStepDef(
@@ -202,24 +202,76 @@ class _InteractiveTourOverlayState extends State<InteractiveTourOverlay>
   @override
   void didChangeMetrics() => _schedule();
 
+  ScrollableState? _pageScroller() {
+    ScrollableState? found;
+    void visit(Element element) {
+      if (found != null) return;
+      if (element is StatefulElement && element.state is ScrollableState) {
+        final scroll = element.state as ScrollableState;
+        if (axisDirectionToAxis(scroll.axisDirection) == Axis.vertical) {
+          found = scroll;
+          return;
+        }
+      }
+      element.visitChildElements(visit);
+    }
+
+    final root = widget.state.tourViewportKey.currentContext;
+    if (root is Element) root.visitChildElements(visit);
+    return found;
+  }
+
   void _schedule() {
     final generation = ++_generation;
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted || generation != _generation) return;
-      final targetContext =
-          widget.state.tourTargets[_targetName]?.currentContext;
-      if (targetContext == null) return;
-      await Scrollable.ensureVisible(targetContext, alignment: 0.45);
-      if (!mounted || generation != _generation || !targetContext.mounted) {
-        return;
-      }
-      _measure(targetContext);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && generation == _generation && targetContext.mounted) {
-          _measure(targetContext);
+    void reveal(int attempt) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted || generation != _generation) return;
+        final targetName = _targetName;
+        if (targetName == null) {
+          if (widget.state.tourIndex == 0) {
+            final scroll = _pageScroller();
+            if (scroll != null && scroll.position.hasContentDimensions) {
+              scroll.position.jumpTo(scroll.position.minScrollExtent);
+            }
+          }
+          return;
         }
+        final targetContext =
+            widget.state.tourTargets[targetName]?.currentContext;
+        if (targetContext == null) {
+          // Lazy lists dispose off-screen targets. Reveal a viewport first,
+          // then measure the target after Flutter has built its elements.
+          final scroll = _pageScroller();
+          if (scroll != null &&
+              scroll.position.hasContentDimensions &&
+              attempt < 16) {
+            final position = scroll.position;
+            final offset = attempt == 0
+                ? position.minScrollExtent
+                : (position.pixels + position.viewportDimension * .65).clamp(
+                    position.minScrollExtent,
+                    position.maxScrollExtent,
+                  );
+            position.jumpTo(offset);
+            reveal(attempt + 1);
+            WidgetsBinding.instance.scheduleFrame();
+          }
+          return;
+        }
+        await Scrollable.ensureVisible(targetContext, alignment: .45);
+        if (!mounted || generation != _generation || !targetContext.mounted) {
+          return;
+        }
+        _measure(targetContext);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && generation == _generation && targetContext.mounted) {
+            _measure(targetContext);
+          }
+        });
       });
-    });
+    }
+
+    reveal(0);
   }
 
   void _measure(BuildContext targetContext) {

@@ -72,6 +72,7 @@ class AppState extends ChangeNotifier {
   /// Nearby API. Sin sesión (pruebas, demo) la app usa los datos de ejemplo.
   final ApiClient api;
   final LocationService location;
+  final tourViewportKey = GlobalKey();
   final Map<String, GlobalKey> tourTargets = {};
   GlobalKey tourTarget(String name) =>
       tourTargets.putIfAbsent(name, () => GlobalKey(debugLabel: name));
@@ -83,6 +84,7 @@ class AppState extends ChangeNotifier {
     String category,
     String service,
     PublishDraft draft,
+    List<ServiceItem> services,
   })?
   _tourBefore;
 
@@ -119,6 +121,45 @@ class AppState extends ChangeNotifier {
   String role = 'NEIGHBOR';
   String? zoneId;
   String zoneName = 'Zona 3 · Las Flores';
+  double? homeZoneLat, homeZoneLng;
+  BrowseZone? viewedZone;
+  int zoneViewRevision = 0;
+  String get visibleZoneName =>
+      screen == 'mapa' && viewedZone != null ? viewedZone!.name : zoneName;
+  Future<List<BrowseZone>> fetchZones() async {
+    if (!connected) return [];
+    return (await api.get('zones') as List)
+        .map(
+          (row) => BrowseZone.fromJson(Map<String, dynamic>.from(row as Map)),
+        )
+        .toList();
+  }
+
+  Future<void> browseZone(BrowseZone? zone) async {
+    viewedZone = zone?.id == zoneId ? null : zone;
+    zoneViewRevision++;
+    mapSel = null;
+    mapFilter = 'all';
+    if (connected) {
+      normalPins = [];
+      emergencyPins = [];
+    }
+    selectTab('mapa');
+    if (connected) await _loadPins();
+  }
+
+  void _finishZoneBrowsing() {
+    if (viewedZone == null) return;
+    viewedZone = null;
+    zoneViewRevision++;
+    mapSel = null;
+    if (connected) {
+      normalPins = [];
+      emergencyPins = [];
+      unawaited(_loadPins());
+    }
+  }
+
   String effectiveMode = 'NORMAL';
   double? regLat;
   double? regLng;
@@ -326,6 +367,7 @@ class AppState extends ChangeNotifier {
   }
 
   void go(String name, {bool reset = false}) {
+    if (name != 'mapa') _finishZoneBrowsing();
     if (screen == 'llamada' && name != 'llamada' && internetCall.active) {
       unawaited(internetCall.end());
     }
@@ -357,6 +399,7 @@ class AppState extends ChangeNotifier {
     } else {
       screen = 'home';
     }
+    if (screen != 'mapa') _finishZoneBrowsing();
     sheet = null;
     notifyListeners();
     checkTourEvent('screen:$screen');
@@ -1087,6 +1130,7 @@ class AppState extends ChangeNotifier {
       offline: offline,
       category: servCat,
       service: selService,
+      services: services,
       draft: PublishDraft(
         step: pub.step,
         type: pub.type,
@@ -1099,6 +1143,7 @@ class AppState extends ChangeNotifier {
     sheet = null;
     screen = 'home';
     hist.clear();
+    services = List.of(kInitialServices);
     pub.reset();
     servCat = 'all';
     emergency = name == 'em';
@@ -1137,6 +1182,7 @@ class AppState extends ChangeNotifier {
       servCat = before.category;
       selService = before.service;
       pub = before.draft;
+      services = before.services;
     }
     sheet = null;
     if (name == 'em') seenEmTour = true;

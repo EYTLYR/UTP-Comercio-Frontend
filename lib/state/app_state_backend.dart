@@ -119,6 +119,8 @@ extension NearbyBackend on AppState {
       phone: user?['phone'] as String?,
     );
     connected = true;
+    viewedZone = null;
+    zoneViewRevision++;
     _resetToServerData();
     if (user != null) _applyUser(user);
     await loadAll();
@@ -151,6 +153,7 @@ extension NearbyBackend on AppState {
   }
 
   void _applyUser(Map<String, dynamic> u) {
+    if (tourName != null) return;
     userId = u['id'] as String?;
     final name = u['name'] as String?;
     if (name != null && name.isNotEmpty) userName = name;
@@ -158,8 +161,15 @@ extension NearbyBackend on AppState {
     role = (u['role'] as String?) ?? 'NEIGHBOR';
     aiConsent = u['aiConsent'] != false;
     final zone = u['zone'] as Map<String, dynamic>?;
+    final previousZone = zoneId;
     zoneId = zone?['id'] as String?;
-    zoneName = (zone?['name'] as String?) ?? zoneName;
+    homeZoneLat = (zone?['centerLat'] as num?)?.toDouble();
+    homeZoneLng = (zone?['centerLng'] as num?)?.toDouble();
+    if (previousZone != zoneId) {
+      viewedZone = null;
+      zoneViewRevision++;
+    }
+    zoneName = (zone?['name'] as String?) ?? 'Sin zona guardada';
     final zoneMode = zone?['mode'] as String?;
     final mode = (u['effectiveMode'] as String?) ?? 'NORMAL';
     final wasEmergency = emergency;
@@ -191,6 +201,12 @@ extension NearbyBackend on AppState {
     } catch (_) {}
     await api.clearSession();
     connected = false;
+    viewedZone = null;
+    homeZoneLat = null;
+    homeZoneLng = null;
+    zoneId = null;
+    zoneName = 'Sin zona guardada';
+    zoneViewRevision++;
     regPending = false;
     emergency = false;
     zoneEm = false;
@@ -437,6 +453,7 @@ extension NearbyBackend on AppState {
       query: {'size': 50, 'sort': 'endorsements'},
     );
     final list = (page['content'] as List).cast<Map<String, dynamic>>();
+    if (tourName != null) return;
     services = list.map(Api2App.service).toList();
     vbGiven = {
       for (final j in list) j['id'] as String: j['endorsedByMe'] == true,
@@ -524,14 +541,24 @@ extension NearbyBackend on AppState {
   });
 
   Future<void> _loadPins() => _quiet(() async {
-    final daily = (await api.get('map/pins', query: {'layer': 'daily'}) as List)
-        .cast<Map<String, dynamic>>();
-    normalPins = daily.map(Api2App.pin).toList();
+    final revision = zoneViewRevision;
+    final selected = viewedZone;
+    final query = <String, Object?>{
+      if (selected != null) 'zoneId': selected.id,
+      if (selected != null) 'radiusM': selected.radius,
+    };
+    final daily = (await api.get(
+      'map/pins',
+      query: {...query, 'layer': 'daily'},
+    ) as List).cast<Map<String, dynamic>>();
     final em = (await api.get(
       'map/pins',
-      query: {'layer': 'emergency'},
+      query: {...query, 'layer': 'emergency'},
     ) as List).cast<Map<String, dynamic>>();
+    if (_disposed || revision != zoneViewRevision) return;
+    normalPins = daily.map(Api2App.pin).toList();
     emergencyPins = em.map(Api2App.pin).toList();
+    refresh();
   });
 
   Future<void> _loadInventory() => _quiet(() async {
@@ -598,7 +625,7 @@ extension NearbyBackend on AppState {
 
   /// Recarga lo que muestra cada pantalla al entrar a ella.
   void _onEnter(String name) {
-    if (!connected) return;
+    if (!connected || tourName != null) return;
     switch (name) {
       case 'servicios':
         _loadServices().then((_) => refresh());
@@ -637,7 +664,7 @@ extension NearbyBackend on AppState {
   }
 
   Future<void> _incomingVoiceCall() async {
-    if (_disposed || internetCall.active) return;
+    if (_disposed || internetCall.active || tourName != null) return;
     if (await internetCall.checkIncoming() && !_disposed) {
       final incoming = internetCall.details!;
       final name = incoming['callerName'] as String? ?? 'Vecino';
@@ -656,7 +683,7 @@ extension NearbyBackend on AppState {
   }
 
   Future<void> _poll() async {
-    if (!connected || offline) return;
+    if (!connected || offline || tourName != null) return;
     await _loadMe();
     await _checkNearbySos();
     if (emergency) await _loadReports();

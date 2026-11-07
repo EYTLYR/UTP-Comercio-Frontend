@@ -123,6 +123,10 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('zone-map')));
     await tester.pump();
     expect(state.screen, 'mapa');
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.text('Explorar zonas'), findsOneWidget);
+    await tester.tap(find.byTooltip('Cerrar zonas'));
+    await tester.pump(const Duration(milliseconds: 350));
     await tester.tap(find.byKey(state.tourTarget('profile')));
     await tester.pump();
     expect(state.screen, 'perfil');

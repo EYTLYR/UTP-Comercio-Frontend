@@ -115,7 +115,7 @@ El acceso usa `/api/v1/auth/otp/request` y `/api/v1/auth/otp/verify` del cliente
 
 Los números de emergencia abren el marcador para confirmar la llamada. Otros números registrados usan el permiso `CALL_PHONE` en Android; si se rechaza, se abre el marcador. En otras plataformas se usa `tel:`. Los contactos sin teléfono registrado no simulan una llamada. Los controles de audio y la duración corresponden a la aplicación Teléfono.
 
-El mapa usa OpenStreetMap y los pines con coordenadas del backend. «Mi ubicación» solicita acceso al GPS. Se puede navegar sin concederlo; la cartografía necesita conexión. Los ejemplos siguen disponibles únicamente en desarrollo y no se colocan sobre la posición real del usuario. Los avisos aparecen al pie con una barra de duración y se descartan con un deslizamiento o el botón cerrar.
+El mapa usa OpenStreetMap y los pines con coordenadas del backend. «Mi ubicación» solicita acceso al GPS. Se puede navegar sin concederlo; la cartografía necesita conexión. El mapa utiliza los puntos geográficos del backend y no incluye una opción de ejemplos. Los avisos aparecen al pie con una barra de duración y se descartan con un deslizamiento o el botón cerrar.
 
 Si aparece el error de SDK `android-37`, ejecuta `flutter pub get` con este `pubspec.lock`: `permission_handler` permanece fijado en `12.0.1`, compatible con el SDK del proyecto. Los avisos de versiones más nuevas disponibles no son errores y no requieren actualizar las versiones principales.
 
@@ -126,3 +126,11 @@ La detección de ubicación es compartida por registro y mapa: intenta GPS y des
 La pantalla de llamada permite elegir audio dentro de Nearby (WebRTC), llamada celular o marcador del teléfono. WebRTC funciona entre participantes de una conversación existente; desde un servicio se abre su conversación al llamar. Ambos usuarios deben iniciar sesión y mantener Nearby abierto. El micrófono se solicita al iniciar o aceptar, nunca al recibir la invitación. Hay controles reales de silencio, altavoz en móvil y colgar; abandonar la pantalla detiene la llamada. Las llamadas de emergencia usan el marcador del sistema y no se conectan por WebRTC.
 
 Se necesita el backend actualizado (`/api/v1/calls`). La señalización requiere autenticación y no graba audio. Su estado es temporal y corresponde a una sola instancia del backend; para varias réplicas se requiere almacenamiento compartido. Para redes que impiden una conexión directa, configura un relay TURN en el backend con `NEARBY_TURN_URL` y `NEARBY_TURN_SECRET`; este genera credenciales temporales. Las llamadas en segundo plano o con la app cerrada requieren una integración adicional de notificaciones/telefonía del sistema. La conexión de voz debe probarse entre dos dispositivos antes de publicar.
+
+La barra de ubicación muestra la zona guardada en el perfil. Al tocarla se abre el mapa y un selector de las zonas registradas en el backend. La consulta de otra zona solo muestra sus servicios y puntos públicos; no cambia la zona del usuario ni el destino de sus alertas. Al salir del mapa vuelve a la zona propia. En modo emergencia la cabecera y el aviso comparten el fondo azul oscuro; el contenido conserva el tema claro u oscuro elegido por el usuario.
+
+El tutorial desplaza automáticamente la vista hasta la acción de cada paso, incluso si se inicia desde el pie de la página. Los servicios de práctica se aíslan de los datos del backend y se restauran al salir.
+
+Los filtros del mapa se abren desde el botón de capas en la esquina superior derecha y «Mi ubicación» queda en el borde inferior derecho, por encima de la navegación. El mapa no muestra un panel informativo permanente: la ficha aparece solo al tocar un punto y se cierra al tocar el mapa. La atribución cartográfica permanece en una esquina.
+
+Los controles del mapa tienen un margen de 4 px respecto al área visible entre las barras. Solo la cartografía se desvanece bajo la navegación; los botones permanecen opacos y accesibles.

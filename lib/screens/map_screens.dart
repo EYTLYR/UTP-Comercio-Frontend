@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart' show TileProvider;
 
 import '../widgets/navigation_chrome.dart';
 
@@ -7,7 +8,6 @@ import '../theme/nearby_theme.dart';
 import '../widgets/map_view.dart';
 import '../widgets/live_map.dart';
 import '../models/models.dart';
-import '../config/app_environment.dart';
 
 // --- Interactive Map Screen ---
 class DemoMapScreen extends StatelessWidget {
@@ -552,21 +552,26 @@ class RouteScreen extends StatelessWidget {
 }
 
 class MapScreen extends StatefulWidget {
+  final TileProvider? tileProvider;
   final AppState state;
   final NearbyThemeData theme;
-  const MapScreen({super.key, required this.state, required this.theme});
+  const MapScreen({
+    super.key,
+    required this.state,
+    required this.theme,
+    this.tileProvider,
+  });
   @override
   State<MapScreen> createState() => _MapScreenState();
 }
 
 class _MapScreenState extends State<MapScreen> {
-  bool _demo = false;
   @override
   Widget build(BuildContext context) {
     if (!widget.state.networkMaps) {
       return DemoMapScreen(state: widget.state, theme: widget.theme);
     }
-    final insets = NavigationInsets.of(context);
+    final insets = NavigationInsets.controlsOf(context);
     final filters = widget.state.emergency
         ? const [
             ('all', 'Todo'),
@@ -593,59 +598,57 @@ class _MapScreenState extends State<MapScreen> {
     return Stack(
       children: [
         Positioned.fill(
-          child: _demo
-              ? DemoMapScreen(state: widget.state, theme: widget.theme)
-              : LiveMap(
-                  location: widget.state.location,
-                  pins: filtered,
-                  onOpenPin: (pin) {
-                    if (pin.svc != null) {
-                      widget.state.selService = pin.svc!;
-                      widget.state.go('svc');
-                    } else if (pin.go != null) {
-                      widget.state.go(pin.go!);
-                    }
-                  },
-                  topInset: insets.top,
-                  bottomInset: insets.bottom,
-                  onMessage: widget.state.toast,
-                ),
+          child: LiveMap(
+            tileProvider: widget.tileProvider,
+            key: ValueKey('zone-view-${widget.state.zoneViewRevision}'),
+            centerLat:
+                widget.state.viewedZone?.latitude ?? widget.state.homeZoneLat,
+            centerLng:
+                widget.state.viewedZone?.longitude ?? widget.state.homeZoneLng,
+            location: widget.state.location,
+            pins: filtered,
+            onOpenPin: (pin) {
+              if (pin.svc != null) {
+                widget.state.selService = pin.svc!;
+                widget.state.go('svc');
+              } else if (pin.go != null) {
+                widget.state.go(pin.go!);
+              }
+            },
+            topInset: insets.top,
+            bottomInset: insets.bottom,
+            onMessage: widget.state.toast,
+          ),
         ),
-        if (!_demo)
-          Positioned(
-            top: insets.top + 66,
-            left: 0,
-            right: 0,
-            child: SizedBox(
-              height: 48,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: filters.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 8),
-                itemBuilder: (_, i) => FilterChip(
-                  label: Text(filters[i].$2),
-                  selected: widget.state.mapFilter == filters[i].$1,
-                  onSelected: (_) {
-                    widget.state.mapFilter = filters[i].$1;
-                    widget.state.refresh();
-                  },
-                  backgroundColor: widget.theme.surface,
-                  selectedColor: widget.theme.primarySoft,
-                ),
-              ),
+        Positioned(
+          key: const ValueKey('map-filter-control'),
+          top: insets.top + 4,
+          right: 4,
+          child: Material(
+            color: widget.theme.surface,
+            elevation: 3,
+            shape: const CircleBorder(),
+            child: PopupMenuButton<String>(
+              tooltip: 'Filtrar puntos del mapa',
+              icon: const Icon(Icons.layers_outlined),
+              initialValue: widget.state.mapFilter,
+              onSelected: (id) {
+                widget.state.mapFilter = id;
+                widget.state.mapSel = null;
+                widget.state.refresh();
+              },
+              itemBuilder: (_) => filters
+                  .map(
+                    (filter) => CheckedPopupMenuItem<String>(
+                      value: filter.$1,
+                      checked: widget.state.mapFilter == filter.$1,
+                      child: Text(filter.$2),
+                    ),
+                  )
+                  .toList(),
             ),
           ),
-        if (AppEnvironment.showDevelopmentTools)
-          Positioned(
-            top: insets.top + (_demo ? 62 : 12),
-            left: 16,
-            child: FilledButton.tonalIcon(
-              onPressed: () => setState(() => _demo = !_demo),
-              icon: Icon(_demo ? Icons.public : Icons.science_outlined),
-              label: Text(_demo ? 'Volver al mapa real' : 'Ver ejemplos'),
-            ),
-          ),
+        ),
       ],
     );
   }

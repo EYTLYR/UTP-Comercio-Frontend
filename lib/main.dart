@@ -190,6 +190,7 @@ class NearbyMasterShell extends StatelessWidget {
     if (meta.full == 'navyfull') screenBg = NearbyColors.navy;
 
     return Container(
+      key: state.tourViewportKey,
       color: screenBg,
       child: Stack(
         children: [
@@ -206,10 +207,9 @@ class NearbyMasterShell extends StatelessWidget {
             'red',
           }.contains(state.screen))
             NavigationChrome(
+              childHandlesFade: state.screen == 'mapa',
               background: screenBg,
-              topBackground: state.emergency && meta.bar == 'main'
-                  ? NearbyColors.navy
-                  : screenBg,
+              topBackground: emUI ? NearbyColors.navy : screenBg,
               top: _topChrome(meta, emUI),
               bottom: meta.nav && MediaQuery.viewInsetsOf(context).bottom == 0
                   ? NearbyBottomNav(state: state, theme: theme)
@@ -246,20 +246,32 @@ class NearbyMasterShell extends StatelessWidget {
     );
   }
 
-  Widget _topChrome(ScreenMeta meta, bool emUI) => Column(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      if (meta.bar == 'main')
-        NearbyTopBar(state: state, theme: theme)
-      else if (meta.bar == 'back')
-        NearbyTopBarBack(
-          theme: theme,
-          state: state,
-          title: _getScreenTitle(state.screen, state),
-        ),
-      if (emUI) NearbyEmergencyBanner(state: state),
-      if (meta.bar != null && state.offline) NearbyOfflineBanner(state: state),
-    ],
+  Widget _topChrome(ScreenMeta meta, bool emUI) => Container(
+    key: const ValueKey('top-chrome'),
+    margin: EdgeInsets.only(bottom: emUI ? 10 : 0),
+    decoration: BoxDecoration(
+      color: emUI ? NearbyColors.navy : null,
+      borderRadius: emUI
+          ? const BorderRadius.vertical(bottom: Radius.circular(24))
+          : null,
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (meta.bar == 'main')
+          NearbyTopBar(state: state, theme: theme)
+        else if (meta.bar == 'back')
+          NearbyTopBarBack(
+            theme: theme,
+            state: state,
+            emergencyStyle: emUI,
+            title: _getScreenTitle(state.screen, state),
+          ),
+        if (emUI) NearbyEmergencyBanner(state: state),
+        if (meta.bar != null && state.offline)
+          NearbyOfflineBanner(state: state),
+      ],
+    ),
   );
 
   Widget _buildAnimatedScreen(String screen) {

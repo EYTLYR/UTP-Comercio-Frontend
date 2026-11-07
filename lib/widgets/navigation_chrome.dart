@@ -4,21 +4,54 @@ import 'package:flutter/rendering.dart';
 /// Scroll padding keeps the first and last items reachable above fixed controls.
 class NavigationInsets extends InheritedWidget {
   final EdgeInsets padding;
+  final EdgeInsets? controlPadding;
   const NavigationInsets({
     super.key,
     required this.padding,
+    this.controlPadding,
     required super.child,
   });
   static EdgeInsets of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<NavigationInsets>()?.padding ??
       EdgeInsets.zero;
+  static EdgeInsets controlsOf(BuildContext context) {
+    final data = context.dependOnInheritedWidgetOfExactType<NavigationInsets>();
+    return data?.controlPadding ?? data?.padding ?? EdgeInsets.zero;
+  }
+
   @override
   bool updateShouldNotify(NavigationInsets oldWidget) =>
-      oldWidget.padding != padding;
+      oldWidget.padding != padding ||
+      oldWidget.controlPadding != controlPadding;
+}
+
+class NavigationContentFade extends InheritedWidget {
+  final ShaderCallback shader;
+  const NavigationContentFade({
+    super.key,
+    required this.shader,
+    required super.child,
+  });
+  static Widget wrap(BuildContext context, Widget child) {
+    final data = context
+        .dependOnInheritedWidgetOfExactType<NavigationContentFade>();
+    return data == null
+        ? child
+        : ShaderMask(
+            blendMode: BlendMode.dstIn,
+            shaderCallback: data.shader,
+            child: child,
+          );
+  }
+
+  @override
+  bool updateShouldNotify(NavigationContentFade oldWidget) =>
+      oldWidget.shader != shader;
 }
 
 /// Content scrolls behind fixed, transparent bars and fades before their controls.
 class NavigationChrome extends StatefulWidget {
+  final bool childHandlesFade;
   final Widget top;
   final Widget? bottom;
   final Widget child;
@@ -27,6 +60,7 @@ class NavigationChrome extends StatefulWidget {
   const NavigationChrome({
     super.key,
     required this.top,
+    this.childHandlesFade = false,
     required this.child,
     required this.background,
     required this.topBackground,
@@ -78,19 +112,34 @@ class _NavigationChromeState extends State<NavigationChrome> {
               top: _topHeight + 24,
               bottom: bottomHeight == 0 ? 0 : bottomHeight + 56,
             ),
-            child: ShaderMask(
-              key: const ValueKey('navigation-content-fade'),
-              blendMode: BlendMode.dstIn,
-              shaderCallback: (rect) => LinearGradient(
+            controlPadding: EdgeInsets.only(
+              top: _topHeight,
+              bottom: bottomHeight,
+            ),
+            child: NavigationContentFade(
+              shader: (rect) => LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: colors,
                 stops: stops,
               ).createShader(rect),
-              child: widget.child,
+              child: widget.childHandlesFade
+                  ? widget.child
+                  : ShaderMask(
+                      key: const ValueKey('navigation-content-fade'),
+                      blendMode: BlendMode.dstIn,
+                      shaderCallback: (rect) => LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: colors,
+                        stops: stops,
+                      ).createShader(rect),
+                      child: widget.child,
+                    ),
             ),
           ),
-          if (widget.topBackground != widget.background)
+          if (widget.topBackground != widget.background &&
+              !widget.childHandlesFade)
             Positioned(
               top: 0,
               left: 0,
