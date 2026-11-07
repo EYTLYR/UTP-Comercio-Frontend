@@ -109,6 +109,14 @@ flutter test --dart-define=PREVIEW=true --dart-define=PREVIEW_WIDTH=390 --dart-d
 
 Las llamadas telefónicas y la transmisión por sonido siguen simuladas. Sin backend (pruebas de widgets), la app usa los datos de ejemplo y no persiste cambios. Nunito se incluye con su licencia en `assets/fonts/`.
 
+## Cola offline (SOS, reportes y favores sin internet)
+
+- **Persistencia:** lo que se envía sin internet (SOS, favores, reportes de vulnerables, mensajes y check-ins) se guarda primero en SQLite, en la tabla `outbox_queue` (`lib/services/outbox_storage.dart`, con `sqflite`), y recién después aparece en la pantalla. Si el sistema cierra la app, la cola se recupera al abrirla.
+- **Envío:** la cola sale en orden FIFO por `POST /sync/outbox`. Un elemento solo se borra de SQLite cuando el backend responde 2xx y lo marca `CREATED` o `DUPLICATE` (el `clientId` evita duplicados). Si lo marca `ERROR`, se reintenta hasta 3 veces. Sin respuesta, todo queda para el próximo intento.
+- **Red automática:** la app escucha `connectivity_plus`. Sin red, pasa sola a "sin conexión"; al volver los datos móviles, el wifi o el ethernet, envía la cola sin que el vecino haga nada. Un candado (`_isFlushing`) evita dos envíos a la vez si la señal va y viene.
+- **Al cerrar sesión** la cola se vacía, para que los pendientes no salgan con otra cuenta.
+- **En web** la cola queda solo en memoria, porque `sqflite` no funciona en el navegador.
+
 ## Sesión cifrada y ficha médica protegida
 
 - **Sesión:** el token de refresco y el celular se guardan con `flutter_secure_storage` (`lib/api/session_store.dart`). En Android se cifran con AES-GCM y la clave queda en el Keystore; en iOS van al Keychain, disponibles después del primer desbloqueo. Si había una sesión vieja en `SharedPreferences` (texto plano), se mueve al almacenamiento cifrado la primera vez y se borra.

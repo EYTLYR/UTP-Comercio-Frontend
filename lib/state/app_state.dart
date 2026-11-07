@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -11,6 +12,7 @@ import '../services/location_service.dart';
 import '../services/offline_tiles.dart';
 import '../services/device_actions.dart';
 import '../services/biometric_guard.dart';
+import '../services/outbox_storage.dart';
 import '../services/internet_call.dart';
 import '../services/speech_input.dart';
 import '../services/startup_permissions.dart';
@@ -75,6 +77,9 @@ class AppState extends ChangeNotifier {
   final ApiClient api;
   final LocationService location;
   final BiometricGuard biometric;
+
+  /// Cola offline en SQLite (sobrevive aunque el sistema cierre la app).
+  final OutboxStorage outboxStorage;
   final tourViewportKey = GlobalKey();
   final Map<String, GlobalKey> tourTargets = {};
   GlobalKey tourTarget(String name) =>
@@ -101,6 +106,7 @@ class AppState extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _connSub?.cancel();
     _pollTimer?.cancel();
     _chatTimer?.cancel();
     voice.dispose();
@@ -188,7 +194,16 @@ class AppState extends ChangeNotifier {
   Map<String, int> _vbBase = {};
   List<HistoryItem>? remoteInventory;
   List<HistoryItem> myLearnings = [];
-  final List<Map<String, Object?>> _outbox = [];
+  /// Envíos pendientes en orden FIFO. Copia en memoria de la tabla outbox_queue (SQLite).
+  final List<OutboxEntry> _outbox = [];
+
+  /// Candado: un solo envío de la cola a la vez aunque la señal vaya y venga.
+  bool _isFlushing = false;
+
+  /// true si la app pasó sola a "sin conexión" porque el teléfono perdió la red
+  /// (distinto del interruptor manual de la simulación).
+  bool _autoOffline = false;
+  StreamSubscription<List<ConnectivityResult>>? _connSub;
   final List<Future<void> Function()> _pendingCalls = [];
   final Set<String> _seenSos = {};
   final Set<String> _seenMsgIds = {};
@@ -407,10 +422,12 @@ class AppState extends ChangeNotifier {
     ApiClient? api,
     LocationService? location,
     BiometricGuard? biometric,
+    OutboxStorage? outboxStorage,
   }) : voice = voice ?? DeviceSpeechInput(),
        api = api ?? ApiClient(),
        location = location ?? LocationService(),
-       biometric = biometric ?? BiometricGuard() {
+       biometric = biometric ?? BiometricGuard(),
+       outboxStorage = outboxStorage ?? OutboxStorage() {
     internetCall.addListener(refresh);
     services = kInitialServices
         .map(

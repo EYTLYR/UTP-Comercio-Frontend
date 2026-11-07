@@ -12,6 +12,8 @@ extension NearbyBackend on AppState {
   Future<void> bootstrap() async {
     useApi = true;
     api.onSessionExpired = _sessionExpired;
+    await _restoreOutbox();
+    _watchConnectivity();
     final saved = await api.store.readRefreshToken();
     if (_disposed) return;
     if (saved == null) {
@@ -125,6 +127,8 @@ extension NearbyBackend on AppState {
     if (user != null) _applyUser(user);
     await loadAll();
     _startPolling();
+    // Lo que quedó encolado (incluso de antes de cerrar la app) sale apenas hay sesión.
+    if (_outbox.isNotEmpty && !offline) unawaited(_flushOutbox());
   }
 
   /// Sin datos de ejemplo una vez que hay sesión: todo viene del backend.
@@ -202,6 +206,9 @@ extension NearbyBackend on AppState {
     await api.clearSession();
     connected = false;
     closeMedicalCard();
+    // Los pendientes no deben salir después con otra cuenta.
+    _outbox.clear();
+    await outboxStorage.clear();
     viewedZone = null;
     homeZoneLat = null;
     homeZoneLng = null;
@@ -876,13 +883,10 @@ extension NearbyBackend on AppState {
     if (convId == null) return;
     final clientId = newClientId();
     if (offline) {
-      _outbox.add({
-        'kind': 'MESSAGE',
-        'payload': {
-          'conversationId': convId,
-          'clientId': clientId,
-          'text': text,
-        },
+      await _enqueue('MESSAGE', {
+        'conversationId': convId,
+        'clientId': clientId,
+        'text': text,
       });
       return;
     }
@@ -922,7 +926,7 @@ extension NearbyBackend on AppState {
               if (text.isNotEmpty) 'text': text,
             };
             if (offline) {
-              _outbox.add({'kind': 'POST', 'payload': payload});
+              await _enqueue('POST', payload);
             } else {
               await api.post('posts', body: payload);
               await _loadPosts();
@@ -941,7 +945,7 @@ extension NearbyBackend on AppState {
               'lng': pos.lng,
             };
             if (offline) {
-              _outbox.add({'kind': 'VULNERABLE_REPORT', 'payload': payload});
+              await _enqueue('VULNERABLE_REPORT', payload);
             } else {
               await api.post('vulnerable-reports', body: payload);
               await _loadReports();
@@ -997,32 +1001,136 @@ extension NearbyBackend on AppState {
     }
   }
 
-  /// Al volver la conexión: envía la cola en orden (POST /sync/outbox).
-  Future<void> _flushOutbox() async {
-    if (!connected) return;
-    if (_outbox.isNotEmpty) {
-      final items = List<Map<String, Object?>>.from(_outbox);
-      _outbox.clear();
-      try {
-        final results = await api.post('sync/outbox', body: items) as List;
-        final errors = results
-            .where((r) => r is Map && r['status'] == 'ERROR')
-            .length;
-        if (errors > 0) {
-          toast('$errors envío(s) no se pudieron sincronizar', icon: 'error');
-        }
-      } on ApiException catch (_) {
-        _outbox.insertAll(0, items);
+  /// Intentos que un envío rechazado por el backend (status ERROR) se vuelve a mandar.
+  static const _maxOutboxRetries = 3;
+
+  /// Encola un envío hecho sin internet: primero en SQLite (en una transacción) y recién después
+  /// en la cola en memoria y la pantalla, para que no se pierda si el sistema cierra la app.
+  Future<void> _enqueue(String kind, Map<String, Object?> payload) async {
+    final entry = OutboxEntry(
+      id: (payload['clientId'] as String?) ?? newClientId(),
+      type: kind,
+      payload: payload,
+    );
+    await outboxStorage.insert(entry);
+    if (_disposed) return;
+    _outbox.add(entry);
+    refresh();
+  }
+
+  /// Al abrir la app: recupera lo que quedó pendiente en SQLite.
+  Future<void> _restoreOutbox() async {
+    final saved = await outboxStorage.loadAll();
+    if (_disposed || saved.isEmpty) return;
+    final known = _outbox.map((e) => e.id).toSet();
+    _outbox.insertAll(0, saved.where((e) => !known.contains(e.id)));
+  }
+
+  /// Escucha los cambios de red. Sin red, la app pasa sola a "sin conexión" (los envíos se
+  /// encolan); al volver datos móviles, wifi o ethernet, envía la cola sin que el vecino haga nada.
+  void _watchConnectivity() {
+    if (_connSub != null) return;
+    try {
+      _connSub = Connectivity().onConnectivityChanged.listen(
+        _onConnectivity,
+        onError: (_) {},
+      );
+    } catch (_) {
+      // Sin el plugin (pruebas): no hay aviso automático.
+    }
+  }
+
+  void _onConnectivity(List<ConnectivityResult> results) {
+    if (_disposed) return;
+    final online = results.any(
+      (r) =>
+          r == ConnectivityResult.mobile ||
+          r == ConnectivityResult.wifi ||
+          r == ConnectivityResult.ethernet ||
+          r == ConnectivityResult.vpn,
+    );
+    if (!online) {
+      if (!offline) {
+        offline = true;
+        _autoOffline = true;
+        toast(
+          'Sin conexión: lo que envíes se guarda y sale solo al volver la señal',
+          icon: 'cloud_off',
+        );
       }
+      return;
     }
-    final calls = List<Future<void> Function()>.from(_pendingCalls);
-    _pendingCalls.clear();
-    for (final c in calls) {
-      try {
-        await c();
-      } catch (_) {}
+    if (_autoOffline) {
+      _autoOffline = false;
+      offline = false;
+      refresh();
     }
-    await loadAll();
+    if (!offline && (_outbox.isNotEmpty || _pendingCalls.isNotEmpty)) {
+      final n = _outbox.length;
+      _flushOutbox().then((_) {
+        if (n > 0 && _outbox.isEmpty && !_disposed) {
+          toast('Conexión recuperada · $n envío(s) sincronizado(s)', icon: 'cloud_done');
+        }
+      });
+    }
+  }
+
+  /// Envía la cola en orden (POST /sync/outbox). Solo borra de SQLite lo que el backend
+  /// confirmó con una respuesta 2xx; si no hay respuesta, todo queda para el próximo intento.
+  Future<void> _flushOutbox() async {
+    if (!connected || _isFlushing) return;
+    _isFlushing = true;
+    try {
+      if (_outbox.isNotEmpty) {
+        final batch = List<OutboxEntry>.from(_outbox);
+        try {
+          final results =
+              await api.post(
+                    'sync/outbox',
+                    body: batch.map((e) => e.toItem()).toList(),
+                  )
+                  as List;
+          // 2xx: el backend procesó la lista en orden; cada resultado es el de su elemento.
+          final done = <OutboxEntry>[];
+          final retry = <OutboxEntry>[];
+          var rejected = 0;
+          for (var i = 0; i < batch.length; i++) {
+            final r = i < results.length ? results[i] : null;
+            if (r is! Map) continue; // sin resultado: se reintenta tal cual
+            if (r['status'] == 'ERROR') {
+              final e = batch[i]..retryCount += 1;
+              if (e.retryCount >= _maxOutboxRetries) {
+                rejected++;
+                done.add(e);
+              } else {
+                retry.add(e);
+              }
+            } else {
+              done.add(batch[i]); // CREATED o DUPLICATE
+            }
+          }
+          await outboxStorage.delete(done.map((e) => e.id));
+          await outboxStorage.markRetry(retry);
+          final sent = done.map((e) => e.id).toSet();
+          _outbox.removeWhere((e) => sent.contains(e.id));
+          if (rejected > 0) {
+            toast('$rejected envío(s) no se pudieron sincronizar', icon: 'error');
+          }
+        } on ApiException catch (_) {
+          // Sin 2xx (sin red o servidor caído): todo sigue en SQLite y en la cola.
+        }
+      }
+      final calls = List<Future<void> Function()>.from(_pendingCalls);
+      _pendingCalls.clear();
+      for (final c in calls) {
+        try {
+          await c();
+        } catch (_) {}
+      }
+      await loadAll();
+    } finally {
+      _isFlushing = false;
+    }
   }
 
   // ================================================================ SOS
@@ -1049,7 +1157,7 @@ extension NearbyBackend on AppState {
       if (sosType != null) 'type': _sosTypes[sosType] ?? 'OTHER',
     };
     if (offline) {
-      _outbox.add({'kind': 'SOS', 'payload': payload});
+      await _enqueue('SOS', payload);
       return;
     }
     try {
@@ -1060,7 +1168,7 @@ extension NearbyBackend on AppState {
       refresh();
     } on ApiException catch (e) {
       if (e.isNetwork) {
-        _outbox.add({'kind': 'SOS', 'payload': payload});
+        await _enqueue('SOS', payload);
         toast(
           'Sin internet: tu alerta se envía apenas vuelva la señal',
           icon: 'cloud_off',
@@ -1098,10 +1206,7 @@ extension NearbyBackend on AppState {
     if (!connected) return null;
     final status = safe ? 'SAFE' : 'NEED_HELP';
     if (offline) {
-      _outbox.add({
-        'kind': 'CHECK_IN',
-        'payload': {'status': status},
-      });
+      await _enqueue('CHECK_IN', {'status': status});
       return null;
     }
     try {
