@@ -144,6 +144,7 @@ void main() {
     final voice = FakeSpeechInput();
     final state = AppState(voice: voice)..openSheet('voice');
     await tester.pumpWidget(harness(state));
+    await tester.pump(const Duration(milliseconds: 300));
     expect(voice.starts, 0);
     expect(find.text('Usar frase de demostración'), findsNothing);
     await tester.tap(find.text('Activar micrófono'));
@@ -170,6 +171,7 @@ void main() {
       final voice = FakeSpeechInput()..denied = true;
       final state = AppState(voice: voice)..openSheet('voice');
       await tester.pumpWidget(harness(state));
+      await tester.pump(const Duration(milliseconds: 300));
       await tester.tap(find.text('Activar micrófono'));
       await tester.pump();
       expect(find.text('Permite el acceso al micrófono.'), findsOneWidget);
@@ -354,6 +356,7 @@ void main() {
     addTearDown(tester.view.resetViewInsets);
     final state = AppState(voice: FakeSpeechInput())..openSheet('voice');
     await tester.pumpWidget(harness(state));
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.enterText(
       find.byKey(const ValueKey('voice-transcript')),
       'Necesito medicinas',

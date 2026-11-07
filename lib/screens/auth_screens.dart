@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 import '../config/app_environment.dart';
 import '../services/device_actions.dart';
 
+import 'package:url_launcher/url_launcher.dart';
+
 import '../state/app_state.dart';
 import '../theme/nearby_theme.dart';
 
@@ -550,6 +552,14 @@ class _RegistroScreenState extends State<RegistroScreen> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.state.regName);
+    // Tomar automáticamente la ubicación y zona real del celular
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.state.regLoc != 'ok' || widget.state.regLat == null) {
+        widget.state.locateForRegistration().then((_) {
+          if (mounted) setState(() {});
+        });
+      }
+    });
   }
 
   @override
@@ -560,6 +570,290 @@ class _RegistroScreenState extends State<RegistroScreen> {
 
   bool get _canContinue =>
       widget.state.regName.trim().length > 1 && widget.state.regLoc == 'ok';
+
+  Future<void> _launchGoogleMaps(
+    double lat,
+    double lng, {
+    String? label,
+  }) async {
+    final query = Uri.encodeComponent(
+      label != null && label.isNotEmpty ? '$label, Lima' : '$lat,$lng',
+    );
+    final uri = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=$query',
+    );
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {}
+  }
+
+  void _openLocationPickerModal(BuildContext context) {
+    final state = widget.state;
+    final theme = widget.theme;
+    double tempLat = state.regLat ?? -11.9790;
+    double tempLng = state.regLng ?? -77.0030;
+    final addrController = TextEditingController(text: state.regAddress);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: theme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(context).bottom + 20,
+                left: 20,
+                right: 20,
+                top: 16,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: theme.line,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8F0FE),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.map,
+                          color: Color(0xFF1A73E8),
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Selecciona tu ubicación',
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                                color: theme.ink,
+                              ),
+                            ),
+                            Text(
+                              'Conéctate a tu vecindario con Google Maps',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: theme.muted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Campo de dirección
+                  TextField(
+                    controller: addrController,
+                    decoration: InputDecoration(
+                      labelText: 'Dirección o referencia',
+                      prefixIcon: const Icon(Icons.location_on_outlined),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Atajos de zonas
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: [
+                      ActionChip(
+                        avatar: const Icon(
+                          Icons.place,
+                          size: 16,
+                          color: Color(0xFF1A73E8),
+                        ),
+                        label: const Text(
+                          'Jr. Las Flores (SJL)',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        onPressed: () {
+                          setModalState(() {
+                            tempLat = -11.9790;
+                            tempLng = -77.0030;
+                            addrController.text = 'Jr. Las Flores 245, SJL';
+                          });
+                        },
+                      ),
+                      ActionChip(
+                        avatar: const Icon(
+                          Icons.school,
+                          size: 16,
+                          color: Color(0xFFE37400),
+                        ),
+                        label: const Text(
+                          'UTP Sede SJL',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        onPressed: () {
+                          setModalState(() {
+                            tempLat = -11.9892;
+                            tempLng = -77.0062;
+                            addrController.text =
+                                'UTP Sede San Juan de Lurigancho';
+                          });
+                        },
+                      ),
+                      ActionChip(
+                        avatar: const Icon(
+                          Icons.my_location,
+                          size: 16,
+                          color: Color(0xFF1E8E3E),
+                        ),
+                        label: const Text(
+                          'Mi GPS actual',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        onPressed: () async {
+                          final pos = await state.location.current();
+                          setModalState(() {
+                            tempLat = pos.lat;
+                            tempLng = pos.lng;
+                            addrController.text = pos.real
+                                ? 'Ubicación actual (${pos.lat.toStringAsFixed(4)}, ${pos.lng.toStringAsFixed(4)})'
+                                : 'Jr. Las Flores 245, SJL';
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Tarjeta Google Maps
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: theme.bg,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: theme.line),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.explore,
+                          color: Color(0xFF1A73E8),
+                          size: 26,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Coordenadas del mapa',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12,
+                                  color: theme.ink,
+                                ),
+                              ),
+                              Text(
+                                'Lat: ${tempLat.toStringAsFixed(4)}, Lng: ${tempLng.toStringAsFixed(4)}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: theme.muted,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () => _launchGoogleMaps(
+                            tempLat,
+                            tempLng,
+                            label: addrController.text,
+                          ),
+                          icon: const Icon(Icons.open_in_new, size: 15),
+                          label: const Text(
+                            'Google Maps',
+                            style: TextStyle(fontSize: 11),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF1A73E8),
+                            side: const BorderSide(color: Color(0xFF1A73E8)),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
+                  ElevatedButton(
+                    onPressed: () {
+                      state.regLat = tempLat;
+                      state.regLng = tempLng;
+                      state.regAddress = addrController.text.trim().isNotEmpty
+                          ? addrController.text.trim()
+                          : 'Jr. Las Flores 245, SJL';
+                      state.regLoc = 'ok';
+                      state.refresh();
+                      Navigator.pop(ctx);
+                      if (mounted) setState(() {});
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text(
+                      'Confirmar ubicación',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -685,7 +979,7 @@ class _RegistroScreenState extends State<RegistroScreen> {
                     ],
                   ),
                 )
-              else if (state.regLoc == 'ok')
+              else if (state.regLoc == 'ok') ...[
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
@@ -699,12 +993,12 @@ class _RegistroScreenState extends State<RegistroScreen> {
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: theme.primarySoft,
+                          color: const Color(0xFFE8F0FE),
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        child: Icon(
+                        child: const Icon(
                           Icons.where_to_vote,
-                          color: theme.primary,
+                          color: Color(0xFF1A73E8),
                           size: 24,
                         ),
                       ),
@@ -714,7 +1008,7 @@ class _RegistroScreenState extends State<RegistroScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Jr. Las Flores 245, SJL',
+                              state.regAddress,
                               style: TextStyle(
                                 fontWeight: FontWeight.w800,
                                 color: theme.ink,
@@ -728,14 +1022,19 @@ class _RegistroScreenState extends State<RegistroScreen> {
                                 fontSize: 12,
                               ),
                             ),
+                            if (state.regLat != null && state.regLng != null)
+                              Text(
+                                'GPS: ${state.regLat!.toStringAsFixed(4)}, ${state.regLng!.toStringAsFixed(4)}',
+                                style: TextStyle(
+                                  color: theme.muted.withValues(alpha: 0.7),
+                                  fontSize: 11,
+                                ),
+                              ),
                           ],
                         ),
                       ),
                       TextButton(
-                        onPressed: () async {
-                          await state.locateForRegistration();
-                          if (mounted) setState(() {});
-                        },
+                        onPressed: () => _openLocationPickerModal(context),
                         child: Text(
                           'Cambiar',
                           style: TextStyle(
@@ -746,26 +1045,86 @@ class _RegistroScreenState extends State<RegistroScreen> {
                       ),
                     ],
                   ),
-                )
-              else
-                OutlinedButton.icon(
-                  onPressed: () async {
-                    await state.locateForRegistration();
-                    if (mounted) setState(() {});
-                  },
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: theme.ink,
-                    side: BorderSide(color: theme.line, width: 1.5),
-                    minimumSize: const Size.fromHeight(54),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                ),
+                const SizedBox(height: 6),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () {
+                      final lat = state.regLat ?? -11.9790;
+                      final lng = state.regLng ?? -77.0030;
+                      _launchGoogleMaps(lat, lng, label: state.regAddress);
+                    },
+                    icon: const Icon(
+                      Icons.open_in_new,
+                      size: 15,
+                      color: Color(0xFF1A73E8),
+                    ),
+                    label: const Text(
+                      'Ver ubicación en Google Maps',
+                      style: TextStyle(
+                        color: Color(0xFF1A73E8),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12.5,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 2,
+                      ),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                   ),
-                  icon: Icon(Icons.my_location, color: theme.primary, size: 20),
-                  label: const Text(
-                    'Usar mi ubicación actual',
-                    style: TextStyle(fontWeight: FontWeight.w800),
-                  ),
+                ),
+              ] else
+                Column(
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () => _openLocationPickerModal(context),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF1A73E8),
+                        side: const BorderSide(
+                          color: Color(0xFF1A73E8),
+                          width: 1.5,
+                        ),
+                        minimumSize: const Size.fromHeight(50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      icon: const Icon(Icons.map, size: 20),
+                      label: const Text(
+                        'Elegir en Google Maps o escribir dirección',
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        await state.locateForRegistration();
+                        if (mounted) setState(() {});
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: theme.ink,
+                        side: BorderSide(color: theme.line, width: 1.5),
+                        minimumSize: const Size.fromHeight(50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      icon: Icon(
+                        Icons.my_location,
+                        color: theme.primary,
+                        size: 20,
+                      ),
+                      label: const Text(
+                        'Detectar con GPS actual',
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ],
                 ),
 
               const SizedBox(height: 16),

@@ -24,71 +24,90 @@ class NearbyBottomSheetModal extends StatelessWidget {
     final type = state.sheet!['type'] as String;
     final id = state.sheet!['id'];
 
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: GestureDetector(
-            onTap: state.closeSheet,
-            child: ColoredBox(color: Colors.black.withValues(alpha: 0.55)),
-          ),
-        ),
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: Container(
-            constraints: BoxConstraints(
-              maxWidth: 460,
-              maxHeight:
-                  MediaQuery.sizeOf(context).height -
-                  MediaQuery.viewInsetsOf(context).bottom -
-                  24,
-            ),
-            decoration: BoxDecoration(
-              color: theme.surface,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(28),
+    return TweenAnimationBuilder<double>(
+      key: ValueKey('sheet_${type}_$id'),
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 260),
+      curve: const Cubic(0.32, 0.72, 0.0, 1.0), // iOS drawer curve
+      builder: (context, progress, child) {
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: state.closeSheet,
+                child: ColoredBox(
+                  color: Colors.black.withValues(alpha: 0.55 * progress),
+                ),
               ),
             ),
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 28),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Grab handle
-                  Center(
-                    child: Container(
-                      width: 44,
-                      height: 5,
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: theme.line,
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                    ),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: FractionalTranslation(
+                translation: Offset(0, 1.0 - progress),
+                child: child,
+              ),
+            ),
+          ],
+        );
+      },
+      child: Container(
+        constraints: BoxConstraints(
+          maxWidth: 460,
+          maxHeight:
+              MediaQuery.sizeOf(context).height -
+              MediaQuery.viewInsetsOf(context).bottom -
+              24,
+        ),
+        decoration: BoxDecoration(
+          color: theme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.22),
+              blurRadius: 28,
+              offset: const Offset(0, -6),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 28),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Grab handle
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 5,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: theme.line,
+                    borderRadius: BorderRadius.circular(3),
                   ),
-
-                  if (type == 'ai-run')
-                    _buildAiRunSheet(context)
-                  else if (type == 'voice')
-                    _VoiceSheet(theme: theme, state: state)
-                  else if (type == 'sonic')
-                    _SonicSheet(theme: theme, state: state)
-                  else if (type == 'em')
-                    _buildEmSheet(context)
-                  else if (type == 'em-off')
-                    _buildEmOffSheet(context)
-                  else if (type == 'photo')
-                    _buildPhotoSheet(context)
-                  else if (type == 'join')
-                    _buildJoinSheet(context, id as String?)
-                  else if (type == 'logout')
-                    _buildLogoutSheet(context),
-                ],
+                ),
               ),
-            ),
+
+              if (type == 'ai-run')
+                _buildAiRunSheet(context)
+              else if (type == 'voice')
+                _VoiceSheet(theme: theme, state: state)
+              else if (type == 'sonic')
+                _SonicSheet(theme: theme, state: state)
+              else if (type == 'em')
+                _buildEmSheet(context)
+              else if (type == 'em-off')
+                _buildEmOffSheet(context)
+              else if (type == 'photo')
+                _buildPhotoSheet(context)
+              else if (type == 'join')
+                _buildJoinSheet(context, id as String?)
+              else if (type == 'logout')
+                _buildLogoutSheet(context),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 

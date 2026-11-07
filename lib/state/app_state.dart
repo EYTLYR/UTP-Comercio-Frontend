@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 import '../api/api_client.dart';
 import '../api/mappers.dart';
@@ -158,6 +160,7 @@ class AppState extends ChangeNotifier {
   String phoneDraft = '';
   String regName = '';
   String? regLoc; // null, 'loading', 'ok'
+  String regAddress = 'Jr. Las Flores 245, SJL';
   Map<String, bool> perms = {
     'loc': false,
     'notif': false,

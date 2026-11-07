@@ -19,10 +19,22 @@ class LocationService {
           perm == LocationPermission.deniedForever) {
         return _fallback();
       }
+      try {
+        final lastKnown = await Geolocator.getLastKnownPosition();
+        if (lastKnown != null) {
+          last = (
+            lat: lastKnown.latitude,
+            lng: lastKnown.longitude,
+            real: true,
+          );
+        }
+      } on UnsupportedError {
+        // Browsers have current-position support but no last-known API.
+      }
       final pos = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 8),
+          timeLimit: Duration(seconds: 10),
         ),
       );
       return last = (lat: pos.latitude, lng: pos.longitude, real: true);

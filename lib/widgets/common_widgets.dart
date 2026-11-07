@@ -222,9 +222,8 @@ class NearbyTopBar extends StatelessWidget {
       child: Row(
         children: [
           // Brandmark logo
-          InkWell(
+          PressableScale(
             onTap: () => state.selectTab('home'),
-            borderRadius: BorderRadius.circular(14),
             child: Container(
               width: 42,
               height: 42,
@@ -250,10 +249,9 @@ class NearbyTopBar extends StatelessWidget {
 
           // Zone badge
           Expanded(
-            child: InkWell(
+            child: PressableScale(
               key: const ValueKey('zone-map'),
               onTap: () => state.selectTab('mapa'),
-              borderRadius: BorderRadius.circular(999),
               child: Container(
                 constraints: const BoxConstraints(minHeight: 42),
                 padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -296,9 +294,9 @@ class NearbyTopBar extends StatelessWidget {
 
           // Mini SOS button (when not on home)
           if (state.screen != 'home') ...[
-            InkWell(
+            PressableScale(
               onTap: () => state.go('sos'),
-              borderRadius: BorderRadius.circular(999),
+              scale: 0.94,
               child: Container(
                 height: 42,
                 padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -334,10 +332,9 @@ class NearbyTopBar extends StatelessWidget {
           ],
 
           // User Avatar MQ
-          InkWell(
+          PressableScale(
             key: state.tourTarget('profile'),
             onTap: () => state.go('perfil'),
-            borderRadius: BorderRadius.circular(999),
             child: Container(
               width: 42,
               height: 42,
@@ -382,10 +379,9 @@ class NearbyTopBarBack extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
       child: Row(
         children: [
-          InkWell(
+          PressableScale(
             key: state.tourTarget('back'),
             onTap: () => state.back(),
-            borderRadius: BorderRadius.circular(999),
             child: Container(
               width: 44,
               height: 44,
@@ -409,9 +405,9 @@ class NearbyTopBarBack extends StatelessWidget {
               ),
             ),
           ),
-          InkWell(
+          PressableScale(
             onTap: () => state.go('sos'),
-            borderRadius: BorderRadius.circular(999),
+            scale: 0.94,
             child: Container(
               height: 40,
               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -621,10 +617,10 @@ class NearbyBottomNav extends StatelessWidget {
               child: Semantics(
                 selected: selected,
                 button: true,
-                child: InkWell(
+                child: PressableScale(
                   key: state.tourTarget('nav-${tab.id}'),
-                  borderRadius: BorderRadius.circular(20),
                   onTap: () => state.selectTab(tab.id),
+                  scale: tab.isFab ? 0.92 : 0.96,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 2),
                     child: Column(
@@ -886,6 +882,53 @@ class NearbySosCard extends StatelessWidget {
   }
 }
 
+// --- Emil Kowalski Tactile Pressable Scale ---
+/// Adds subtle scale(0.97) feedback on press with ease-out timing.
+class PressableScale extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+  final double scale;
+  final Duration duration;
+
+  const PressableScale({
+    super.key,
+    required this.child,
+    this.onTap,
+    this.scale = 0.97,
+    this.duration = const Duration(milliseconds: 140),
+  });
+
+  @override
+  State<PressableScale> createState() => _PressableScaleState();
+}
+
+class _PressableScaleState extends State<PressableScale> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: widget.onTap != null
+          ? (_) => setState(() => _pressed = true)
+          : null,
+      onTapUp: widget.onTap != null
+          ? (_) => setState(() => _pressed = false)
+          : null,
+      onTapCancel: widget.onTap != null
+          ? () => setState(() => _pressed = false)
+          : null,
+      onTap: widget.onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedScale(
+        scale: _pressed ? widget.scale : 1.0,
+        duration: widget.duration,
+        curve: const Cubic(0.23, 1.0, 0.32, 1.0),
+        child: widget.child,
+      ),
+    );
+  }
+}
+
 // --- Floating Toast Message ---
 class NearbyToastWidget extends StatefulWidget {
   final String message;
@@ -913,73 +956,110 @@ class _NearbyToastWidgetState extends State<NearbyToastWidget>
     super.dispose();
   }
 
+  static const _icons = <String, IconData>{
+    'sms': Icons.sms,
+    'verified': Icons.verified,
+    'verified_user': Icons.verified,
+    'crisis_alert': Icons.crisis_alert,
+    'cloud_off': Icons.cloud_off,
+    'cloud_done': Icons.cloud_done,
+    'auto_awesome': Icons.auto_awesome,
+    'touch_app': Icons.touch_app,
+    'celebration': Icons.celebration,
+    'error': Icons.error,
+    'lock': Icons.lock,
+    'info': Icons.info,
+    'location_on': Icons.location_on,
+    'campaign': Icons.campaign,
+    'waving_hand': Icons.waving_hand,
+    'logout': Icons.logout,
+    'delete': Icons.delete,
+    'cancel': Icons.cancel,
+    'groups': Icons.groups,
+    'person_add': Icons.person_add,
+    'directions_run': Icons.directions_run,
+    'notifications_active': Icons.notifications_active,
+    'add_location': Icons.add_location,
+  };
   @override
   Widget build(BuildContext context) => Positioned(
     left: 12,
     right: 12,
     bottom: 12,
-    child: Semantics(
-      liveRegion: true,
-      child: Dismissible(
-        key: ValueKey(widget.message),
-        direction: DismissDirection.horizontal,
-        onDismissed: (_) => widget.onDismiss?.call(),
-        child: GestureDetector(
-          onVerticalDragEnd: (details) {
-            if ((details.primaryVelocity ?? 0).abs() > 150) {
-              widget.onDismiss?.call();
-            }
-          },
-          child: Material(
-            color: const Color(0xFF1F1E1B),
-            borderRadius: BorderRadius.circular(18),
-            clipBehavior: Clip.antiAlias,
-            elevation: 8,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 4, 8),
-                  child: Row(
-                    children: [
-                      Icon(
-                        widget.icon == 'sms' ? Icons.sms : Icons.info_outline,
-                        color: const Color(0xFF7FD6C2),
-                        size: 22,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          widget.message,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+    child: TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 220),
+      curve: const Cubic(0.23, 1.0, 0.32, 1.0),
+      builder: (context, value, child) => Opacity(
+        opacity: value.clamp(0.0, 1.0),
+        child: Transform.translate(
+          offset: Offset(0, (1 - value) * 16),
+          child: child,
+        ),
+      ),
+      child: Semantics(
+        liveRegion: true,
+        child: Dismissible(
+          key: ValueKey(widget.message),
+          direction: DismissDirection.horizontal,
+          onDismissed: (_) => widget.onDismiss?.call(),
+          child: GestureDetector(
+            onVerticalDragEnd: (details) {
+              if ((details.primaryVelocity ?? 0).abs() > 150) {
+                widget.onDismiss?.call();
+              }
+            },
+            child: Material(
+              color: const Color(0xFF1F1E1B),
+              borderRadius: BorderRadius.circular(18),
+              clipBehavior: Clip.antiAlias,
+              elevation: 8,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 4, 8),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _icons[widget.icon] ?? Icons.info_outline,
+                          color: const Color(0xFF7FD6C2),
+                          size: 22,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            widget.message,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                      ),
-                      IconButton(
-                        onPressed: widget.onDismiss,
-                        tooltip: 'Cerrar aviso',
-                        icon: const Icon(
-                          Icons.close,
-                          color: Colors.white70,
-                          size: 19,
+                        IconButton(
+                          onPressed: widget.onDismiss,
+                          tooltip: 'Cerrar aviso',
+                          icon: const Icon(
+                            Icons.close,
+                            color: Colors.white70,
+                            size: 19,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                AnimatedBuilder(
-                  animation: _timer,
-                  builder: (_, _) => LinearProgressIndicator(
-                    value: 1 - _timer.value,
-                    minHeight: 3,
-                    backgroundColor: Colors.white12,
-                    color: const Color(0xFF7FD6C2),
+                  AnimatedBuilder(
+                    animation: _timer,
+                    builder: (_, _) => LinearProgressIndicator(
+                      value: 1 - _timer.value,
+                      minHeight: 3,
+                      backgroundColor: Colors.white12,
+                      color: const Color(0xFF7FD6C2),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

@@ -568,7 +568,7 @@ class SosSentScreen extends StatelessWidget {
                 children: [
                   Text(
                     state.connected ? state.nowTime() : '10:47',
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
                       fontSize: 13,
