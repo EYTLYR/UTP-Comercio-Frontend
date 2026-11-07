@@ -2,17 +2,19 @@ import 'package:flutter/material.dart';
 
 import '../widgets/navigation_chrome.dart';
 
-import '../models/models.dart';
 import '../state/app_state.dart';
 import '../theme/nearby_theme.dart';
 import '../widgets/map_view.dart';
+import '../widgets/live_map.dart';
+import '../models/models.dart';
+import '../config/app_environment.dart';
 
 // --- Interactive Map Screen ---
-class MapScreen extends StatelessWidget {
+class DemoMapScreen extends StatelessWidget {
   final AppState state;
   final NearbyThemeData theme;
 
-  const MapScreen({super.key, required this.state, required this.theme});
+  const DemoMapScreen({super.key, required this.state, required this.theme});
 
   @override
   Widget build(BuildContext context) {
@@ -293,7 +295,7 @@ class MapScreen extends StatelessWidget {
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
-                              'Mapa de tu zona guardado para usar sin conexión · radio 500 m',
+                              'Datos de ejemplo · Las distancias no son reales',
                               style: TextStyle(
                                 color: theme.muted,
                                 fontSize: 12,
@@ -545,6 +547,105 @@ class RouteScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class MapScreen extends StatefulWidget {
+  final AppState state;
+  final NearbyThemeData theme;
+  const MapScreen({super.key, required this.state, required this.theme});
+  @override
+  State<MapScreen> createState() => _MapScreenState();
+}
+
+class _MapScreenState extends State<MapScreen> {
+  bool _demo = false;
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.state.networkMaps) {
+      return DemoMapScreen(state: widget.state, theme: widget.theme);
+    }
+    final insets = NavigationInsets.of(context);
+    final filters = widget.state.emergency
+        ? const [
+            ('all', 'Todo'),
+            ('vuln', 'Vulnerables'),
+            ('safe', 'Puntos seguros'),
+            ('res', 'Recursos'),
+            ('group', 'Apoyo'),
+          ]
+        : const [('all', 'Todo'), ('svc', 'Servicios'), ('fav', 'Favores')];
+    final pins = widget.state.connected
+        ? (widget.state.emergency
+              ? widget.state.emergencyPins
+              : widget.state.normalPins)
+        : <MapPin>[];
+    final filtered = pins
+        .where(
+          (pin) =>
+              widget.state.mapFilter == 'all' ||
+              (widget.state.mapFilter == 'fav'
+                  ? pin.kind == 'need' || pin.kind == 'offer'
+                  : pin.kind == widget.state.mapFilter),
+        )
+        .toList();
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: _demo
+              ? DemoMapScreen(state: widget.state, theme: widget.theme)
+              : LiveMap(
+                  pins: filtered,
+                  onOpenPin: (pin) {
+                    if (pin.svc != null) {
+                      widget.state.selService = pin.svc!;
+                      widget.state.go('svc');
+                    } else if (pin.go != null) {
+                      widget.state.go(pin.go!);
+                    }
+                  },
+                  topInset: insets.top,
+                  bottomInset: insets.bottom,
+                  onMessage: widget.state.toast,
+                ),
+        ),
+        if (!_demo)
+          Positioned(
+            top: insets.top + 66,
+            left: 0,
+            right: 0,
+            child: SizedBox(
+              height: 48,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: filters.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
+                itemBuilder: (_, i) => FilterChip(
+                  label: Text(filters[i].$2),
+                  selected: widget.state.mapFilter == filters[i].$1,
+                  onSelected: (_) {
+                    widget.state.mapFilter = filters[i].$1;
+                    widget.state.refresh();
+                  },
+                  backgroundColor: widget.theme.surface,
+                  selectedColor: widget.theme.primarySoft,
+                ),
+              ),
+            ),
+          ),
+        if (AppEnvironment.showDevelopmentTools)
+          Positioned(
+            top: insets.top + (_demo ? 62 : 12),
+            left: 16,
+            child: FilledButton.tonalIcon(
+              onPressed: () => setState(() => _demo = !_demo),
+              icon: Icon(_demo ? Icons.public : Icons.science_outlined),
+              label: Text(_demo ? 'Volver al mapa real' : 'Ver ejemplos'),
+            ),
+          ),
+      ],
     );
   }
 }

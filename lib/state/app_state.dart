@@ -6,6 +6,7 @@ import '../api/api_client.dart';
 import '../api/mappers.dart';
 import '../models/models.dart';
 import '../services/location_service.dart';
+import '../services/device_actions.dart';
 import '../services/speech_input.dart';
 import '../services/startup_permissions.dart';
 
@@ -45,6 +46,20 @@ class PublishDraft {
 }
 
 class AppState extends ChangeNotifier {
+  final deviceActions = DeviceActions();
+  String? otpDevCode;
+  int otpResendSeconds = 30;
+  bool networkMaps = true;
+  bool _disposed = false;
+  int toastId = 0;
+  static const toastDuration = Duration(milliseconds: 2800);
+  void dismissToast() {
+    _toastTimer?.cancel();
+    toastMessage = null;
+    toastIcon = null;
+    notifyListeners();
+  }
+
   final List<Timer> _timers = [];
   final SpeechInput voice;
   final StartupPermissions? permissions;
@@ -70,6 +85,7 @@ class AppState extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     _pollTimer?.cancel();
     _chatTimer?.cancel();
     voice.dispose();
@@ -282,11 +298,12 @@ class AppState extends ChangeNotifier {
   }
 
   void toast(String msg, {String icon = 'check_circle'}) {
+    toastId++;
     toastMessage = msg;
     toastIcon = icon;
     notifyListeners();
     _toastTimer?.cancel();
-    _toastTimer = Timer(const Duration(milliseconds: 2800), () {
+    _toastTimer = Timer(toastDuration, () {
       toastMessage = null;
       toastIcon = null;
       notifyListeners();
@@ -294,6 +311,9 @@ class AppState extends ChangeNotifier {
   }
 
   void go(String name, {bool reset = false}) {
+    _toastTimer?.cancel();
+    toastMessage = null;
+    toastIcon = null;
     if (!isBrigade && const {'tablero', 'red', 'puente'}.contains(name)) {
       toast('Esta vista es solo para la brigada de tu zona', icon: 'lock');
       return;
@@ -307,7 +327,7 @@ class AppState extends ChangeNotifier {
     sheet = null;
     notifyListeners();
     checkTourEvent('screen:$name');
-    this._onEnter(name);
+    _onEnter(name);
   }
 
   void back() {
@@ -338,9 +358,9 @@ class AppState extends ChangeNotifier {
         icon: 'cloud_done',
       );
       pending = 0;
-      this._flushOutbox();
+      _flushOutbox();
     } else if (wasOffline) {
-      this._flushOutbox();
+      _flushOutbox();
     } else if (offline) {
       toast('Sin conexión: la app sigue funcionando', icon: 'cloud_off');
     }
@@ -354,7 +374,7 @@ class AppState extends ChangeNotifier {
     sheet = null;
     notifyListeners();
     toast('Modo emergencia activado', icon: 'crisis_alert');
-    if (tourName == null) this._syncEmergency(true, emSource);
+    if (tourName == null) _syncEmergency(true, emSource);
   }
 
   void toggleEmergency() {
@@ -378,7 +398,7 @@ class AppState extends ChangeNotifier {
       icon: emergency ? 'crisis_alert' : 'verified_user',
     );
     if (tourName == null) {
-      this._syncEmergency(emergency, emergency ? 'yo' : previousSource);
+      _syncEmergency(emergency, emergency ? 'yo' : previousSource);
     }
   }
 
@@ -387,7 +407,7 @@ class AppState extends ChangeNotifier {
     emergency = true;
     emSource = 'yo';
     notifyListeners();
-    this._syncEmergency(true, 'yo');
+    _syncEmergency(true, 'yo');
   }
 
   void toggleDark() {
@@ -425,7 +445,7 @@ class AppState extends ChangeNotifier {
       toast('Diste tu Visto Bueno Vecinal', icon: 'verified');
     }
     checkTourEvent('vb');
-    if (tourName == null) this._syncVb(serviceId);
+    if (tourName == null) _syncVb(serviceId);
   }
 
   // --- Help post ---
@@ -434,7 +454,7 @@ class AppState extends ChangeNotifier {
     final first = !(helped[postId] ?? false);
     helped[postId] = true;
     if (connected) {
-      this._respondPost(post);
+      _respondPost(post);
       return;
     }
     openChat(
@@ -454,7 +474,7 @@ class AppState extends ChangeNotifier {
     }
     if (conversationId != null) {
       convIds[userName] = conversationId;
-      this._loadMessages(userName, conversationId, replace: true);
+      _loadMessages(userName, conversationId, replace: true);
     }
     if (sysMsg != null) {
       chats[userName]!.add(
@@ -475,7 +495,7 @@ class AppState extends ChangeNotifier {
 
     if (connected) {
       // Con sesión las respuestas son reales (llegan por el sondeo del chat).
-      this._sendChatRemote(chatWith!, t);
+      _sendChatRemote(chatWith!, t);
       return;
     }
     if (!offline) {
@@ -514,7 +534,29 @@ class AppState extends ChangeNotifier {
     }
     muted = false;
     speaker = false;
+    callWith!['number'] =
+        contactBook
+            .where((contact) => contact.name == target)
+            .firstOrNull
+            ?.phone ??
+        target;
     go('llamada');
+    launchCurrentCall();
+  }
+
+  Future<void> launchCurrentCall() async {
+    final number = callWith?['number'] as String? ?? '';
+    if (!RegExp(r'^\+?[0-9]{3,15}$').hasMatch(number)) {
+      toast('Este contacto todavía no tiene un número registrado');
+      return;
+    }
+    final opened = await deviceActions.call(
+      number,
+      emergency: callWith?['emergency'] == true,
+    );
+    if (!opened && !_disposed) {
+      toast('No se pudo abrir el teléfono. Marca $number manualmente');
+    }
   }
 
   // --- Publishing ---
@@ -532,7 +574,7 @@ class AppState extends ChangeNotifier {
 
     if (offline) pending++;
     if (connected) {
-      this._publishRemote(
+      _publishRemote(
         type: type,
         catId: catId,
         text: text,
@@ -745,15 +787,21 @@ class AppState extends ChangeNotifier {
         } else {
           timer.cancel();
           if (connected) {
-            this._runAiRemote().then((ok) {
+            _runAiRemote().then((ok) {
               aiStatus = ok ? 'done' : 'idle';
               aiStep = 0;
               sheet = null;
               tabFilter = 'all';
               notifyListeners();
               if (ok) {
-                final total = aiMissions.values.fold(0, (sum, m) => sum + m.length);
-                toast('Plan de rescate listo: $total vecinos asignados', icon: 'auto_awesome');
+                final total = aiMissions.values.fold(
+                  0,
+                  (sum, m) => sum + m.length,
+                );
+                toast(
+                  'Plan de rescate listo: $total vecinos asignados',
+                  icon: 'auto_awesome',
+                );
               }
             });
             return;
@@ -792,7 +840,7 @@ class AppState extends ChangeNotifier {
 
   void notifyAiMission(dynamic reportId) {
     aiNotified[reportId] = true;
-    if (connected) this._notifyMissionRemote(reportId);
+    if (connected) _notifyMissionRemote(reportId);
     final r = reports.where((x) => x.id == reportId).firstOrNull;
     final m = aiMissions[reportId] ?? [];
     if (r != null && r.status == 'p') {
@@ -1069,7 +1117,7 @@ class AppState extends ChangeNotifier {
 
   void addReportFromPuente(Map<String, dynamic> d, {String? code}) {
     if (connected && code != null) {
-      this._reportFromSmsRemote(code, d);
+      _reportFromSmsRemote(code, d);
       toast('Reporte agregado al tablero del barrio', icon: 'add_location');
       return;
     }

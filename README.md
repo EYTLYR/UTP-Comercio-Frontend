@@ -24,7 +24,7 @@ flutter build apk --dart-define=API_URL=https://api.midominio.pe
 
 Código: `lib/api/` (cliente HTTP, configuración, traducción de datos) y `lib/state/app_state_backend.dart` (todas las llamadas). Sin sesión, por ejemplo en las pruebas de widgets, la app usa los datos de ejemplo de `lib/models/models.dart`.
 
-Android permite HTTP sin cifrar (`usesCleartextTraffic`) para probar contra un backend local; con una API en HTTPS se puede quitar. iOS permite solo la red local (`NSAllowsLocalNetworking`).
+Android permite HTTP sin cifrar únicamente en debug para probar contra un backend local. Las compilaciones release requieren HTTPS. iOS permite solo la red local (`NSAllowsLocalNetworking`).
 
 ## Ambientes
 
@@ -32,6 +32,8 @@ La app lee automáticamente el archivo `.env` de la raíz antes de iniciar. Al c
 
 ```dotenv
 APP_ENV=development
+# Emulador Android; en celular físico usa la IP LAN del equipo del backend.
+API_BASE_URL=http://10.0.2.2:8080
 ```
 
 ```sh
@@ -106,3 +108,13 @@ flutter test --dart-define=PREVIEW=true --dart-define=PREVIEW_WIDTH=390 --dart-d
 ```
 
 Las llamadas telefónicas y la transmisión por sonido siguen simuladas. Sin backend (pruebas de widgets), la app usa los datos de ejemplo y no persiste cambios. Nunito se incluye con su licencia en `assets/fonts/`.
+
+## SMS, llamadas y mapa del dispositivo
+
+El acceso usa `/api/v1/auth/otp/request` y `/api/v1/auth/otp/verify` del cliente compartido. El código no se acepta localmente: lo valida el backend. En Android con Google Play Services se solicita consentimiento para leer un único SMS (SMS User Consent); si se rechaza o no está disponible, permite escribir o pegar el código. iOS usa la sugerencia de código del teclado. No se solicita acceso general a las notificaciones ni al buzón. El código de desarrollo solo se muestra si el backend devuelve `devCode` y la app está en desarrollo. Para recibir SMS reales, el backend debe usar su proveedor SMS real; el proveedor `console` solo escribe el mensaje en los logs.
+
+Los números de emergencia abren el marcador para confirmar la llamada. Otros números registrados usan el permiso `CALL_PHONE` en Android; si se rechaza, se abre el marcador. En otras plataformas se usa `tel:`. Los contactos sin teléfono registrado no simulan una llamada. Los controles de audio y la duración corresponden a la aplicación Teléfono.
+
+El mapa usa OpenStreetMap y los pines con coordenadas del backend. «Mi ubicación» solicita acceso al GPS. Se puede navegar sin concederlo; la cartografía necesita conexión. Los ejemplos siguen disponibles únicamente en desarrollo y no se colocan sobre la posición real del usuario. Los avisos aparecen al pie con una barra de duración y se descartan con un deslizamiento o el botón cerrar.
+
+Si aparece el error de SDK `android-37`, ejecuta `flutter pub get` con este `pubspec.lock`: `permission_handler` permanece fijado en `12.0.1`, compatible con el SDK del proyecto. Los avisos de versiones más nuevas disponibles no son errores y no requieren actualizar las versiones principales.

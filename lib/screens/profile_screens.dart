@@ -253,10 +253,7 @@ class PerfilScreen extends StatelessWidget {
         ? state.myLearnings
               .where((e) => !(state.aiRemoved['${e.id}${e.tag}'] ?? false))
               .toList()
-        : state
-              .buildInventory()
-              .where((e) => e.who == state.userName)
-              .toList();
+        : state.buildInventory().where((e) => e.who == state.userName).toList();
 
     return SingleChildScrollView(
       padding: NavigationInsets.of(context),

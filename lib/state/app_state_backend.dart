@@ -29,7 +29,10 @@ extension NearbyBackend on AppState {
     } on ApiException catch (e) {
       if (e.isNetwork) {
         _showSplash();
-        toast('No pudimos conectar con Nearby. Revisa tu internet.', icon: 'cloud_off');
+        toast(
+          'No pudimos conectar con Nearby. Revisa tu internet.',
+          icon: 'cloud_off',
+        );
         return;
       }
     }
@@ -58,8 +61,15 @@ extension NearbyBackend on AppState {
     busy = true;
     refresh();
     try {
-      await api.post('auth/otp/request', body: {'phone': phoneDraft}, auth: false);
-      toast('Código enviado al +51 $phoneDraft', icon: 'sms');
+      await deviceActions.listenForSms();
+      final response = await api.post(
+        'auth/otp/request',
+        body: {'phone': phoneDraft},
+        auth: false,
+      );
+      otpDevCode = response['devCode'] as String?;
+      otpResendSeconds = (response['resendInSeconds'] as num?)?.toInt() ?? 30;
+      toast('Código solicitado al +51 $phoneDraft', icon: 'sms');
       return true;
     } on ApiException catch (e) {
       toast(e.message, icon: 'error');
@@ -83,7 +93,8 @@ extension NearbyBackend on AppState {
       );
       final map = auth as Map<String, dynamic>;
       final user = map['user'] as Map<String, dynamic>?;
-      regPending = map['isNewUser'] == true ||
+      regPending =
+          map['isNewUser'] == true ||
           (user?['name'] as String?) == null ||
           (user?['zone']) == null;
       await _afterLogin(map);
@@ -97,7 +108,10 @@ extension NearbyBackend on AppState {
   }
 
   Future<void> _afterLogin(Map<String, dynamic> auth) async {
-    api.setTokens(auth['accessToken'] as String, auth['refreshToken'] as String);
+    api.setTokens(
+      auth['accessToken'] as String,
+      auth['refreshToken'] as String,
+    );
     final user = auth['user'] as Map<String, dynamic>?;
     await api.store.save(
       refreshToken: api.refreshToken!,
@@ -154,7 +168,9 @@ extension NearbyBackend on AppState {
     emSource = emergency && !zoneEm ? 'yo' : 'zona';
     if (connected && emergency && !wasEmergency && screen != 'splash') {
       toast(
-        zoneEm ? 'La Municipalidad activó el modo emergencia' : 'Modo emergencia activado',
+        zoneEm
+            ? 'La Municipalidad activó el modo emergencia'
+            : 'Modo emergencia activado',
         icon: 'crisis_alert',
       );
     } else if (connected && !emergency && wasEmergency) {
@@ -194,7 +210,10 @@ extension NearbyBackend on AppState {
     regLoc = 'ok';
     refresh();
     if (!pos.real) {
-      toast('No pudimos leer el GPS: usamos el centro de tu zona', icon: 'location_on');
+      toast(
+        'No pudimos leer el GPS: usamos el centro de tu zona',
+        icon: 'location_on',
+      );
     }
   }
 
@@ -243,19 +262,23 @@ extension NearbyBackend on AppState {
   /// Agrega un contacto escrito a mano (nombre + celular de 9 dígitos).
   String? addContact(String name, String phone) {
     final digits = phone.replaceAll(RegExp(r'\D'), '');
-    final clean = digits.length == 11 && digits.startsWith('51') ? digits.substring(2) : digits;
+    final clean = digits.length == 11 && digits.startsWith('51')
+        ? digits.substring(2)
+        : digits;
     if (name.trim().length < 2) return 'Escribe el nombre del contacto';
     if (!RegExp(r'^9\d{8}$').hasMatch(clean)) {
       return 'Los celulares en Perú tienen 9 dígitos y empiezan con 9';
     }
     final id = 'tc-$clean';
     if (!contactBook.any((c) => c.id == id)) {
-      contactBook.add(ContactItem(
-        id: id,
-        name: name.trim(),
-        phone: _maskPhone(clean),
-        icon: Icons.person,
-      ));
+      contactBook.add(
+        ContactItem(
+          id: id,
+          name: name.trim(),
+          phone: _maskPhone(clean),
+          icon: Icons.person,
+        ),
+      );
     }
     contactDigits[id] = clean;
     if (!contacts.contains(id) && contacts.length < 3) contacts.add(id);
@@ -269,15 +292,18 @@ extension NearbyBackend on AppState {
   Future<void> saveMedicalCard() async {
     if (!connected) return;
     try {
-      await api.put('me/medical-card', body: {
-        'bloodType': sangre,
-        'allergies': alergias,
-        'conditions': condiciones,
-        'livesWith': vive
-            .map((v) => Api2App.reverse(Api2App.livesWith, v))
-            .whereType<String>()
-            .toList(),
-      });
+      await api.put(
+        'me/medical-card',
+        body: {
+          'bloodType': sangre,
+          'allergies': alergias,
+          'conditions': condiciones,
+          'livesWith': vive
+              .map((v) => Api2App.reverse(Api2App.livesWith, v))
+              .whereType<String>()
+              .toList(),
+        },
+      );
     } on ApiException catch (e) {
       toast(e.message, icon: 'error');
     }
@@ -339,11 +365,18 @@ extension NearbyBackend on AppState {
   });
 
   Future<void> _loadServices() => _quiet(() async {
-    final page = await api.get('services', query: {'size': 50, 'sort': 'endorsements'});
+    final page = await api.get(
+      'services',
+      query: {'size': 50, 'sort': 'endorsements'},
+    );
     final list = (page['content'] as List).cast<Map<String, dynamic>>();
     services = list.map(Api2App.service).toList();
-    vbGiven = {for (final j in list) j['id'] as String: j['endorsedByMe'] == true};
-    _vbBase = {for (final s in services) s.id: s.vb - (vbGiven[s.id] == true ? 1 : 0)};
+    vbGiven = {
+      for (final j in list) j['id'] as String: j['endorsedByMe'] == true,
+    };
+    _vbBase = {
+      for (final s in services) s.id: s.vb - (vbGiven[s.id] == true ? 1 : 0),
+    };
     for (final s in services) {
       s.vb = _vbBase[s.id] ?? s.vb;
     }
@@ -370,7 +403,9 @@ extension NearbyBackend on AppState {
     final page = await api.get('posts', query: {'size': 50});
     final list = (page['content'] as List).cast<Map<String, dynamic>>();
     posts = list.map(Api2App.post).toList();
-    helped = {for (final j in list) j['id'] as String: j['respondedByMe'] == true};
+    helped = {
+      for (final j in list) j['id'] as String: j['respondedByMe'] == true,
+    };
   });
 
   Future<void> _loadReports() => _quiet(() async {
@@ -383,12 +418,20 @@ extension NearbyBackend on AppState {
   });
 
   Future<void> _loadResources() => _quiet(() async {
-    final list = (await api.get('resources') as List).cast<Map<String, dynamic>>();
-    resOffers = list.where((j) => j['resourceType'] != null).map(Api2App.resOffer).toList();
-    final summary = (await api.get('resources/summary') as List).cast<Map<String, dynamic>>();
+    final list = (await api.get('resources') as List)
+        .cast<Map<String, dynamic>>();
+    resOffers = list
+        .where((j) => j['resourceType'] != null)
+        .map(Api2App.resOffer)
+        .toList();
+    final summary = (await api.get('resources/summary') as List)
+        .cast<Map<String, dynamic>>();
     final counts = {
       for (final s in summary)
-        Api2App.resourceType[s['type']] ?? '': (s['have'] as num? ?? 0, s['need'] as num? ?? 0),
+        Api2App.resourceType[s['type']] ?? '': (
+          s['have'] as num? ?? 0,
+          s['need'] as num? ?? 0,
+        ),
     };
     resources = kResources.map((r) {
       final c = counts[r.id];
@@ -404,24 +447,35 @@ extension NearbyBackend on AppState {
   });
 
   Future<void> _loadGroups() => _quiet(() async {
-    final list = (await api.get('support-groups') as List).cast<Map<String, dynamic>>();
+    final list = (await api.get('support-groups') as List)
+        .cast<Map<String, dynamic>>();
     groups = list.map(Api2App.group).toList();
-    joined = {for (final j in list) (j['name'] as String? ?? ''): j['joinedByMe'] == true};
+    joined = {
+      for (final j in list)
+        (j['name'] as String? ?? ''): j['joinedByMe'] == true,
+    };
   });
 
   Future<void> _loadPins() => _quiet(() async {
     final daily = (await api.get('map/pins', query: {'layer': 'daily'}) as List)
         .cast<Map<String, dynamic>>();
     normalPins = daily.map(Api2App.pin).toList();
-    final em = (await api.get('map/pins', query: {'layer': 'emergency'}) as List)
-        .cast<Map<String, dynamic>>();
+    final em = (await api.get(
+      'map/pins',
+      query: {'layer': 'emergency'},
+    ) as List).cast<Map<String, dynamic>>();
     emergencyPins = em.map(Api2App.pin).toList();
   });
 
   Future<void> _loadInventory() => _quiet(() async {
-    final list = (await api.get('ai/inventory') as List).cast<Map<String, dynamic>>();
-    remoteInventory = list.map(Api2App.inventory).whereType<HistoryItem>().toList();
-    final mine = (await api.get('me/ai-learnings') as List).cast<Map<String, dynamic>>();
+    final list = (await api.get('ai/inventory') as List)
+        .cast<Map<String, dynamic>>();
+    remoteInventory = list
+        .map(Api2App.inventory)
+        .whereType<HistoryItem>()
+        .toList();
+    final mine = (await api.get('me/ai-learnings') as List)
+        .cast<Map<String, dynamic>>();
     myLearnings = mine
         .map((j) {
           final tag = Api2App.aiTag[j['tag']];
@@ -432,7 +486,8 @@ extension NearbyBackend on AppState {
             zona: zoneName,
             src: 'Muro',
             when: '',
-            txt: (j['evidenceText'] as String?) ?? (j['label'] as String? ?? ''),
+            txt:
+                (j['evidenceText'] as String?) ?? (j['label'] as String? ?? ''),
             x: 50,
             y: 50,
             tag: tag,
@@ -443,18 +498,21 @@ extension NearbyBackend on AppState {
   });
 
   Future<void> _loadContacts() => _quiet(() async {
-    final list = (await api.get('me/trusted-contacts') as List).cast<Map<String, dynamic>>();
+    final list = (await api.get('me/trusted-contacts') as List)
+        .cast<Map<String, dynamic>>();
     contactBook = [];
     contacts = [];
     for (final j in list) {
       final digits = j['phone'] as String? ?? '';
       final id = 'tc-$digits';
-      contactBook.add(ContactItem(
-        id: id,
-        name: j['name'] as String? ?? 'Contacto',
-        phone: _maskPhone(digits),
-        icon: Icons.person,
-      ));
+      contactBook.add(
+        ContactItem(
+          id: id,
+          name: j['name'] as String? ?? 'Contacto',
+          phone: _maskPhone(digits),
+          icon: Icons.person,
+        ),
+      );
       contactDigits[id] = digits;
       contacts.add(id);
     }
@@ -559,7 +617,8 @@ extension NearbyBackend on AppState {
       return;
     }
     try {
-      final ref = await api.post('services/${s.id}/contact') as Map<String, dynamic>;
+      final ref =
+          await api.post('services/${s.id}/contact') as Map<String, dynamic>;
       openChat(s.name, conversationId: ref['conversationId'] as String?);
     } on ApiException catch (e) {
       toast(e.message, icon: 'error');
@@ -568,21 +627,25 @@ extension NearbyBackend on AppState {
 
   Future<void> _respondPost(PostItem post) async {
     try {
-      final ref = await api.post('posts/${post.id}/responses') as Map<String, dynamic>;
+      final ref =
+          await api.post('posts/${post.id}/responses') as Map<String, dynamic>;
       openChat(post.user, conversationId: ref['conversationId'] as String?);
     } on ApiException catch (e) {
       toast(e.message, icon: 'error');
     }
   }
 
-  Future<void> _loadMessages(String userName, String conversationId, {bool replace = false}) async {
+  Future<void> _loadMessages(
+    String userName,
+    String conversationId, {
+    bool replace = false,
+  }) async {
     try {
       final after = replace ? null : _lastMsgAt[conversationId];
       final list = (await api.get(
         'conversations/$conversationId/messages',
         query: {'after': after, 'limit': 100},
-      ) as List)
-          .cast<Map<String, dynamic>>();
+      ) as List).cast<Map<String, dynamic>>();
       if (replace) chats[userName] = [];
       final box = chats.putIfAbsent(userName, () => []);
       if (replace == false && list.isNotEmpty) {
@@ -592,13 +655,15 @@ extension NearbyBackend on AppState {
       for (final m in list) {
         final id = m['id'] as String?;
         if (id != null && !_seenMsgIds.add(id) && !replace) continue;
-        box.add(ChatMessage(
-          from: m['system'] == true
-              ? 'sys'
-              : (m['senderId'] == userId ? 'me' : 'them'),
-          text: (m['text'] as String?) ?? '',
-          time: Api2App.clock(m['createdAt']),
-        ));
+        box.add(
+          ChatMessage(
+            from: m['system'] == true
+                ? 'sys'
+                : (m['senderId'] == userId ? 'me' : 'them'),
+            text: (m['text'] as String?) ?? '',
+            time: Api2App.clock(m['createdAt']),
+          ),
+        );
         _lastMsgAt[conversationId] = m['createdAt'] as String?;
       }
       refresh();
@@ -619,7 +684,11 @@ extension NearbyBackend on AppState {
     if (offline) {
       _outbox.add({
         'kind': 'MESSAGE',
-        'payload': {'conversationId': convId, 'clientId': clientId, 'text': text},
+        'payload': {
+          'conversationId': convId,
+          'clientId': clientId,
+          'text': text,
+        },
       });
       return;
     }
@@ -651,56 +720,71 @@ extension NearbyBackend on AppState {
         case 'need':
         case 'offer':
           {
-          final payload = {
-            'clientId': clientId,
-            'type': type == 'need' ? 'NEED' : 'OFFER',
-            'category': Api2App.reverse(Api2App.postCat, catId) ?? 'TEMPORARY_HELP',
-            if (text.isNotEmpty) 'text': text,
-          };
-          if (offline) {
-            _outbox.add({'kind': 'POST', 'payload': payload});
-          } else {
-            await api.post('posts', body: payload);
-            await _loadPosts();
-          }
+            final payload = {
+              'clientId': clientId,
+              'type': type == 'need' ? 'NEED' : 'OFFER',
+              'category':
+                  Api2App.reverse(Api2App.postCat, catId) ?? 'TEMPORARY_HELP',
+              if (text.isNotEmpty) 'text': text,
+            };
+            if (offline) {
+              _outbox.add({'kind': 'POST', 'payload': payload});
+            } else {
+              await api.post('posts', body: payload);
+              await _loadPosts();
+            }
           }
         case 'vulnerable':
           {
-          final pos = await location.current();
-          final payload = {
-            'clientId': clientId,
-            'category': Api2App.reverse(Api2App.vulnCat, catId) ?? 'INJURED',
-            'priority': prio == 'media' ? 'MEDIUM' : 'HIGH',
-            if (text.isNotEmpty) 'detail': text,
-            if (where != null) 'addressText': where,
-            'lat': pos.lat,
-            'lng': pos.lng,
-          };
-          if (offline) {
-            _outbox.add({'kind': 'VULNERABLE_REPORT', 'payload': payload});
-          } else {
-            await api.post('vulnerable-reports', body: payload);
-            await _loadReports();
-          }
+            final pos = await location.current();
+            final payload = {
+              'clientId': clientId,
+              'category': Api2App.reverse(Api2App.vulnCat, catId) ?? 'INJURED',
+              'priority': prio == 'media' ? 'MEDIUM' : 'HIGH',
+              if (text.isNotEmpty) 'detail': text,
+              'addressText': ?where,
+              'lat': pos.lat,
+              'lng': pos.lng,
+            };
+            if (offline) {
+              _outbox.add({'kind': 'VULNERABLE_REPORT', 'payload': payload});
+            } else {
+              await api.post('vulnerable-reports', body: payload);
+              await _loadReports();
+            }
           }
         case 'needres':
         case 'offerres':
           await _whenOnline(() async {
-            await api.post('resources', body: {
-              'resourceType': Api2App.reverse(Api2App.resourceType, catId) ?? 'WATER',
-              'kind': type == 'needres' ? 'NEED' : 'HAVE',
-              'text': text.isNotEmpty ? text : (kResources.where((r) => r.id == catId).firstOrNull?.label ?? 'Recurso'),
-            });
+            await api.post(
+              'resources',
+              body: {
+                'resourceType':
+                    Api2App.reverse(Api2App.resourceType, catId) ?? 'WATER',
+                'kind': type == 'needres' ? 'NEED' : 'HAVE',
+                'text': text.isNotEmpty
+                    ? text
+                    : (kResources
+                              .where((r) => r.id == catId)
+                              .firstOrNull
+                              ?.label ??
+                          'Recurso'),
+              },
+            );
             await _loadResources();
           });
         case 'service':
           await _whenOnline(() async {
             final cat = kServCats.where((c) => c.id == catId).firstOrNull;
-            await api.post('services', body: {
-              'title': text.isNotEmpty ? text : (cat?.label ?? 'Oficio'),
-              'category': Api2App.reverse(Api2App.serviceCat, catId) ?? 'OTHER',
-              'availableInEmergency': true,
-            });
+            await api.post(
+              'services',
+              body: {
+                'title': text.isNotEmpty ? text : (cat?.label ?? 'Oficio'),
+                'category':
+                    Api2App.reverse(Api2App.serviceCat, catId) ?? 'OTHER',
+                'availableInEmergency': true,
+              },
+            );
             await _loadServices();
           });
       }
@@ -727,8 +811,12 @@ extension NearbyBackend on AppState {
       _outbox.clear();
       try {
         final results = await api.post('sync/outbox', body: items) as List;
-        final errors = results.where((r) => r is Map && r['status'] == 'ERROR').length;
-        if (errors > 0) toast('$errors envío(s) no se pudieron sincronizar', icon: 'error');
+        final errors = results
+            .where((r) => r is Map && r['status'] == 'ERROR')
+            .length;
+        if (errors > 0) {
+          toast('$errors envío(s) no se pudieron sincronizar', icon: 'error');
+        }
       } on ApiException catch (_) {
         _outbox.insertAll(0, items);
       }
@@ -779,7 +867,10 @@ extension NearbyBackend on AppState {
     } on ApiException catch (e) {
       if (e.isNetwork) {
         _outbox.add({'kind': 'SOS', 'payload': payload});
-        toast('Sin internet: tu alerta se envía apenas vuelva la señal', icon: 'cloud_off');
+        toast(
+          'Sin internet: tu alerta se envía apenas vuelva la señal',
+          icon: 'cloud_off',
+        );
       } else {
         toast(e.message, icon: 'error');
       }
@@ -813,11 +904,17 @@ extension NearbyBackend on AppState {
     if (!connected) return null;
     final status = safe ? 'SAFE' : 'NEED_HELP';
     if (offline) {
-      _outbox.add({'kind': 'CHECK_IN', 'payload': {'status': status}});
+      _outbox.add({
+        'kind': 'CHECK_IN',
+        'payload': {'status': status},
+      });
       return null;
     }
     try {
-      final r = await api.post('check-ins', body: {'status': status}) as Map<String, dynamic>;
+      final r = await api.post(
+        'check-ins',
+        body: {'status': status},
+      ) as Map<String, dynamic>;
       return (r['contactsNotified'] as num?)?.toInt();
     } on ApiException catch (e) {
       toast(e.message, icon: 'error');
@@ -827,7 +924,8 @@ extension NearbyBackend on AppState {
 
   /// SOS de vecinos cercanos: abre la pantalla de alerta recibida.
   Future<void> _checkNearbySos() => _quiet(() async {
-    final list = (await api.get('sos/nearby') as List).cast<Map<String, dynamic>>();
+    final list = (await api.get('sos/nearby') as List)
+        .cast<Map<String, dynamic>>();
     final mine = sosResult?['id'];
     for (final s in list) {
       final id = s['id'] as String?;
@@ -835,7 +933,15 @@ extension NearbyBackend on AppState {
       _seenSos.add(id);
       if ((s['minutesAgo'] as num? ?? 99) > 30) continue;
       incomingSos = s;
-      if (!['sos', 'sos-countdown', 'sos-sent', 'llamada', 'splash', 'login', 'otp'].contains(screen)) {
+      if (![
+        'sos',
+        'sos-countdown',
+        'sos-sent',
+        'llamada',
+        'splash',
+        'login',
+        'otp',
+      ].contains(screen)) {
         go('alerta-recibida');
       }
       break;
@@ -847,7 +953,10 @@ extension NearbyBackend on AppState {
     final id = incomingSos?['id'] as String?;
     if (id == null || !connected) return;
     try {
-      await api.post('sos/$id/responses', body: {'status': going ? 'GOING' : 'DECLINED'});
+      await api.post(
+        'sos/$id/responses',
+        body: {'status': going ? 'GOING' : 'DECLINED'},
+      );
     } on ApiException catch (e) {
       toast(e.message, icon: 'error');
     }
@@ -860,14 +969,21 @@ extension NearbyBackend on AppState {
     // Municipalidad o delegado: cambia el modo de toda la zona y avisa a los vecinos.
     if ((role == 'ADMIN' || role == 'DELEGATE') && zoneId != null) {
       try {
-        await api.post('admin/zones/$zoneId/mode', body: {
-          'mode': on ? 'EMERGENCY' : 'NORMAL',
-          'reason': on ? 'Activado desde la app por $userName' : 'Fin de la emergencia',
-        });
+        await api.post(
+          'admin/zones/$zoneId/mode',
+          body: {
+            'mode': on ? 'EMERGENCY' : 'NORMAL',
+            'reason': on
+                ? 'Activado desde la app por $userName'
+                : 'Fin de la emergencia',
+          },
+        );
         await _loadMe();
         refresh();
         toast(
-          on ? 'Avisamos a todos los vecinos de $zoneName' : 'La zona volvió al modo normal',
+          on
+              ? 'Avisamos a todos los vecinos de $zoneName'
+              : 'La zona volvió al modo normal',
           icon: on ? 'campaign' : 'verified_user',
         );
       } on ApiException catch (e) {
@@ -893,7 +1009,9 @@ extension NearbyBackend on AppState {
     refresh();
     if (!connected || r.id is! String) return;
     try {
-      final d = await api.post('vulnerable-reports/${r.id}/assign') as Map<String, dynamic>;
+      final d = await api.post(
+        'vulnerable-reports/${r.id}/assign',
+      ) as Map<String, dynamic>;
       r.status = Api2App.reportStatus[d['status']] ?? 'c';
       r.by = d['assignedLabel'] as String? ?? firstName;
       refresh();
@@ -910,7 +1028,10 @@ extension NearbyBackend on AppState {
     refresh();
     if (!connected || r.id is! String) return;
     try {
-      await api.patch('vulnerable-reports/${r.id}/status', body: {'status': 'ATTENDED'});
+      await api.patch(
+        'vulnerable-reports/${r.id}/status',
+        body: {'status': 'ATTENDED'},
+      );
     } on ApiException catch (e) {
       toast(e.message, icon: 'error');
       await _loadReports();
@@ -942,7 +1063,9 @@ extension NearbyBackend on AppState {
       final plan = await api.post('ai/rescue-plans') as Map<String, dynamic>;
       await _loadReports();
       aiMissions.clear();
-      for (final m in (plan['missions'] as List? ?? const []).cast<Map<String, dynamic>>()) {
+      for (final m
+          in (plan['missions'] as List? ?? const [])
+              .cast<Map<String, dynamic>>()) {
         final report = reports.where((r) => r.id == m['reportId']).firstOrNull;
         aiMissions[m['reportId']] = (m['assignments'] as List? ?? const [])
             .cast<Map<String, dynamic>>()
@@ -977,7 +1100,9 @@ extension NearbyBackend on AppState {
   Future<void> _notifyMissionRemote(dynamic reportId) async {
     if (!connected || reportId is! String) return;
     try {
-      final r = await api.post('ai/missions/$reportId/notify') as Map<String, dynamic>;
+      final r = await api.post(
+        'ai/missions/$reportId/notify',
+      ) as Map<String, dynamic>;
       final rep = reports.where((x) => x.id == reportId).firstOrNull;
       if (rep != null) {
         rep.status = 'c';
@@ -994,10 +1119,10 @@ extension NearbyBackend on AppState {
     final local = classify(text);
     if (!connected || offline || text.trim().isEmpty) return local;
     try {
-      final r = await api.post('ai/classify', body: {
-        'text': text,
-        'mode': emergency ? 'EMERGENCY' : 'NORMAL',
-      }) as Map<String, dynamic>;
+      final r = await api.post(
+        'ai/classify',
+        body: {'text': text, 'mode': emergency ? 'EMERGENCY' : 'NORMAL'},
+      ) as Map<String, dynamic>;
       final type = r['type'] as String?;
       final kind = r['kind'] as String?;
       final cat = r['category'] as String?;
@@ -1008,7 +1133,8 @@ extension NearbyBackend on AppState {
         'NEED' => 'need',
         _ => local['type'] as String?,
       };
-      final appCat = Api2App.vulnCat[cat] ??
+      final appCat =
+          Api2App.vulnCat[cat] ??
           Api2App.resourceType[cat] ??
           Api2App.postCat[cat] ??
           local['cat'] as String?;
@@ -1019,7 +1145,10 @@ extension NearbyBackend on AppState {
         chips.add([chips.isEmpty ? 'category' : 'auto_awesome', '$c']);
       }
       if (type == 'VULNERABLE') {
-        chips.add(['priority_high', 'Prioridad ${prio == 'alta' ? 'alta' : 'media'}']);
+        chips.add([
+          'priority_high',
+          'Prioridad ${prio == 'alta' ? 'alta' : 'media'}',
+        ]);
       }
       if (loc != null) chips.add(['location_on', loc]);
       return {
@@ -1028,7 +1157,9 @@ extension NearbyBackend on AppState {
         'prio': prio,
         'loc': loc,
         'chips': chips.isNotEmpty ? chips : local['chips'],
-        'label': chips.isNotEmpty ? chips.map((c) => c[1]).join(' · ') : local['label'],
+        'label': chips.isNotEmpty
+            ? chips.map((c) => c[1]).join(' · ')
+            : local['label'],
       };
     } on ApiException catch (_) {
       return local;
@@ -1041,7 +1172,10 @@ extension NearbyBackend on AppState {
   Future<void> _reportFromSmsRemote(String code, Map<String, dynamic> d) async {
     if (!connected) return;
     try {
-      final decoded = await api.post('sms/decode', body: {'code': code}) as Map<String, dynamic>;
+      final decoded = await api.post(
+        'sms/decode',
+        body: {'code': code},
+      ) as Map<String, dynamic>;
       final typeLetter = code.length > 7 ? code[7] : 'H';
       final catKey = kTypeCode.entries
           .where((e) => e.value == typeLetter)
@@ -1051,15 +1185,21 @@ extension NearbyBackend on AppState {
       final category = Api2App.vulnCat.containsKey(decodedType)
           ? decodedType!
           : (Api2App.reverse(Api2App.vulnCat, catKey) ?? 'INJURED');
-      await api.post('vulnerable-reports', body: {
-        'clientId': newClientId(),
-        'category': category,
-        'priority': decoded['priority'] == 'MEDIA' || decoded['priority'] == 'MEDIUM' ? 'MEDIUM' : 'HIGH',
-        'detail': 'Recibido por SMS sin internet ($code)',
-        'addressText': decoded['addressText'] ?? d['where'],
-        if (decoded['lat'] != null) 'lat': decoded['lat'],
-        if (decoded['lng'] != null) 'lng': decoded['lng'],
-      });
+      await api.post(
+        'vulnerable-reports',
+        body: {
+          'clientId': newClientId(),
+          'category': category,
+          'priority':
+              decoded['priority'] == 'MEDIA' || decoded['priority'] == 'MEDIUM'
+              ? 'MEDIUM'
+              : 'HIGH',
+          'detail': 'Recibido por SMS sin internet ($code)',
+          'addressText': decoded['addressText'] ?? d['where'],
+          if (decoded['lat'] != null) 'lat': decoded['lat'],
+          if (decoded['lng'] != null) 'lng': decoded['lng'],
+        },
+      );
       await _loadReports();
       refresh();
     } on ApiException catch (e) {

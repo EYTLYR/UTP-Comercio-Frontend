@@ -368,88 +368,22 @@ class _ChatScreenState extends State<ChatScreen> {
 }
 
 // --- Call Screen ---
-class CallScreen extends StatefulWidget {
+class CallScreen extends StatelessWidget {
   final AppState state;
   final NearbyThemeData theme;
-
   const CallScreen({super.key, required this.state, required this.theme});
-
   @override
-  State<CallScreen> createState() => _CallScreenState();
-}
-
-class _CallScreenState extends State<CallScreen> {
-  int _seconds = 0;
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (mounted) setState(() => _seconds++);
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final state = widget.state;
-    final call =
-        state.callWith ??
-        {
-          'name': '105 · Policía',
-          'icon': Icons.local_police,
-          'emergency': true,
-        };
-    final isEmerg = (call['emergency'] as bool?) ?? false;
-
-    final mins = (_seconds ~/ 60).toString().padLeft(2, '0');
-    final secs = (_seconds % 60).toString().padLeft(2, '0');
-
-    return Container(
-      color: NearbyColors.navy,
-      padding: const EdgeInsets.fromLTRB(24, 30, 24, 30),
+  Widget build(BuildContext context) => ColoredBox(
+    color: NearbyColors.navy,
+    child: Padding(
+      padding: const EdgeInsets.all(24),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          const Icon(Icons.phone_in_talk, color: Colors.white, size: 72),
+          const SizedBox(height: 24),
           Text(
-            isEmerg ? 'LLAMADA DE EMERGENCIA' : 'LLAMADA · NEARBY',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0.8,
-            ),
-          ),
-          const SizedBox(height: 36),
-
-          // Pulsing Avatar
-          Container(
-            width: 116,
-            height: 116,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.3),
-                width: 2,
-              ),
-            ),
-            child: Center(
-              child: Icon(
-                call['icon'] as IconData? ?? Icons.person,
-                color: Colors.white,
-                size: 56,
-              ),
-            ),
-          ),
-          const SizedBox(height: 22),
-          Text(
-            call['name'] as String,
+            state.callWith?['name'] as String? ?? 'Teléfono',
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white,
@@ -457,156 +391,28 @@ class _CallScreenState extends State<CallScreen> {
               fontWeight: FontWeight.w900,
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            _seconds >= 2 ? 'En llamada · $mins:$secs' : 'Llamando…',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
+          const SizedBox(height: 16),
+          const Text(
+            'La llamada se realiza con el teléfono del dispositivo. Para emergencias, confirma el número en el marcador.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white70, fontSize: 16),
           ),
-
-          if (isEmerg) ...[
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0x3800A07F),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.share_location,
-                    color: Color(0xFF9CF0D8),
-                    size: 18,
-                  ),
-                  SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      'Tu ubicación se comparte con la central',
-                      style: TextStyle(
-                        color: Color(0xFF9CF0D8),
-                        fontWeight: FontWeight.w800,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-
-          const Spacer(),
-
-          // 3 Controls: Mute, Speaker, Send location
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _callCtrlButton(
-                icon: state.muted ? Icons.mic_off : Icons.mic,
-                label: 'Silenciar',
-                isOn: state.muted,
-                onTap: () {
-                  state.muted = !state.muted;
-                  state.refresh();
-                },
-              ),
-              _callCtrlButton(
-                icon: Icons.volume_up,
-                label: 'Altavoz',
-                isOn: state.speaker,
-                onTap: () {
-                  state.speaker = !state.speaker;
-                  state.refresh();
-                },
-              ),
-              _callCtrlButton(
-                icon: Icons.my_location,
-                label: 'Enviar ubicación',
-                isOn: false,
-                onTap: () {
-                  state.toast(
-                    'Enviamos tu ubicación por SMS a la otra persona',
-                    icon: 'my_location',
-                  );
-                },
-              ),
-            ],
+          const SizedBox(height: 28),
+          FilledButton.icon(
+            onPressed: state.launchCurrentCall,
+            icon: const Icon(Icons.call),
+            label: const Text('Abrir teléfono'),
           ),
-          const SizedBox(height: 32),
-
-          // Hang up red round button
-          InkWell(
-            onTap: () {
-              state.back();
-              state.toast('Llamada finalizada', icon: 'call_end');
-            },
-            borderRadius: BorderRadius.circular(999),
-            child: Container(
-              width: 78,
-              height: 78,
-              decoration: const BoxDecoration(
-                color: NearbyColors.sos,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x66E0344A),
-                    blurRadius: 18,
-                    offset: Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: const Icon(Icons.call_end, color: Colors.white, size: 36),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: state.back,
+            child: const Text(
+              'Volver a Nearby',
+              style: TextStyle(color: Colors.white),
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _callCtrlButton({
-    required IconData icon,
-    required String label,
-    required bool isOn,
-    required VoidCallback onTap,
-  }) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Column(
-          children: [
-            Container(
-              width: 66,
-              height: 66,
-              decoration: BoxDecoration(
-                color: isOn
-                    ? Colors.white
-                    : Colors.white.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                color: isOn ? NearbyColors.navy : Colors.white,
-                size: 28,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                fontSize: 13,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+    ),
+  );
 }

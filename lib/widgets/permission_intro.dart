@@ -75,7 +75,7 @@ class PermissionIntro extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Te pediremos los accesos disponibles en tu dispositivo. Puedes rechazarlos y seguir usando la app.',
+                    'Te pediremos los accesos disponibles en tu dispositivo. Puedes rechazarlos y seguir usando la app. Para completar el código SMS, Android solicitará tu consentimiento para leer únicamente ese mensaje durante el ingreso.',
                   ),
                   const SizedBox(height: 12),
                   Flexible(

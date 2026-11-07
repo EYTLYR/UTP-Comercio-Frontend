@@ -19,184 +19,189 @@ class SosScreen extends StatelessWidget {
     return Container(
       color: NearbyColors.sos,
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Top bar
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  InkWell(
-                    onTap: () => state.back(),
-                    borderRadius: BorderRadius.circular(999),
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.18),
-                        shape: BoxShape.circle,
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Top bar
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    InkWell(
+                      onTap: () => state.back(),
+                      borderRadius: BorderRadius.circular(999),
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.18),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close, color: Colors.white),
                       ),
-                      child: const Icon(Icons.close, color: Colors.white),
                     ),
-                  ),
-                  Row(
-                    children: [
-                      Icon(
-                        state.offline ? Icons.sms : Icons.my_location,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        state.offline ? 'Modo SMS' : 'Ubicación lista',
-                        style: const TextStyle(
+                    Row(
+                      children: [
+                        Icon(
+                          state.offline ? Icons.sms : Icons.my_location,
                           color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 13,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          state.offline ? 'Modo SMS' : 'Ubicación lista',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                Text(
+                  'Emergencia',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Mantén presionado el botón 2 segundos.',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Big Center Hold Button
+                Center(
+                  child: SosHoldButton(
+                    size: 200,
+                    isLarge: true,
+                    onComplete: () {
+                      state.sosType = null;
+                      state.go('sos-countdown');
+                    },
+                    onCancelShort: () {
+                      state.toast(
+                        'Mantén presionado 2 segundos para enviar la alerta',
+                        icon: 'touch_app',
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // What happens info list
+                _whatRow(
+                  Icons.groups,
+                  'Alerta a los vecinos y la brigada en 500 m',
+                ),
+                const SizedBox(height: 8),
+                _whatRow(
+                  Icons.share_location,
+                  'Tu ubicación a 3 contactos ${state.offline ? "por SMS" : "(en vivo)"}',
+                ),
+                const SizedBox(height: 8),
+                _whatRow(
+                  Icons.crisis_alert,
+                  'Puedes activar el modo emergencia',
+                ),
+
+                const SizedBox(height: 18),
+                const Text(
+                  'O llama directo',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // 4 Direct emergency call buttons
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: kCalls.map((c) {
+                    return SizedBox(
+                      width: (MediaQuery.sizeOf(context).width - 48) / 2,
+                      child: InkWell(
+                        onTap: () => state.startCall(c.num),
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.surface,
+                            border: Border.all(color: theme.line),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 42,
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  color: theme.sosSoft,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  c.icon,
+                                  color: NearbyColors.sos,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      c.num,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 16,
+                                        color: theme.ink,
+                                        height: 1.1,
+                                      ),
+                                    ),
+                                    Text(
+                                      c.label,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: theme.muted,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              Text(
-                'Emergencia',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Mantén presionado el botón 2 segundos.',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
-
-              // Big Center Hold Button
-              Center(
-                child: SosHoldButton(
-                  size: 200,
-                  isLarge: true,
-                  onComplete: () {
-                    state.sosType = null;
-                    state.go('sos-countdown');
-                  },
-                  onCancelShort: () {
-                    state.toast(
-                      'Mantén presionado 2 segundos para enviar la alerta',
-                      icon: 'touch_app',
                     );
-                  },
+                  }).toList(),
                 ),
-              ),
-              const Spacer(),
-
-              // What happens info list
-              _whatRow(
-                Icons.groups,
-                'Alerta a los vecinos y la brigada en 500 m',
-              ),
-              const SizedBox(height: 8),
-              _whatRow(
-                Icons.share_location,
-                'Tu ubicación a 3 contactos ${state.offline ? "por SMS" : "(en vivo)"}',
-              ),
-              const SizedBox(height: 8),
-              _whatRow(Icons.crisis_alert, 'Puedes activar el modo emergencia'),
-
-              const SizedBox(height: 18),
-              const Text(
-                'O llama directo',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              // 4 Direct emergency call buttons
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 8,
-                childAspectRatio: 2.4,
-                children: kCalls.map((c) {
-                  return InkWell(
-                    onTap: () => state.startCall(c.num),
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.surface,
-                        border: Border.all(color: theme.line),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              color: theme.sosSoft,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              c.icon,
-                              color: NearbyColors.sos,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  c.num,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 16,
-                                    color: theme.ink,
-                                    height: 1.1,
-                                  ),
-                                ),
-                                Text(
-                                  c.label,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: theme.muted,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -314,7 +319,11 @@ class _SosCountdownScreenState extends State<SosCountdownScreen>
                       0,
                       5,
                     );
-                    return SizedBox(
+                    return Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: .14),
+                      ),
                       width: 176,
                       height: 176,
                       child: Stack(
@@ -360,40 +369,63 @@ class _SosCountdownScreenState extends State<SosCountdownScreen>
                   ),
                 ),
                 const SizedBox(height: 14),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.center,
-                  children: types.map((type) {
-                    final selected = widget.state.sosType == type.$1;
-                    return ChoiceChip(
-                      avatar: Icon(
-                        type.$3,
-                        size: 20,
-                        color: selected ? NearbyColors.sosDark : Colors.white,
-                      ),
-                      label: Text(type.$2),
-                      selected: selected,
-                      showCheckmark: false,
-                      onSelected: (_) =>
-                          setState(() => widget.state.sosType = type.$1),
-                      selectedColor: Colors.white,
-                      backgroundColor: const Color(0xFFC22238),
-                      color: WidgetStateProperty.resolveWith(
-                        (states) => states.contains(WidgetState.selected)
-                            ? Colors.white
-                            : const Color(0xFFC22238),
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      side: const BorderSide(color: Colors.white54),
-                      labelStyle: TextStyle(
-                        color: selected ? NearbyColors.sosDark : Colors.white,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    );
-                  }).toList(),
+                LayoutBuilder(
+                  builder: (context, constraints) => Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: types.map((type) {
+                      final selected = widget.state.sosType == type.$1;
+                      final color = selected
+                          ? NearbyColors.sosDark
+                          : Colors.white;
+                      return SizedBox(
+                        width: (constraints.maxWidth - 16) / 3,
+                        child: Semantics(
+                          button: true,
+                          selected: selected,
+                          child: InkWell(
+                            onTap: () =>
+                                setState(() => widget.state.sosType = type.$1),
+                            borderRadius: BorderRadius.circular(16),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 160),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 12,
+                                horizontal: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: selected
+                                    ? Colors.white
+                                    : Colors.white.withValues(alpha: .14),
+                                border: Border.all(
+                                  color: selected
+                                      ? Colors.white
+                                      : Colors.transparent,
+                                  width: 2,
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(type.$3, color: color, size: 26),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    type.$2,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: color,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
                 ),
               ],
             ),
@@ -496,7 +528,9 @@ class SosSentScreen extends StatelessWidget {
         ? 'Enviando tu alerta…'
         : '${n('notifiedNeighbors')} vecinos alertados';
     final contactNames = state.contacts
-        .map((id) => state.contactBook.where((c) => c.id == id).firstOrNull?.name)
+        .map(
+          (id) => state.contactBook.where((c) => c.id == id).firstOrNull?.name,
+        )
         .whereType<String>()
         .join(', ');
     final contactsTitle = !live
@@ -504,7 +538,9 @@ class SosSentScreen extends StatelessWidget {
         : '${r == null ? state.contacts.length : n('contactsNotified')} contactos ven tu ubicación';
     final contactsSub = !live
         ? 'Mamá, Carlos, Sra. Rosa'
-        : (contactNames.isEmpty ? 'Agrega contactos en tu perfil' : contactNames);
+        : (contactNames.isEmpty
+              ? 'Agrega contactos en tu perfil'
+              : contactNames);
     final brigadeSub = !live
         ? '12 brigadistas'
         : r == null
@@ -527,7 +563,7 @@ class SosSentScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Text(
@@ -731,30 +767,30 @@ class SosSentScreen extends StatelessWidget {
                               ],
                             ]
                           : [
-                            _statusRow(
-                              icon: Icons.person,
-                              color: theme.violet,
-                              softColor: theme.violetSoft,
-                              title: 'Rosa Flores va en camino',
-                              subtitle: 'A 150 m · llega en 2 min',
-                              trailing: Icon(
-                                Icons.directions_walk,
-                                color: theme.primary,
+                              _statusRow(
+                                icon: Icons.person,
+                                color: theme.violet,
+                                softColor: theme.violetSoft,
+                                title: 'Rosa Flores va en camino',
+                                subtitle: 'A 150 m · llega en 2 min',
+                                trailing: Icon(
+                                  Icons.directions_walk,
+                                  color: theme.primary,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            _statusRow(
-                              icon: Icons.medical_services,
-                              color: NearbyColors.sos,
-                              softColor: theme.sosSoft,
-                              title: 'Brigada de primeros auxilios',
-                              subtitle: 'Llega en 5 min',
-                              trailing: Icon(
-                                Icons.directions_run,
-                                color: theme.primary,
+                              const SizedBox(height: 8),
+                              _statusRow(
+                                icon: Icons.medical_services,
+                                color: NearbyColors.sos,
+                                softColor: theme.sosSoft,
+                                title: 'Brigada de primeros auxilios',
+                                subtitle: 'Llega en 5 min',
+                                trailing: Icon(
+                                  Icons.directions_run,
+                                  color: theme.primary,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -1098,11 +1134,15 @@ class AlertaRecibidaScreen extends StatelessWidget {
         .take(2)
         .map((w) => w[0].toUpperCase())
         .join();
-    final type = sos == null ? 'Salud' : (_typeLabels[sos['type']] ?? 'Emergencia');
+    final type = sos == null
+        ? 'Salud'
+        : (_typeLabels[sos['type']] ?? 'Emergencia');
     final dist = sos == null ? 'a 150 m' : 'a ${sos['distanceM'] ?? '?'} m';
     final ago = sos == null
         ? 'hace 1 min'
-        : ((sos['minutesAgo'] as num? ?? 0) < 1 ? 'ahora' : 'hace ${sos['minutesAgo']} min');
+        : ((sos['minutesAgo'] as num? ?? 0) < 1
+              ? 'ahora'
+              : 'hace ${sos['minutesAgo']} min');
     final going = (sos?['goingCount'] as num?)?.toInt() ?? 2;
     final detail = sos == null
         ? 'Jr. Los Pinos 210 · ubicación en vivo. 31 vecinos más recibieron esta alerta; 2 ya van en camino.'
@@ -1210,7 +1250,9 @@ class AlertaRecibidaScreen extends StatelessWidget {
                 onPressed: () {
                   state.respondSos(true);
                   state.routeTo = {
-                    'title': sos == null ? 'Rosa Flores · Jr. Los Pinos 210' : '$who · $dist',
+                    'title': sos == null
+                        ? 'Rosa Flores · Jr. Los Pinos 210'
+                        : '$who · $dist',
                     'icon': Icons.emergency,
                     'kind': 'help',
                   };

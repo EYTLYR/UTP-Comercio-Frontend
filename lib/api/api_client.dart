@@ -76,9 +76,8 @@ class ApiClient {
       if (v != null) q[k] = '$v';
     });
     final full = path.startsWith('/') ? path : '/api/v1/$path';
-    return Uri.parse(
-      '${ApiConfig.baseUrl}$full',
-    ).replace(queryParameters: q.isEmpty ? null : q);
+    return Uri.parse('${ApiConfig.baseUrl}$full')
+        .replace(queryParameters: q.isEmpty ? null : q);
   }
 
   Future<dynamic> _send(
@@ -104,14 +103,29 @@ class ApiClient {
       final streamed = await _http.send(request).timeout(ApiConfig.timeout);
       res = await http.Response.fromStream(streamed);
     } on TimeoutException {
-      throw const ApiException(0, 'NETWORK', 'El servidor no respondió. Revisa tu conexión.');
+      throw const ApiException(
+        0,
+        'NETWORK',
+        'El servidor no respondió. Revisa tu conexión.',
+      );
     } catch (_) {
-      throw const ApiException(0, 'NETWORK', 'Sin conexión con Nearby. Revisa tu internet.');
+      throw const ApiException(
+        0,
+        'NETWORK',
+        'Sin conexión con Nearby. Revisa tu internet.',
+      );
     }
 
     if (res.statusCode == 401 && auth && retry && refreshToken != null) {
       if (await _refresh()) {
-        return _send(method, path, query: query, body: body, auth: auth, retry: false);
+        return _send(
+          method,
+          path,
+          query: query,
+          body: body,
+          auth: auth,
+          retry: false,
+        );
       }
       onSessionExpired?.call();
     }
@@ -132,7 +146,8 @@ class ApiClient {
       final err = jsonDecode(text);
       if (err is Map) {
         code = (err['code'] as String?) ?? code;
-        message = (err['detail'] as String?) ?? (err['title'] as String?) ?? message;
+        message =
+            (err['detail'] as String?) ?? (err['title'] as String?) ?? message;
       }
     } catch (_) {}
     throw ApiException(res.statusCode, code, message);
@@ -150,7 +165,10 @@ class ApiClient {
           retry: false,
         );
         if (data is Map && data['accessToken'] is String) {
-          setTokens(data['accessToken'] as String, data['refreshToken'] as String);
+          setTokens(
+            data['accessToken'] as String,
+            data['refreshToken'] as String,
+          );
           await store.save(refreshToken: refreshToken!);
           return true;
         }
@@ -175,7 +193,10 @@ class ApiClient {
         retry: false,
       );
       if (data is Map<String, dynamic>) {
-        setTokens(data['accessToken'] as String, data['refreshToken'] as String);
+        setTokens(
+          data['accessToken'] as String,
+          data['refreshToken'] as String,
+        );
         await store.save(refreshToken: refreshToken!);
         return data;
       }

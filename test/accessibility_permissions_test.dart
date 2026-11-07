@@ -98,11 +98,11 @@ void main() {
     expect(bottom, closeTo(640, 1));
     final ring = find.byKey(const ValueKey('sos-countdown-ring'));
     expect(tester.widget<CircularProgressIndicator>(ring).value, 1);
-    final category = tester.widget<ChoiceChip>(
-      find.widgetWithText(ChoiceChip, 'Salud'),
-    );
-    expect(category.color!.resolve({})!.a, 1);
-    expect(category.color!.resolve({}), isNot(Colors.white));
+    final category = find.text('Salud');
+    await tester.ensureVisible(category);
+    await tester.tap(category);
+    await tester.pump();
+    expect(state.sosType, 'salud');
     await tester.pump(const Duration(seconds: 2));
     expect(
       tester.widget<CircularProgressIndicator>(ring).value!,

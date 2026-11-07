@@ -112,7 +112,8 @@ class Api2App {
 
   static String serviceTone(String cat) => _serviceTone[cat] ?? 'green';
 
-  static IconData serviceIcon(String cat) => _serviceIcon[cat] ?? Icons.handyman;
+  static IconData serviceIcon(String cat) =>
+      _serviceIcon[cat] ?? Icons.handyman;
 
   /// Íconos Material que manda el backend por nombre (mapa, grupos de apoyo).
   static IconData icon(String? name) {
@@ -184,11 +185,13 @@ class Api2App {
   static const double _latPerUnit = 0.000108;
   static const double _lngPerUnit = 0.000110;
 
-  static double x(num? lng) =>
-      lng == null ? 50 : (50 + (lng - _lng0) / _lngPerUnit).clamp(3, 97).toDouble();
+  static double x(num? lng) => lng == null
+      ? 50
+      : (50 + (lng - _lng0) / _lngPerUnit).clamp(3, 97).toDouble();
 
-  static double y(num? lat) =>
-      lat == null ? 50 : (50 - (lat - _lat0) / _latPerUnit).clamp(3, 97).toDouble();
+  static double y(num? lat) => lat == null
+      ? 50
+      : (50 - (lat - _lat0) / _latPerUnit).clamp(3, 97).toDouble();
 
   static double lat(double y) => _lat0 + (50 - y) * _latPerUnit;
 
@@ -295,7 +298,10 @@ class Api2App {
     icon: icon(j['icon'] as String?),
     tone: _groupTone(j['icon'] as String?),
     members: _i(j['membersCount']),
-    desc: _s(j['description'], _s(j['scheduleText'], 'Grupo de apoyo de la zona')),
+    desc: _s(
+      j['description'],
+      _s(j['scheduleText'], 'Grupo de apoyo de la zona'),
+    ),
     live: j['activeNow'] == true,
     phone: j['contactPhone'] as String?,
   );
@@ -311,7 +317,8 @@ class Api2App {
       _ => null,
     };
     return MapPin(
-      id: j['id'] as String,
+      latitude: (j['lat'] as num?)?.toDouble(),
+      longitude: (j['lng'] as num?)?.toDouble(),      id: j['id'] as String,
       kind: kind,
       x: x(j['lng'] as num?),
       y: y(j['lat'] as num?),

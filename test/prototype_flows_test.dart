@@ -11,28 +11,33 @@ import 'package:utp_comercio_frontend/services/startup_permissions.dart';
 import 'package:utp_comercio_frontend/theme/nearby_theme.dart';
 import 'package:utp_comercio_frontend/widgets/common_widgets.dart';
 
-Widget harness(AppState state) => AnimatedBuilder(
-  animation: state,
-  builder: (context, _) => MaterialApp(
-    debugShowCheckedModeBanner: false,
-    theme: ThemeData(
-      fontFamily: 'Nunito',
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: state.dark ? NearbyColors.darkPrimary : NearbyColors.primary,
-        brightness: state.dark ? Brightness.dark : Brightness.light,
+Widget harness(AppState state) {
+  state.networkMaps = false;
+  return AnimatedBuilder(
+    animation: state,
+    builder: (context, _) => MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        fontFamily: 'Nunito',
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: state.dark
+              ? NearbyColors.darkPrimary
+              : NearbyColors.primary,
+          brightness: state.dark ? Brightness.dark : Brightness.light,
+        ),
+      ),
+      home: NearbyMasterShell(
+        state: state,
+        theme: NearbyThemeData.build(
+          dark: state.dark,
+          lg: state.lg,
+          hc: state.hc,
+          emergency: state.emergency,
+        ),
       ),
     ),
-    home: NearbyMasterShell(
-      state: state,
-      theme: NearbyThemeData.build(
-        dark: state.dark,
-        lg: state.lg,
-        hc: state.hc,
-        emergency: state.emergency,
-      ),
-    ),
-  ),
-);
+  );
+}
 
 void main() {
   setUpAll(() async {

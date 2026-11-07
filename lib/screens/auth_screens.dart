@@ -1,8 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-import '../models/models.dart';
+import '../config/app_environment.dart';
+import '../services/device_actions.dart';
+
 import '../state/app_state.dart';
 import '../theme/nearby_theme.dart';
 
@@ -41,6 +44,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   late TextEditingController _phoneController;
   String _err = '';
+  bool _busy = false;
 
   @override
   void initState() {
@@ -188,17 +192,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
           const Spacer(),
           ElevatedButton.icon(
-            onPressed: _isValid && !state.busy
+            onPressed: _isValid && !state.busy && !_busy
                 ? () async {
-                    if (!state.useApi) {
-                      state.toast(
-                        'Código enviado al +51 ${state.phoneDraft}',
-                        icon: 'sms',
-                      );
-                      state.go('otp');
-                      return;
+                    setState(() => _busy = true);
+                    try {
+                      if (await state.requestOtp() && mounted) state.go('otp');
+                    } finally {
+                      if (mounted) setState(() => _busy = false);
                     }
-                    if (await state.requestOtp()) state.go('otp');
                   }
                 : null,
             style: ElevatedButton.styleFrom(
@@ -254,7 +255,16 @@ class _OtpScreenState extends State<OtpScreen> {
   @override
   void initState() {
     super.initState();
+    _secondsLeft = widget.state.otpResendSeconds;
     _startTimer();
+    DeviceActions.channel.setMethodCallHandler((call) async {
+      if (call.method == 'sms' && mounted) {
+        final code = RegExp(r'(?<![0-9])[0-9]{6}(?![0-9])')
+            .firstMatch(call.arguments as String? ?? '')
+            ?.group(0);
+        if (code != null) _fillCode(code);
+      }
+    });
   }
 
   void _startTimer() {
@@ -269,6 +279,7 @@ class _OtpScreenState extends State<OtpScreen> {
 
   @override
   void dispose() {
+    DeviceActions.channel.setMethodCallHandler(null);
     _timer?.cancel();
     for (final c in _controllers) {
       c.dispose();
@@ -279,64 +290,41 @@ class _OtpScreenState extends State<OtpScreen> {
     super.dispose();
   }
 
+  bool _verifying = false;
   Future<void> _checkCode() async {
     final code = _controllers.map((c) => c.text).join();
-    if (code.length < 6) {
-      setState(() => _err = '');
-      return;
-    }
-
-    if (widget.state.useApi) {
+    if (code.length != 6 || _verifying || _isSuccess) return;
+    _verifying = true;
+    try {
       final error = await widget.state.verifyOtp(code);
       if (!mounted) return;
       if (error != null) {
-        setState(() {
-          _err = error;
-          _isSuccess = false;
-        });
+        setState(() => _err = error);
         return;
       }
       setState(() {
         _isSuccess = true;
         _err = '';
       });
-      Timer(const Duration(milliseconds: 350), () {
-        if (!mounted) return;
-        if (widget.state.regPending) {
-          widget.state.regName = '';
-          widget.state.regLoc = null;
-          widget.state.go('registro');
-        } else {
-          widget.state.go('home', reset: true);
-          widget.state.toast(
-            'Hola de nuevo, ${widget.state.firstName}',
-            icon: 'waving_hand',
-          );
-        }
-      });
-      return;
+      widget.state.go(
+        widget.state.regPending ? 'registro' : 'home',
+        reset: true,
+      );
+    } finally {
+      _verifying = false;
     }
+  }
 
-    if (code == '123456') {
-      setState(() {
-        _isSuccess = true;
-        _err = '';
-      });
-      Timer(const Duration(milliseconds: 450), () {
-        if (!mounted) return;
-        widget.state.userPhone = widget.state.phoneDraft.isNotEmpty
-            ? widget.state.phoneDraft
-            : '987654321';
-        widget.state.regName = '';
-        widget.state.regLoc = null;
-        widget.state.go('registro');
-      });
-    } else {
-      setState(() {
-        _err = 'Código incorrecto. Revisa el SMS e inténtalo otra vez.';
-        _isSuccess = false;
-      });
+  void _fillCode(String code) {
+    for (var i = 0; i < 6; i++) {
+      _controllers[i].text = code[i];
     }
+    _checkCode();
+  }
+
+  void _fillDemo() {
+    final code = widget.state.otpDevCode;
+    if (code != null && code.length == 6) _fillCode(code);
   }
 
   @override
@@ -402,7 +390,9 @@ class _OtpScreenState extends State<OtpScreen> {
                   focusNode: _focusNodes[i],
                   keyboardType: TextInputType.number,
                   textAlign: TextAlign.center,
-                  maxLength: 1,
+                  autofillHints: const [AutofillHints.oneTimeCode],
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  maxLength: 6,
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
@@ -425,6 +415,13 @@ class _OtpScreenState extends State<OtpScreen> {
                     ),
                   ),
                   onChanged: (val) {
+                    if (val.length == 6) {
+                      _fillCode(val);
+                      return;
+                    }
+                    if (val.length > 1) {
+                      _controllers[i].text = val.substring(val.length - 1);
+                    }
                     if (val.isNotEmpty && i < 5) {
                       _focusNodes[i + 1].requestFocus();
                     } else if (val.isEmpty && i > 0) {
@@ -457,15 +454,58 @@ class _OtpScreenState extends State<OtpScreen> {
           ],
           const SizedBox(height: 14),
 
+          // Only the code returned by a development backend can be shown.
+          if (AppEnvironment.showDevelopmentTools && state.otpDevCode != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: theme.infoSoft,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info, color: theme.info, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Servidor de desarrollo: ${state.otpDevCode}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12.5,
+                        color: NearbyColors.info,
+                      ),
+                    ),
+                  ),
+                  InkWell(
+                    onTap: _fillDemo,
+                    child: const Text(
+                      'Usarlo',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 13,
+                        decoration: TextDecoration.underline,
+                        color: NearbyColors.info,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 12),
+
           TextButton.icon(
-            onPressed: _secondsLeft == 0
+            onPressed: _secondsLeft == 0 && !state.busy
                 ? () async {
-                    setState(() => _secondsLeft = 30);
-                    _startTimer();
-                    if (state.useApi) {
-                      await state.requestOtp();
-                    } else {
-                      state.toast('Te enviamos un nuevo código', icon: 'sms');
+                    if (_verifying) return;
+                    _verifying = true;
+                    try {
+                      final sent = await state.requestOtp();
+                      if (!mounted || !sent) return;
+                      setState(() => _secondsLeft = state.otpResendSeconds);
+                      _timer?.cancel();
+                      _startTimer();
+                    } finally {
+                      _verifying = false;
                     }
                   }
                 : null,
@@ -481,7 +521,7 @@ class _OtpScreenState extends State<OtpScreen> {
           const Spacer(),
           Center(
             child: Text(
-              'Si el SMS llega a este mismo teléfono, el código se completa solo.',
+              'Puedes autorizar la lectura de este único SMS para completar el código, o escribirlo manualmente.',
               textAlign: TextAlign.center,
               style: TextStyle(color: theme.muted, fontSize: 12),
             ),

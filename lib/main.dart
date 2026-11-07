@@ -236,6 +236,8 @@ class NearbyMasterShell extends StatelessWidget {
           // Floating Toast Widget
           if (state.toastMessage != null && state.tourName == null)
             NearbyToastWidget(
+              key: ValueKey(state.toastId),
+              onDismiss: state.dismissToast,
               message: state.toastMessage!,
               icon: state.toastIcon,
             ),

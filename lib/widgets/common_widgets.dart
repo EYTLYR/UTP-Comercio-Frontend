@@ -507,25 +507,25 @@ class NearbyEmergencyBanner extends StatelessWidget {
               ),
             ),
             if (state.isBrigade)
-            ElevatedButton(
-              onPressed: () => state.go('tablero'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: NearbyColors.sosDark,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
+              ElevatedButton(
+                onPressed: () => state.go('tablero'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: NearbyColors.sosDark,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                child: const Text(
+                  'Tablero',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
                 ),
               ),
-              child: const Text(
-                'Tablero',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
-              ),
-            ),
           ],
         ),
       ),
@@ -887,78 +887,103 @@ class NearbySosCard extends StatelessWidget {
 }
 
 // --- Floating Toast Message ---
-class NearbyToastWidget extends StatelessWidget {
+class NearbyToastWidget extends StatefulWidget {
   final String message;
   final String? icon;
+  final VoidCallback? onDismiss;
+  const NearbyToastWidget({
+    super.key,
+    required this.message,
+    this.icon,
+    this.onDismiss,
+  });
+  @override
+  State<NearbyToastWidget> createState() => _NearbyToastWidgetState();
+}
 
-  const NearbyToastWidget({super.key, required this.message, this.icon});
+class _NearbyToastWidgetState extends State<NearbyToastWidget>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _timer = AnimationController(
+    vsync: this,
+    duration: AppState.toastDuration,
+  )..forward();
+  @override
+  void dispose() {
+    _timer.dispose();
+    super.dispose();
+  }
 
   @override
-  Widget build(BuildContext context) {
-    IconData ic = Icons.check_circle;
-    if (icon == 'sms') ic = Icons.sms;
-    if (icon == 'verified' || icon == 'verified_user') ic = Icons.verified;
-    if (icon == 'crisis_alert') ic = Icons.crisis_alert;
-    if (icon == 'cloud_off') ic = Icons.cloud_off;
-    if (icon == 'cloud_done') ic = Icons.cloud_done;
-    if (icon == 'auto_awesome') ic = Icons.auto_awesome;
-    if (icon == 'touch_app') ic = Icons.touch_app;
-    if (icon == 'celebration') ic = Icons.celebration;
-    const more = <String, IconData>{
-      'error': Icons.error,
-      'lock': Icons.lock,
-      'info': Icons.info,
-      'location_on': Icons.location_on,
-      'campaign': Icons.campaign,
-      'waving_hand': Icons.waving_hand,
-      'logout': Icons.logout,
-      'delete': Icons.delete,
-      'cancel': Icons.cancel,
-      'groups': Icons.groups,
-      'person_add': Icons.person_add,
-      'directions_run': Icons.directions_run,
-      'notifications_active': Icons.notifications_active,
-      'add_location': Icons.add_location,
-    };
-    ic = more[icon] ?? ic;
-
-    return Positioned(
-      left: 16,
-      right: 16,
-      bottom: 84,
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
+  Widget build(BuildContext context) => Positioned(
+    left: 12,
+    right: 12,
+    bottom: 12,
+    child: Semantics(
+      liveRegion: true,
+      child: Dismissible(
+        key: ValueKey(widget.message),
+        direction: DismissDirection.horizontal,
+        onDismissed: (_) => widget.onDismiss?.call(),
+        child: GestureDetector(
+          onVerticalDragEnd: (details) {
+            if ((details.primaryVelocity ?? 0).abs() > 150) {
+              widget.onDismiss?.call();
+            }
+          },
+          child: Material(
             color: const Color(0xFF1F1E1B),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x40000000),
-                blurRadius: 16,
-                offset: Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Icon(ic, color: const Color(0xFF7FD6C2), size: 22),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  message,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+            borderRadius: BorderRadius.circular(18),
+            clipBehavior: Clip.antiAlias,
+            elevation: 8,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 4, 8),
+                  child: Row(
+                    children: [
+                      Icon(
+                        widget.icon == 'sms' ? Icons.sms : Icons.info_outline,
+                        color: const Color(0xFF7FD6C2),
+                        size: 22,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          widget.message,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: widget.onDismiss,
+                        tooltip: 'Cerrar aviso',
+                        icon: const Icon(
+                          Icons.close,
+                          color: Colors.white70,
+                          size: 19,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
+                AnimatedBuilder(
+                  animation: _timer,
+                  builder: (_, _) => LinearProgressIndicator(
+                    value: 1 - _timer.value,
+                    minHeight: 3,
+                    backgroundColor: Colors.white12,
+                    color: const Color(0xFF7FD6C2),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
 }

@@ -189,6 +189,8 @@ class PublishType {
 }
 
 class MapPin {
+  final double? latitude;
+  final double? longitude;
   final String id;
   final String kind;
   final double x;
@@ -200,6 +202,8 @@ class MapPin {
   final String? go;
 
   const MapPin({
+    this.latitude,
+    this.longitude,
     required this.id,
     required this.kind,
     required this.x,
