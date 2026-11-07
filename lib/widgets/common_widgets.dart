@@ -1005,6 +1005,48 @@ class _PressableScaleState extends State<PressableScale> {
   }
 }
 
+// --- Emil Kowalski Staggered Entrance Animation ---
+/// Staggers items cascading into the view with subtle translation (8px),
+/// starting scale (0.96 -> 1.0) and opacity (0 -> 1) within 240ms.
+/// Respects accessibility / prefers-reduced-motion.
+class StaggeredEntrance extends StatelessWidget {
+  final Widget child;
+  final int index;
+  final int delayMs;
+  final Duration duration;
+
+  const StaggeredEntrance({
+    super.key,
+    required this.child,
+    this.index = 0,
+    this.delayMs = 40,
+    this.duration = const Duration(milliseconds: 220),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (MediaQuery.disableAnimationsOf(context)) return child;
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      duration: duration + Duration(milliseconds: (index * delayMs).clamp(0, 320)),
+      curve: const Cubic(0.23, 1.0, 0.32, 1.0),
+      builder: (context, value, childWidget) {
+        return Opacity(
+          opacity: value.clamp(0.0, 1.0),
+          child: Transform.translate(
+            offset: Offset(0, (1.0 - value) * 8),
+            child: Transform.scale(
+              scale: 0.96 + (value * 0.04),
+              child: childWidget,
+            ),
+          ),
+        );
+      },
+      child: child,
+    );
+  }
+}
+
 // --- Floating Toast Message ---
 class NearbyToastWidget extends StatefulWidget {
   final String message;

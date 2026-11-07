@@ -200,6 +200,10 @@ class AppState extends ChangeNotifier {
   /// Candado: un solo envío de la cola a la vez aunque la señal vaya y venga.
   bool _isFlushing = false;
 
+  int get outboxCount => _outbox.length;
+  bool get isSyncing => _isFlushing;
+  Future<void> flushPendingNow() => _flushOutbox();
+
   /// true si la app pasó sola a "sin conexión" porque el teléfono perdió la red
   /// (distinto del interruptor manual de la simulación).
   bool _autoOffline = false;

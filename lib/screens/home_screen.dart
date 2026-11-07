@@ -177,9 +177,9 @@ class HomeScreen extends StatelessWidget {
         if (state.isBrigade)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-            child: InkWell(
+            child: PressableScale(
               onTap: () => state.go('red'),
-              borderRadius: BorderRadius.circular(20),
+              scale: 0.98,
               child: Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
@@ -472,8 +472,9 @@ class HomeScreen extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () async {
+                          child: PressableScale(
+                            scale: 0.96,
+                            onTap: () async {
                               state.checkin = true;
                               state.refresh();
                               final sent = await state.sendCheckIn(true);
@@ -484,40 +485,60 @@ class HomeScreen extends StatelessWidget {
                                 icon: 'check_circle',
                               );
                             },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: theme.primary,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
+                            child: Container(
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: theme.primary,
                                 borderRadius: BorderRadius.circular(14),
                               ),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            icon: const Icon(Icons.check_circle, size: 18),
-                            label: const Text(
-                              'Estoy bien',
-                              style: TextStyle(fontWeight: FontWeight.w800),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.check_circle, size: 18, color: Colors.white),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'Estoy bien',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                      fontSize: 13.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () => state.go('sos'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: NearbyColors.sos,
-                              side: const BorderSide(
-                                color: NearbyColors.sos,
-                                width: 1.5,
-                              ),
-                              shape: RoundedRectangleBorder(
+                          child: PressableScale(
+                            scale: 0.96,
+                            onTap: () => state.go('sos'),
+                            child: Container(
+                              height: 48,
+                              decoration: BoxDecoration(
+                                border: Border.all(color: NearbyColors.sos, width: 1.5),
                                 borderRadius: BorderRadius.circular(14),
                               ),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            icon: const Icon(Icons.emergency, size: 18),
-                            label: const Text(
-                              'Necesito ayuda',
-                              style: TextStyle(fontWeight: FontWeight.w800),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.emergency, size: 18, color: NearbyColors.sos),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'Necesito ayuda',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      color: NearbyColors.sos,
+                                      fontSize: 13.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -790,20 +811,30 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           if (actionText != null)
-            InkWell(
+            PressableScale(
               onTap: onAction,
-              child: Row(
-                children: [
-                  Text(
-                    actionText,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      color: theme.primaryDark,
+              scale: 0.95,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: theme.primarySoft,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      actionText,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w800,
+                        color: theme.primaryDark,
+                      ),
                     ),
-                  ),
-                  Icon(Icons.chevron_right, size: 18, color: theme.primaryDark),
-                ],
+                    Icon(Icons.chevron_right, size: 16, color: theme.primaryDark),
+                  ],
+                ),
               ),
             ),
         ],
@@ -819,15 +850,22 @@ class HomeScreen extends StatelessWidget {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    return InkWell(
+    return PressableScale(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+      scale: 0.96,
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: theme.surface,
           border: Border.all(color: theme.line),
           borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -840,7 +878,7 @@ class HomeScreen extends StatelessWidget {
                 color: softColor,
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(icon, color: color, size: 24),
+              child: Center(child: Icon(icon, color: color, size: 24)),
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,

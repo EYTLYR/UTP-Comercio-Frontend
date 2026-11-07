@@ -17,8 +17,10 @@ import 'screens/splash_screen.dart';
 import 'screens/wall_screen.dart';
 import 'state/app_state.dart';
 import 'theme/nearby_theme.dart';
+import 'core/motion/app_motion.dart';
 import 'widgets/bottom_sheets.dart';
 import 'widgets/common_widgets.dart';
+import 'widgets/common/offline_sync_pill.dart';
 import 'widgets/navigation_chrome.dart';
 import 'widgets/interactive_tour.dart';
 import 'widgets/simulation_panel.dart';
@@ -134,8 +136,10 @@ class NearbyMasterShell extends StatelessWidget {
             : NearbyTextScaler(media.textScaler, theme.scaleFactor),
         highContrast: state.hc || media.highContrast,
       ),
-      child: Theme(
+      child: AnimatedTheme(
         data: theme.materialTheme,
+        duration: AppMotion.normal,
+        curve: AppMotion.easeOut,
         child: PopScope(
           canPop:
               state.screen == 'home' &&
@@ -193,8 +197,10 @@ class NearbyMasterShell extends StatelessWidget {
     if (meta.full == 'red') screenBg = NearbyColors.sos;
     if (meta.full == 'navyfull') screenBg = NearbyColors.navy;
 
-    return Container(
+    return AnimatedContainer(
       key: state.tourViewportKey,
+      duration: AppMotion.normal,
+      curve: AppMotion.easeOut,
       color: screenBg,
       child: Stack(
         children: [
@@ -250,8 +256,10 @@ class NearbyMasterShell extends StatelessWidget {
     );
   }
 
-  Widget _topChrome(ScreenMeta meta, bool emUI) => Container(
+  Widget _topChrome(ScreenMeta meta, bool emUI) => AnimatedContainer(
     key: const ValueKey('top-chrome'),
+    duration: AppMotion.normal,
+    curve: AppMotion.easeOut,
     margin: EdgeInsets.only(bottom: emUI ? 10 : 0),
     decoration: BoxDecoration(
       color: emUI ? NearbyColors.navy : null,
@@ -274,6 +282,11 @@ class NearbyMasterShell extends StatelessWidget {
         if (emUI) NearbyEmergencyBanner(state: state),
         if (meta.bar != null && state.offline)
           NearbyOfflineBanner(state: state),
+        // Floating sync pill indicator
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2.0),
+          child: OfflineSyncPill(state: state),
+        ),
       ],
     ),
   );

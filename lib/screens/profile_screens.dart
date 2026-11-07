@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
+import '../widgets/common_widgets.dart';
 import '../widgets/navigation_chrome.dart';
+import 'profile/widgets/edit_address_sheet.dart';
 
 import '../models/models.dart';
 import '../services/offline_tiles.dart';
@@ -304,161 +306,217 @@ class PerfilScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // User header card
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundColor: NearbyColors.primary,
-                      child: Text(
-                        state.initials,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            state.userName,
+          StaggeredEntrance(
+            index: 0,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 30,
+                        backgroundColor: NearbyColors.primary,
+                        child: Center(
+                          child: Text(
+                            state.initials,
+                            textAlign: TextAlign.center,
                             style: const TextStyle(
-                              fontSize: 18,
+                              color: Colors.white,
+                              fontSize: 20,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            state.userAddress.isNotEmpty
-                                ? '${state.userAddress} · +51 ${state.userPhone}'
-                                : '${state.effectiveZoneName} · +51 ${state.userPhone}',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: NearbyColors.accent.withValues(
-                                alpha: 0.12,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              state.userName,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
                               ),
-                              borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.verified_user,
-                                  size: 13,
-                                  color: NearbyColors.accent,
+                            const SizedBox(height: 2),
+                            Text(
+                              state.userAddress.isNotEmpty
+                                  ? '${state.userAddress} · +51 ${state.userPhone}'
+                                  : '${state.effectiveZoneName} · +51 ${state.userPhone}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: NearbyColors.accent.withValues(
+                                  alpha: 0.12,
                                 ),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Vecino verificado',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.verified_user,
+                                    size: 13,
                                     color: NearbyColors.accent,
                                   ),
-                                ),
-                              ],
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Vecino verificado',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: NearbyColors.accent,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
 
           // Profile stats
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                const Expanded(
-                  child: _ProfileStat(val: '12', label: 'Favores hechos'),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _ProfileStat(
-                    val: '${5 + state.vbGiven.values.where((v) => v).length}',
-                    label: 'Vistos dados',
+          StaggeredEntrance(
+            index: 1,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: _ProfileStat(val: '12', label: 'Favores hechos'),
                   ),
-                ),
-                const SizedBox(width: 8),
-                const Expanded(
-                  child: _ProfileStat(val: '3', label: 'Favores recibidos'),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _ProfileStat(
+                      val: '${5 + state.vbGiven.values.where((v) => v).length}',
+                      label: 'Vistos dados',
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: _ProfileStat(val: '3', label: 'Favores recibidos'),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 16),
 
           // Mi dirección y zona
-          _SectionHeader(
-            title: 'Mi dirección y zona',
-            actionLabel: 'Editar',
-            actionIcon: Icons.edit,
-            onTap: () => _openEditAddressSheet(context, state),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-                side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
-              ),
-              child: ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: NearbyColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.home_outlined,
-                    color: NearbyColors.primary,
-                    size: 22,
+          StaggeredEntrance(
+            index: 2,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _SectionHeader(
+                  title: 'Mi dirección y zona',
+                  actionLabel: 'Editar',
+                  actionIcon: Icons.edit,
+                  onTap: () => _openEditAddressSheet(context, state),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: PressableScale(
+                    onTap: () => _openEditAddressSheet(context, state),
+                    scale: 0.98,
+                    child: Card(
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: NearbyColors.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.home_outlined,
+                                color: NearbyColors.primary,
+                                size: 22,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    state.userAddress.isNotEmpty
+                                        ? state.userAddress
+                                        : 'Sin dirección registrada',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    '${state.effectiveZoneName} · Privada para ti y brigadas de rescate',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                      height: 1.2,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.withValues(alpha: 0.08),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.edit_outlined,
+                                size: 18,
+                                color: NearbyColors.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-                title: Text(
-                  state.userAddress.isNotEmpty
-                      ? state.userAddress
-                      : 'Sin dirección registrada',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                  ),
-                ),
-                subtitle: Text(
-                  '${state.effectiveZoneName} · Privada para ti y brigadas de rescate',
-                  style: const TextStyle(fontSize: 12),
-                ),
-                trailing: const Icon(Icons.edit_outlined, size: 20, color: Colors.grey),
-                onTap: () => _openEditAddressSheet(context, state),
-              ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
@@ -824,21 +882,34 @@ class PerfilScreen extends StatelessWidget {
           // Logout button
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: NearbyColors.sos,
-                side: const BorderSide(color: NearbyColors.sos),
-                minimumSize: const Size.fromHeight(48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+            child: PressableScale(
+              onTap: () => state.openSheet('logout'),
+              scale: 0.97,
+              child: Container(
+                height: 50,
+                decoration: BoxDecoration(
+                  border: Border.all(color: NearbyColors.sos, width: 1.5),
+                  borderRadius: BorderRadius.circular(14),
+                  color: Colors.transparent,
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Icon(Icons.logout, color: NearbyColors.sos, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'Cerrar sesión',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: NearbyColors.sos,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14.5,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              icon: const Icon(Icons.logout),
-              label: const Text(
-                'Cerrar sesión',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              onPressed: () => state.openSheet('logout'),
             ),
           ),
           const SizedBox(height: 32),
@@ -848,433 +919,64 @@ class PerfilScreen extends StatelessWidget {
   }
 
   void _openEditAddressSheet(BuildContext context, AppState state) {
-    double tempLat = state.regLat ?? -11.9790;
-    double tempLng = state.regLng ?? -77.0030;
-    final addrController = TextEditingController(text: state.userAddress);
-    bool isDetecting = false;
-    bool isSaving = false;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.viewInsetsOf(context).bottom + 20,
-                left: 20,
-                right: 20,
-                top: 16,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: NearbyColors.primary.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.edit_location_alt,
-                          color: NearbyColors.primary,
-                          size: 22,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Editar dirección de tu hogar',
-                              style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            Text(
-                              'Actualiza tu dirección o muévete con GPS',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(ctx),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Campo de dirección
-                  TextField(
-                    controller: addrController,
-                    decoration: InputDecoration(
-                      labelText: 'Dirección o referencia exacta',
-                      hintText: 'Ej. Jr. Las Flores 245, SJL',
-                      prefixIcon: const Icon(Icons.home_outlined),
-                      suffixIcon: addrController.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear, size: 18),
-                              onPressed: () {
-                                setModalState(() => addrController.clear());
-                              },
-                            )
-                          : null,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 12,
-                      ),
-                    ),
-                    onChanged: (_) => setModalState(() {}),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Atajos y detección
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 6,
-                    children: [
-                      ActionChip(
-                        avatar: isDetecting
-                            ? const SizedBox(
-                                width: 14,
-                                height: 14,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(
-                                Icons.my_location,
-                                size: 16,
-                                color: Color(0xFF1E8E3E),
-                              ),
-                        label: Text(
-                          isDetecting ? 'Detectando GPS…' : 'Usar ubicación GPS',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        onPressed: isDetecting
-                            ? null
-                            : () async {
-                                setModalState(() => isDetecting = true);
-                                try {
-                                  final pos = await state.location.current();
-                                  tempLat = pos.lat;
-                                  tempLng = pos.lng;
-
-                                  try {
-                                    final uri = Uri.parse(
-                                      'https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.lat}&lon=${pos.lng}&zoom=18&addressdetails=1',
-                                    );
-                                    final res = await http.get(
-                                      uri,
-                                      headers: {'User-Agent': 'UTP-Comercio/1.0'},
-                                    ).timeout(const Duration(seconds: 4));
-                                    if (res.statusCode == 200) {
-                                      final data =
-                                          jsonDecode(res.body) as Map<String, dynamic>;
-                                      final addr =
-                                          data['address'] as Map<String, dynamic>?;
-                                      if (addr != null) {
-                                        final road = addr['road'] as String?;
-                                        final num = addr['house_number'] as String?;
-                                        final suburb = addr['suburb'] as String? ??
-                                            addr['neighbourhood'] as String?;
-                                        final district = addr['city_district'] as String? ??
-                                            addr['city'] as String?;
-                                        if (road != null) {
-                                          addrController.text = num != null
-                                              ? '$road $num${district != null ? ', $district' : ''}'
-                                              : '$road${suburb != null ? ', $suburb' : ''}';
-                                        } else if (district != null) {
-                                          addrController.text = district;
-                                        }
-                                      }
-                                    }
-                                  } catch (_) {
-                                    if (pos.city != null && pos.city!.isNotEmpty) {
-                                      addrController.text = pos.region != null
-                                          ? '${pos.city}, ${pos.region}'
-                                          : pos.city!;
-                                    }
-                                  }
-                                } catch (_) {
-                                  state.toast('No se pudo obtener el GPS', icon: 'error');
-                                } finally {
-                                  setModalState(() => isDetecting = false);
-                                }
-                              },
-                      ),
-                      ActionChip(
-                        avatar: const Icon(
-                          Icons.place,
-                          size: 16,
-                          color: Color(0xFF1A73E8),
-                        ),
-                        label: const Text(
-                          'Jr. Las Flores (SJL)',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                        onPressed: () {
-                          setModalState(() {
-                            tempLat = -11.9790;
-                            tempLng = -77.0030;
-                            addrController.text = 'Jr. Las Flores 245, SJL';
-                          });
-                        },
-                      ),
-                      ActionChip(
-                        avatar: const Icon(
-                          Icons.school,
-                          size: 16,
-                          color: Color(0xFFE37400),
-                        ),
-                        label: const Text(
-                          'UTP Sede SJL',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                        onPressed: () {
-                          setModalState(() {
-                            tempLat = -11.9892;
-                            tempLng = -77.0062;
-                            addrController.text = 'UTP Sede San Juan de Lurigancho';
-                          });
-                        },
-                      ),
-                      ActionChip(
-                        avatar: const Icon(
-                          Icons.place,
-                          size: 16,
-                          color: Color(0xFF1A73E8),
-                        ),
-                        label: const Text(
-                          'J. L. Ortiz (Chiclayo)',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                        onPressed: () {
-                          setModalState(() {
-                            tempLat = -6.7562;
-                            tempLng = -79.8398;
-                            addrController.text = 'Calle Los Zapallos, José Leonardo Ortiz';
-                          });
-                        },
-                      ),
-                      ActionChip(
-                        avatar: const Icon(
-                          Icons.place,
-                          size: 16,
-                          color: Color(0xFF1A73E8),
-                        ),
-                        label: const Text(
-                          'Chiclayo (Lambayeque)',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                        onPressed: () {
-                          setModalState(() {
-                            tempLat = -6.7701;
-                            tempLng = -79.8550;
-                            addrController.text = 'Chiclayo, Lambayeque';
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-
-                  // Tarjeta de coordenadas
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.withValues(alpha: 0.06),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.explore,
-                          color: Color(0xFF1A73E8),
-                          size: 24,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Coordenadas de referencia',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              Text(
-                                'Lat: ${tempLat.toStringAsFixed(4)}, Lng: ${tempLng.toStringAsFixed(4)}',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: () async {
-                            final query = Uri.encodeComponent(
-                              addrController.text.isNotEmpty
-                                  ? '${addrController.text}, Lima'
-                                  : '$tempLat,$tempLng',
-                            );
-                            final uri = Uri.parse(
-                              'https://www.google.com/maps/search/?api=1&query=$query',
-                            );
-                            try {
-                              await launchUrl(uri, mode: LaunchMode.externalApplication);
-                            } catch (_) {}
-                          },
-                          icon: const Icon(Icons.open_in_new, size: 14),
-                          label: const Text(
-                            'Maps',
-                            style: TextStyle(fontSize: 11),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF1A73E8),
-                            side: const BorderSide(color: Color(0xFF1A73E8)),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-
-                  ElevatedButton(
-                    onPressed: isSaving
-                        ? null
-                        : () async {
-                            final text = addrController.text.trim();
-                            if (text.isEmpty) {
-                              state.toast(
-                                'Ingresa una dirección o referencia',
-                                icon: 'warning',
-                              );
-                              return;
-                            }
-                            setModalState(() => isSaving = true);
-                            final ok = await state.updateUserLocation(
-                              address: text,
-                              lat: tempLat,
-                              lng: tempLng,
-                            );
-                            setModalState(() => isSaving = false);
-                            if (ok) {
-                              Navigator.pop(ctx);
-                              state.toast(
-                                'Dirección guardada correctamente',
-                                icon: 'check_circle',
-                              );
-                            }
-                          },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: NearbyColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    child: isSaving
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text(
-                            'Guardar dirección',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
+    showEditAddressSheet(context, state);
   }
 }
 
 class _ProfileStat extends StatelessWidget {
   final String val;
   final String label;
-  const _ProfileStat({required this.val, required this.label});
+  final VoidCallback? onTap;
+  const _ProfileStat({required this.val, required this.label, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        children: [
-          Text(
-            val,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: NearbyColors.primary,
+    return PressableScale(
+      onTap: onTap,
+      scale: 0.96,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.grey.withValues(alpha: 0.18)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              color: Colors.grey.shade600,
-              fontWeight: FontWeight.w600,
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              val,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                color: NearbyColors.primary,
+                letterSpacing: -0.5,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 3),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w600,
+                height: 1.2,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1296,21 +998,33 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
             title,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+            style: const TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.2,
+            ),
           ),
           if (actionLabel != null && onTap != null)
-            InkWell(
+            PressableScale(
               onTap: onTap,
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              scale: 0.94,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: NearbyColors.primary.withValues(alpha: 0.09),
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     if (actionIcon != null) ...[
                       Icon(actionIcon, size: 14, color: NearbyColors.primary),
@@ -1318,6 +1032,7 @@ class _SectionHeader extends StatelessWidget {
                     ],
                     Text(
                       actionLabel!,
+                      textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,

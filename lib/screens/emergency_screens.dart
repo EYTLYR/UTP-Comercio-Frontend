@@ -6,6 +6,7 @@ import '../models/models.dart';
 import '../state/app_state.dart';
 import '../theme/nearby_theme.dart';
 import '../widgets/common_widgets.dart';
+import 'emergency/widgets/sos_countdown_button.dart';
 
 // --- Dedicated SOS Screen ---
 class SosScreen extends StatelessWidget {
@@ -342,52 +343,15 @@ class _SosCountdownScreenState extends State<SosCountdownScreen>
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 24),
-                AnimatedBuilder(
-                  animation: _countdown,
-                  builder: (context, _) {
-                    final seconds = ((1 - _countdown.value) * 5).ceil().clamp(
-                      0,
-                      5,
-                    );
-                    return Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withValues(alpha: .14),
-                      ),
-                      width: 176,
-                      height: 176,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Positioned.fill(
-                            child: CircularProgressIndicator(
-                              key: const ValueKey('sos-countdown-ring'),
-                              value: 1 - _countdown.value,
-                              strokeWidth: 5,
-                              strokeCap: StrokeCap.round,
-                              color: Colors.white,
-                              backgroundColor: Colors.white24,
-                            ),
-                          ),
-                          Semantics(
-                            liveRegion: true,
-                            label: '$seconds segundos',
-                            child: ExcludeSemantics(
-                              child: Text(
-                                '$seconds',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 72,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
+                const SizedBox(height: 16),
+                SosCountdownButton(
+                  countdown: _countdown,
+                  onCancel: () {
+                    _deadline?.cancel();
+                    _countdown.stop();
+                    widget.state.back();
                   },
+                  onComplete: _send,
                 ),
                 const SizedBox(height: 24),
                 const Text(
