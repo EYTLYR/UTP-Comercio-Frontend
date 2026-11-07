@@ -125,7 +125,20 @@ class AppState extends ChangeNotifier {
   BrowseZone? viewedZone;
   int zoneViewRevision = 0;
   String get visibleZoneName =>
-      screen == 'mapa' && viewedZone != null ? viewedZone!.name : zoneName;
+      screen == 'mapa' && viewedZone != null ? viewedZone!.name : effectiveZoneName;
+
+  String get effectiveZoneName {
+    final parts = userAddress.split(',');
+    if (parts.length > 1) {
+      final district = parts.last.trim();
+      if (district.isNotEmpty &&
+          !district.toLowerCase().contains('sjl') &&
+          !district.toLowerCase().contains('las flores')) {
+        return district;
+      }
+    }
+    return zoneName;
+  }
   Future<List<BrowseZone>> fetchZones() async {
     if (!connected) return [];
     return (await api.get('zones') as List)

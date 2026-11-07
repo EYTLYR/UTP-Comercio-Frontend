@@ -302,7 +302,9 @@ class PerfilScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${state.zoneName} · ${state.userAddress} · +51 ${state.userPhone}',
+                            state.userAddress.isNotEmpty
+                                ? '${state.userAddress} · +51 ${state.userPhone}'
+                                : '${state.effectiveZoneName} · +51 ${state.userPhone}',
                             style: TextStyle(
                               fontSize: 11,
                               color: Colors.grey.shade600,
@@ -330,7 +332,7 @@ class PerfilScreen extends StatelessWidget {
                                 ),
                                 SizedBox(width: 4),
                                 Text(
-                                  'Vecina verificada',
+                                  'Vecino verificado',
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
@@ -411,7 +413,7 @@ class PerfilScreen extends StatelessWidget {
                   ),
                 ),
                 subtitle: Text(
-                  '${state.zoneName} · Privada para ti y brigadas de rescate',
+                  '${state.effectiveZoneName} · Privada para ti y brigadas de rescate',
                   style: const TextStyle(fontSize: 12),
                 ),
                 trailing: const Icon(Icons.edit_outlined, size: 20, color: Colors.grey),
@@ -1085,6 +1087,24 @@ class PerfilScreen extends StatelessWidget {
                             tempLat = -11.9892;
                             tempLng = -77.0062;
                             addrController.text = 'UTP Sede San Juan de Lurigancho';
+                          });
+                        },
+                      ),
+                      ActionChip(
+                        avatar: const Icon(
+                          Icons.place,
+                          size: 16,
+                          color: Color(0xFF1A73E8),
+                        ),
+                        label: const Text(
+                          'J. L. Ortiz (Chiclayo)',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        onPressed: () {
+                          setModalState(() {
+                            tempLat = -6.7562;
+                            tempLng = -79.8398;
+                            addrController.text = 'Calle Los Zapallos, José Leonardo Ortiz';
                           });
                         },
                       ),

@@ -335,6 +335,15 @@ extension NearbyBackend on AppState {
     regAddress = address.trim();
     if (lat != null) regLat = lat;
     if (lng != null) regLng = lng;
+    final parts = address.split(',');
+    if (parts.length > 1) {
+      final district = parts.last.trim();
+      if (district.isNotEmpty &&
+          !district.toLowerCase().contains('sjl') &&
+          !district.toLowerCase().contains('las flores')) {
+        zoneName = district;
+      }
+    }
     refresh();
 
     if (!connected) return true;
@@ -351,6 +360,14 @@ extension NearbyBackend on AppState {
       }
       final withZone = await api.put('me/location', body: body);
       _applyUser(withZone as Map<String, dynamic>);
+      if (parts.length > 1) {
+        final district = parts.last.trim();
+        if (district.isNotEmpty &&
+            !district.toLowerCase().contains('sjl') &&
+            !district.toLowerCase().contains('las flores')) {
+          zoneName = district;
+        }
+      }
       refresh();
       return true;
     } on ApiException catch (e) {
@@ -665,13 +682,22 @@ extension NearbyBackend on AppState {
     if (addr != null && addr.isNotEmpty) {
       userAddress = addr;
       regAddress = addr;
+      final parts = addr.split(',');
+      if (parts.length > 1) {
+        final district = parts.last.trim();
+        if (district.isNotEmpty &&
+            !district.toLowerCase().contains('sjl') &&
+            !district.toLowerCase().contains('las flores')) {
+          zoneName = district;
+        }
+      }
     }
     final lat = (loc['lat'] as num?)?.toDouble();
     final lng = (loc['lng'] as num?)?.toDouble();
     if (lat != null) regLat = lat;
     if (lng != null) regLng = lng;
     final zName = loc['zoneName'] as String?;
-    if (zName != null && zName.isNotEmpty) {
+    if (zName != null && zName.isNotEmpty && !addr.toString().contains(',')) {
       zoneName = zName;
     }
   });
