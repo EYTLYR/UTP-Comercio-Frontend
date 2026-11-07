@@ -126,6 +126,7 @@ void main() {
         'home',
         'home-large',
         'home-scrolled',
+        'profile-toggles',
         'home-contrast',
         'sos-countdown',
         'servicios',
@@ -141,6 +142,8 @@ void main() {
             screen == 'home-contrast' ||
             screen == 'home-scrolled') {
           state.go('home');
+        } else if (screen == 'profile-toggles') {
+          state.go('perfil');
         } else if (screen == 'tutorial') {
           state.startTour('main');
           state.tourIndex = 1;
@@ -159,6 +162,13 @@ void main() {
           ),
         );
         await tester.pump(const Duration(milliseconds: 100));
+        if (screen == 'profile-toggles') {
+          await Scrollable.ensureVisible(
+            tester.element(find.text('Texto grande')),
+            alignment: 0.4,
+          );
+          await tester.pump();
+        }
         if (screen == 'home-scrolled') {
           final scroll = find
               .descendant(

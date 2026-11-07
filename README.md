@@ -29,11 +29,11 @@ El `.env` se incluye como un asset público en la app: úsalo solo para configur
 
 ## Navegación y contenido
 
-Las barras principales permanecen fijas y el contenido se desplaza por detrás. Los degradados superior e inferior desvanecen el contenido al entrar bajo los controles, sin un panel blanco flotante. El espacio de desplazamiento se calcula con la altura real de las barras para conservar legibles el primer y el último elemento, también con texto grande y en modo oscuro.
+Las barras principales permanecen fijas y el contenido se desplaza por detrás. Los degradados superior e inferior usan una transición suave de opacidad, sin superponer una capa blanca adicional, al entrar el contenido bajo los controles. No hay un panel blanco flotante. El espacio de desplazamiento se calcula con la altura real de las barras para conservar legibles el primer y el último elemento, también con texto grande y en modo oscuro.
 
 ## Accesibilidad y permisos
 
-«Texto grande» aplica un aumento del 40 % a todos los textos, incluidos formularios, etiquetas, navegación, texto enriquecido y nombres del mapa. Se combina con la escala de texto del sistema. El alto contraste cambia fondos, textos y bordes en tema claro y oscuro. Ambas opciones están en el perfil y funcionan en producción.
+«Texto grande» aplica un aumento del 40 % a todos los textos, incluidos formularios, etiquetas, navegación, texto enriquecido y nombres del mapa. Se combina con la escala de texto del sistema. El alto contraste cambia fondos, textos y bordes en tema claro y oscuro. Ambas opciones están en el perfil y funcionan en producción. Los interruptores apagados mantienen pista y contorno visibles en ambos temas. El interruptor de emergencia del perfil activa el modo directamente; desactivarlo conserva la confirmación.
 
 En el primer inicio aparece una explicación de los accesos de cámara, ubicación, contactos, llamadas, dispositivos cercanos, Bluetooth y galería. «Permitir y continuar» solicita los permisos reales admitidos por la plataforma; «Ahora no» permite continuar sin concederlos. La elección de mostrar la explicación se recuerda localmente con SharedPreferences. Se puede volver a abrir desde «Permisos del dispositivo» en el perfil.
 

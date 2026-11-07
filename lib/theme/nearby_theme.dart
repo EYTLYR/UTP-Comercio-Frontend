@@ -180,6 +180,44 @@ class NearbyThemeData {
       contrastLevel: hc ? 1 : 0,
     ).copyWith(surface: surface, onSurface: ink, outline: line),
     dividerColor: line,
+    switchTheme: SwitchThemeData(
+      trackColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected)
+            ? primary
+            : hc
+            ? surface
+            : dark
+            ? const Color(0xFF334155)
+            : const Color(0xFFCDD7E1),
+      ),
+      thumbColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected)
+            ? dark
+                  ? const Color(0xFF0C1524)
+                  : Colors.white
+            : hc
+            ? ink
+            : dark
+            ? const Color(0xFFE2E8F0)
+            : Colors.white,
+      ),
+      trackOutlineColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected)
+            ? Colors.transparent
+            : hc
+            ? ink
+            : dark
+            ? const Color(0xFF90A2BB)
+            : const Color(0xFF718398),
+      ),
+      trackOutlineWidth: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected)
+            ? 0
+            : hc
+            ? 2
+            : 1.5,
+      ),
+    ),
   );
 
   double get scaleFactor => lg ? 1.4 : 1.0;

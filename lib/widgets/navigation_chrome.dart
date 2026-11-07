@@ -45,17 +45,38 @@ class _NavigationChromeState extends State<NavigationChrome> {
       final height = box.maxHeight;
       if (height <= 0) return const SizedBox.shrink();
       final bottomHeight = widget.bottom == null ? 0.0 : _bottomHeight;
-      final topStart = (_topHeight - 12).clamp(0.0, height / 2);
-      final topEnd = (_topHeight + 20).clamp(topStart, height / 2);
-      final bottomStart = (height - bottomHeight - 24).clamp(topEnd, height);
-      final bottomEnd = (height - bottomHeight + 12).clamp(bottomStart, height);
+      final topStart = (_topHeight - 48).clamp(0.0, height / 2);
+      final topEnd = (_topHeight + 24).clamp(topStart, height / 2);
+      final bottomStart = (height - bottomHeight - 52).clamp(topEnd, height);
+      final bottomEnd = (height - bottomHeight + 20).clamp(bottomStart, height);
+      // One smooth opacity ramp instead of stacking a mask and a white veil.
+      final colors = <Color>[Colors.transparent];
+      final stops = <double>[0];
+      for (var i = 0; i <= 12; i++) {
+        final t = i / 12;
+        final eased = t * t * (3 - 2 * t);
+        colors.add(Colors.black.withValues(alpha: eased));
+        stops.add((topStart + (topEnd - topStart) * t) / height);
+      }
+      if (bottomHeight > 0) {
+        for (var i = 0; i <= 12; i++) {
+          final t = i / 12;
+          final eased = t * t * (3 - 2 * t);
+          colors.add(Colors.black.withValues(alpha: 1 - eased));
+          stops.add((bottomStart + (bottomEnd - bottomStart) * t) / height);
+        }
+        colors.add(Colors.transparent);
+      } else {
+        colors.add(Colors.black);
+      }
+      stops.add(1);
       return Stack(
         fit: StackFit.expand,
         children: [
           NavigationInsets(
             padding: EdgeInsets.only(
-              top: _topHeight + 20,
-              bottom: bottomHeight == 0 ? 0 : bottomHeight + 24,
+              top: _topHeight + 24,
+              bottom: bottomHeight == 0 ? 0 : bottomHeight + 56,
             ),
             child: ShaderMask(
               key: const ValueKey('navigation-content-fade'),
@@ -63,54 +84,18 @@ class _NavigationChromeState extends State<NavigationChrome> {
               shaderCallback: (rect) => LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Colors.transparent,
-                  Colors.black,
-                  Colors.black,
-                  bottomHeight == 0 ? Colors.black : Colors.transparent,
-                  bottomHeight == 0 ? Colors.black : Colors.transparent,
-                ],
-                stops: [
-                  0,
-                  topStart / height,
-                  topEnd / height,
-                  bottomStart / height,
-                  bottomEnd / height,
-                  1,
-                ],
+                colors: colors,
+                stops: stops,
               ).createShader(rect),
               child: widget.child,
             ),
           ),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: _topHeight + 20,
-            child: IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      widget.topBackground,
-                      widget.topBackground.withValues(alpha: 0.9),
-                      widget.topBackground.withValues(alpha: 0),
-                    ],
-                    stops: const [0, 0.65, 1],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          if (widget.bottom != null)
+          if (widget.topBackground != widget.background)
             Positioned(
-              bottom: 0,
+              top: 0,
               left: 0,
               right: 0,
-              height: bottomHeight + 24,
+              height: _topHeight + 24,
               child: IgnorePointer(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
@@ -118,11 +103,11 @@ class _NavigationChromeState extends State<NavigationChrome> {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        widget.background.withValues(alpha: 0),
-                        widget.background.withValues(alpha: 0.92),
-                        widget.background,
+                        widget.topBackground,
+                        widget.topBackground.withValues(alpha: 0.65),
+                        widget.topBackground.withValues(alpha: 0),
                       ],
-                      stops: const [0, 0.55, 1],
+                      stops: const [0, 0.5, 1],
                     ),
                   ),
                 ),

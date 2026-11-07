@@ -519,9 +519,10 @@ class SimulationPanel extends StatelessWidget {
                 child: FittedBox(
                   child: Switch(
                     value: value,
-                    activeThumbColor: isRed
-                        ? NearbyColors.sos
-                        : NearbyColors.primary,
+                    activeTrackColor: isRed ? NearbyColors.sos : theme.primary,
+                    activeThumbColor: theme.dark
+                        ? NearbyColors.darkBg
+                        : Colors.white,
                     onChanged: (_) => onChanged(),
                   ),
                 ),

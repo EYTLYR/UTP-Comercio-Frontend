@@ -279,6 +279,15 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void activateEmergencyFromProfile() {
+    if (emergency) return;
+    emergency = true;
+    emSource = zoneEm ? 'zona' : 'yo';
+    sheet = null;
+    notifyListeners();
+    toast('Modo emergencia activado', icon: 'crisis_alert');
+  }
+
   void toggleEmergency() {
     emergency = !emergency;
     zoneEm = emergency;

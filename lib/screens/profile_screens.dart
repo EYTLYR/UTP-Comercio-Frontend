@@ -526,7 +526,8 @@ class PerfilScreen extends StatelessWidget {
                 children: [
                   SwitchListTile(
                     value: state.emergency,
-                    activeThumbColor: NearbyColors.sos,
+                    activeTrackColor: NearbyColors.sos,
+                    activeThumbColor: Colors.white,
                     title: const Text(
                       'Modo emergencia',
                       style: TextStyle(
@@ -539,12 +540,12 @@ class PerfilScreen extends StatelessWidget {
                           ? 'Activo. Tócalo para volver al modo normal'
                           : (state.zoneEm
                                 ? 'Tu zona sigue en emergencia'
-                                : 'Se activa solo si hay una emergencia en tu zona'),
+                                : 'Actívalo para coordinar ayuda en tu barrio'),
                       style: const TextStyle(fontSize: 12),
                     ),
                     onChanged: (val) {
                       if (val) {
-                        state.openSheet('em');
+                        state.activateEmergencyFromProfile();
                       } else {
                         state.openSheet('em-off');
                       }
@@ -595,7 +596,8 @@ class PerfilScreen extends StatelessWidget {
                 children: [
                   SwitchListTile(
                     value: state.aiConsent,
-                    activeThumbColor: NearbyColors.ai,
+                    activeTrackColor: NearbyColors.ai,
+                    activeThumbColor: Colors.white,
                     title: const Text(
                       'Usar mis publicaciones en emergencias',
                       style: TextStyle(

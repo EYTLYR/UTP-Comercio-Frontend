@@ -217,7 +217,7 @@ class NearbyBottomSheetModal extends StatelessWidget {
               _kvRow(
                 Icons.campaign,
                 'Activado por',
-                yo ? 'Ti, al enviar un SOS' : 'Defensa Civil / Municipalidad',
+                yo ? 'Ti, desde tu app' : 'Defensa Civil / Municipalidad',
               ),
               const Divider(height: 16),
               _kvRow(
