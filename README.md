@@ -51,6 +51,15 @@ El tutorial resalta los controles reales, desplaza automáticamente el contenido
 
 Las publicaciones de práctica no se guardan. Al salir se restauran las recomendaciones, el borrador, los filtros y el estado anterior de conexión/emergencia. Salir cancela cualquier avance pendiente.
 
+## Compilación Android
+
+`permission_handler` está fijado en `12.0.1`, cuya implementación Android compila con API 35. Es compatible con el SDK 36 utilizado por este proyecto. La versión `13.0.2` del paquete resuelve un plugin que exige `android-37`; actualizarla requiere revisar primero los SDK instalados.
+
+```sh
+flutter pub get
+flutter run
+```
+
 ## Verificación
 
 ```sh
