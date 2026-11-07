@@ -191,6 +191,11 @@ extension NearbyBackend on AppState {
     final pos = await location.current();
     regLat = pos.lat;
     regLng = pos.lng;
+    if (pos.real) {
+      regAddress = 'Ubicación GPS (${pos.lat.toStringAsFixed(4)}, ${pos.lng.toStringAsFixed(4)})';
+    } else {
+      regAddress = 'Jr. Las Flores 245, SJL';
+    }
     regLoc = 'ok';
     refresh();
     if (!pos.real) {
@@ -207,7 +212,11 @@ extension NearbyBackend on AppState {
       if (regLat != null && regLng != null) {
         final withZone = await api.put(
           'me/location',
-          body: {'lat': regLat, 'lng': regLng},
+          body: {
+            'lat': regLat,
+            'lng': regLng,
+            'addressText': regAddress,
+          },
         );
         _applyUser(withZone as Map<String, dynamic>);
       }
