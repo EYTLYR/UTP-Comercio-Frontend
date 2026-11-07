@@ -192,14 +192,40 @@ extension NearbyBackend on AppState {
     regLat = pos.lat;
     regLng = pos.lng;
     if (pos.real) {
-      regAddress = 'Ubicación GPS (${pos.lat.toStringAsFixed(4)}, ${pos.lng.toStringAsFixed(4)})';
+      String? resolvedAddress;
+      try {
+        final uri = Uri.parse(
+          'https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.lat}&lon=${pos.lng}&zoom=18&addressdetails=1',
+        );
+        final res = await http.get(uri, headers: {
+          'User-Agent': 'NearbyApp/1.0',
+          'Accept-Language': 'es',
+        }).timeout(const Duration(seconds: 4));
+        if (res.statusCode == 200) {
+          final data = jsonDecode(res.body) as Map<String, dynamic>;
+          final addr = data['address'] as Map<String, dynamic>?;
+          if (addr != null) {
+            final road = addr['road'] ?? addr['pedestrian'] ?? addr['suburb'] ?? '';
+            final num = addr['house_number'] ?? '';
+            final district = addr['city_district'] ?? addr['suburb'] ?? addr['city'] ?? addr['town'] ?? '';
+            if (road.isNotEmpty && district.isNotEmpty) {
+              resolvedAddress = '$road $num, $district'.replaceAll('  ', ' ').trim();
+              zoneName = district;
+            } else if (district.isNotEmpty) {
+              zoneName = district;
+            }
+          }
+        }
+      } catch (_) {}
+
+      regAddress = resolvedAddress ?? 'Ubicación GPS (${pos.lat.toStringAsFixed(4)}, ${pos.lng.toStringAsFixed(4)})';
     } else {
       regAddress = 'Jr. Las Flores 245, SJL';
     }
     regLoc = 'ok';
     refresh();
     if (!pos.real) {
-      toast('No pudimos leer el GPS: usamos el centro de tu zona', icon: 'location_on');
+      toast('No pudimos leer el GPS: usamos la zona por defecto', icon: 'location_on');
     }
   }
 

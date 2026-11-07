@@ -510,14 +510,14 @@ class _RegistroScreenState extends State<RegistroScreen> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.state.regName);
-    if (widget.state.regLoc == null) {
-      widget.state.regLoc = 'ok';
-      widget.state.regLat ??= -11.9790;
-      widget.state.regLng ??= -77.0030;
-      if (widget.state.regAddress.isEmpty) {
-        widget.state.regAddress = 'Jr. Las Flores 245, SJL';
+    // Tomar automáticamente la ubicación y zona real del celular
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.state.regLoc != 'ok' || widget.state.regLat == null) {
+        widget.state.locateForRegistration().then((_) {
+          if (mounted) setState(() {});
+        });
       }
-    }
+    });
   }
 
   @override
