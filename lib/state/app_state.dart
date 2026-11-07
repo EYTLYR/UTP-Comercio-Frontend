@@ -354,6 +354,7 @@ class AppState extends ChangeNotifier {
     sheet = null;
     notifyListeners();
     toast('Modo emergencia activado', icon: 'crisis_alert');
+    if (tourName == null) this._syncEmergency(true, emSource);
   }
 
   void toggleEmergency() {
