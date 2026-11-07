@@ -67,6 +67,7 @@ class _FichaScreenState extends State<FichaScreen> {
     widget.state.alergias = _alergiasCtrl.text.trim();
     widget.state.condiciones = _condicionesCtrl.text.trim();
     widget.state.vive = _vive.toList();
+    widget.state.saveMedicalCard();
     widget.state.toast('Ficha médica actualizada', icon: 'check_circle');
     widget.state.back();
   }
@@ -235,7 +236,7 @@ class PerfilScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = kAllContacts
+    final cs = state.contactBook
         .where((c) => state.contacts.contains(c.id))
         .toList();
     final viveMap = {
@@ -248,10 +249,14 @@ class PerfilScreen extends StatelessWidget {
         ? 'Vive con: ${state.vive.map((v) => viveMap[v] ?? v).join(', ')}'
         : 'Vive sola o solo';
 
-    final userLearnedItems = state
-        .buildInventory()
-        .where((e) => e.who == state.userName)
-        .toList();
+    final userLearnedItems = state.connected
+        ? state.myLearnings
+              .where((e) => !(state.aiRemoved['${e.id}${e.tag}'] ?? false))
+              .toList()
+        : state
+              .buildInventory()
+              .where((e) => e.who == state.userName)
+              .toList();
 
     return SingleChildScrollView(
       padding: NavigationInsets.of(context),
@@ -551,26 +556,6 @@ class PerfilScreen extends StatelessWidget {
                       }
                     },
                   ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(
-                      Icons.touch_app,
-                      color: NearbyColors.primary,
-                    ),
-                    title: const Text(
-                      'Guía del modo emergencia',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
-                    ),
-                    subtitle: const Text(
-                      'Aprende a usarlo en 30 segundos',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => state.startTour('em'),
-                  ),
                 ],
               ),
             ),
@@ -580,9 +565,9 @@ class PerfilScreen extends StatelessWidget {
           // Red de rescate con IA
           _SectionHeader(
             title: 'Red de rescate con IA',
-            actionLabel: 'Ver red',
-            actionIcon: Icons.chevron_right,
-            onTap: () => state.go('red'),
+            actionLabel: state.isBrigade ? 'Ver red' : null,
+            actionIcon: state.isBrigade ? Icons.chevron_right : null,
+            onTap: state.isBrigade ? () => state.go('red') : null,
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -610,8 +595,7 @@ class PerfilScreen extends StatelessWidget {
                       style: TextStyle(fontSize: 12),
                     ),
                     onChanged: (val) {
-                      state.aiConsent = val;
-                      state.refresh();
+                      state.setAiConsent(val);
                       state.toast(
                         val
                             ? 'La IA puede sugerirte en rescates'
@@ -649,8 +633,7 @@ class PerfilScreen extends StatelessWidget {
                               size: 20,
                             ),
                             onPressed: () {
-                              state.aiRemoved['${item.id}${item.tag}'] = true;
-                              state.refresh();
+                              state.removeLearning(item);
                               state.toast(
                                 'Borrado. La IA ya no usará ese dato.',
                                 icon: 'delete',
@@ -747,26 +730,6 @@ class PerfilScreen extends StatelessWidget {
                       style: TextStyle(fontSize: 12),
                     ),
                     onChanged: (_) => state.toggleDark(),
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(
-                      Icons.touch_app,
-                      color: NearbyColors.primary,
-                    ),
-                    title: const Text(
-                      'Repetir el tutorial interactivo',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
-                    ),
-                    subtitle: const Text(
-                      'Aprende tocando la app · 1 minuto',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => state.startTour('main'),
                   ),
                 ],
               ),

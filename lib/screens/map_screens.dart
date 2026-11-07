@@ -17,7 +17,7 @@ class MapScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final em = state.emergency;
-    final allPins = em ? kEmergencyPins : kNormalPins;
+    final allPins = em ? state.emergencyPins : state.normalPins;
     final filteredPins = allPins.where((p) {
       if (state.mapFilter == 'all') return true;
       if (state.mapFilter == 'fav') {

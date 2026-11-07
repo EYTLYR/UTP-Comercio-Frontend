@@ -2,9 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../api/api_client.dart';
+import '../api/mappers.dart';
 import '../models/models.dart';
+import '../services/location_service.dart';
 import '../services/speech_input.dart';
 import '../services/startup_permissions.dart';
+
+part 'app_state_backend.dart';
 
 class PublishDraft {
   int step;
@@ -43,6 +48,10 @@ class AppState extends ChangeNotifier {
   final List<Timer> _timers = [];
   final SpeechInput voice;
   final StartupPermissions? permissions;
+
+  /// Nearby API. Sin sesión (pruebas, demo) la app usa los datos de ejemplo.
+  final ApiClient api;
+  final LocationService location;
   final Map<String, GlobalKey> tourTargets = {};
   GlobalKey tourTarget(String name) =>
       tourTargets.putIfAbsent(name, () => GlobalKey(debugLabel: name));
@@ -61,6 +70,8 @@ class AppState extends ChangeNotifier {
 
   @override
   void dispose() {
+    _pollTimer?.cancel();
+    _chatTimer?.cancel();
     voice.dispose();
     _tourTimer?.cancel();
     _toastTimer?.cancel();
@@ -69,6 +80,44 @@ class AppState extends ChangeNotifier {
     }
     super.dispose();
   }
+
+  // Backend (ver app_state_backend.dart)
+  /// true en la app real (main llama a bootstrap); false en pruebas y demo.
+  bool useApi = false;
+  bool connected = false;
+  bool busy = false;
+  bool regPending = false;
+  String? userId;
+  String role = 'NEIGHBOR';
+  String? zoneId;
+  String zoneName = 'Zona 3 · Las Flores';
+  String effectiveMode = 'NORMAL';
+  double? regLat;
+  double? regLng;
+  Map<String, dynamic>? sosResult;
+  Map<String, dynamic>? sosDetail;
+  Map<String, dynamic>? incomingSos;
+  final Map<String, String> convIds = {};
+  final Map<String, List<ReviewItem>> reviews = {};
+  final Map<String, String> contactDigits = {};
+  Map<String, int> _vbBase = {};
+  List<HistoryItem>? remoteInventory;
+  List<HistoryItem> myLearnings = [];
+  final List<Map<String, Object?>> _outbox = [];
+  final List<Future<void> Function()> _pendingCalls = [];
+  final Set<String> _seenSos = {};
+  final Set<String> _seenMsgIds = {};
+  final Map<String, String?> _lastMsgAt = {};
+  Timer? _pollTimer;
+  Timer? _chatTimer;
+
+  /// Brigada, delegado o Municipalidad. Sin sesión (demo) se muestra todo.
+  bool get isBrigade =>
+      !connected || const {'BRIGADIST', 'DELEGATE', 'ADMIN'}.contains(role);
+
+  /// Reseñas del oficio (del backend; de ejemplo sin sesión).
+  List<ReviewItem> reviewsFor(String serviceId) =>
+      connected ? (reviews[serviceId] ?? const []) : kReviews;
 
   // Navigation
   String screen = 'home';
@@ -128,7 +177,7 @@ class AppState extends ChangeNotifier {
   int pending = 0;
   String? sosType;
   Map<String, bool> vbGiven = {};
-  Map<int, bool> helped = {};
+  Map<String, bool> helped = {};
   Map<dynamic, bool> going = {};
   bool checkin = false;
   Map<String, bool> joined = {};
@@ -165,14 +214,25 @@ class AppState extends ChangeNotifier {
   late List<PostItem> posts;
   late List<ReportItem> reports;
   late List<ResOfferItem> resOffers;
+  List<ResourceItem> resources = List.of(kResources);
+  List<GroupItem> groups = List.of(kGroups);
+  List<MapPin> normalPins = List.of(kNormalPins);
+  List<MapPin> emergencyPins = List.of(kEmergencyPins);
+  List<ContactItem> contactBook = List.of(kAllContacts);
 
   // Interactive Tour
   String? tourName;
   int tourIndex = 0;
   bool tourBusy = false;
 
-  AppState({SpeechInput? voice, this.permissions})
-    : voice = voice ?? DeviceSpeechInput() {
+  AppState({
+    SpeechInput? voice,
+    this.permissions,
+    ApiClient? api,
+    LocationService? location,
+  }) : voice = voice ?? DeviceSpeechInput(),
+       api = api ?? ApiClient(),
+       location = location ?? LocationService() {
     services = kInitialServices
         .map(
           (s) => ServiceItem(
@@ -234,6 +294,10 @@ class AppState extends ChangeNotifier {
   }
 
   void go(String name, {bool reset = false}) {
+    if (!isBrigade && const {'tablero', 'red', 'puente'}.contains(name)) {
+      toast('Esta vista es solo para la brigada de tu zona', icon: 'lock');
+      return;
+    }
     if (reset) {
       hist.clear();
     } else if (screen != name) {
@@ -243,6 +307,7 @@ class AppState extends ChangeNotifier {
     sheet = null;
     notifyListeners();
     checkTourEvent('screen:$name');
+    this._onEnter(name);
   }
 
   void back() {
@@ -273,6 +338,9 @@ class AppState extends ChangeNotifier {
         icon: 'cloud_done',
       );
       pending = 0;
+      this._flushOutbox();
+    } else if (wasOffline) {
+      this._flushOutbox();
     } else if (offline) {
       toast('Sin conexión: la app sigue funcionando', icon: 'cloud_off');
     }
@@ -289,6 +357,7 @@ class AppState extends ChangeNotifier {
   }
 
   void toggleEmergency() {
+    final previousSource = emSource;
     emergency = !emergency;
     zoneEm = emergency;
     emSource = 'zona';
@@ -307,6 +376,17 @@ class AppState extends ChangeNotifier {
       emergency ? 'Modo emergencia activado' : 'Volviste al modo normal',
       icon: emergency ? 'crisis_alert' : 'verified_user',
     );
+    if (tourName == null) {
+      this._syncEmergency(emergency, emergency ? 'yo' : previousSource);
+    }
+  }
+
+  /// "Activar modo emergencia" solo en mi app (después de un SOS).
+  void activateLocalEmergency() {
+    emergency = true;
+    emSource = 'yo';
+    notifyListeners();
+    this._syncEmergency(true, 'yo');
   }
 
   void toggleDark() {
@@ -344,13 +424,18 @@ class AppState extends ChangeNotifier {
       toast('Diste tu Visto Bueno Vecinal', icon: 'verified');
     }
     checkTourEvent('vb');
+    if (tourName == null) this._syncVb(serviceId);
   }
 
   // --- Help post ---
-  void helpPost(int postId) {
+  void helpPost(String postId) {
     final post = posts.firstWhere((p) => p.id == postId);
     final first = !(helped[postId] ?? false);
     helped[postId] = true;
+    if (connected) {
+      this._respondPost(post);
+      return;
+    }
     openChat(
       post.user,
       sysMsg: first
@@ -362,9 +447,13 @@ class AppState extends ChangeNotifier {
   }
 
   // --- Chat ---
-  void openChat(String userName, {String? sysMsg}) {
+  void openChat(String userName, {String? sysMsg, String? conversationId}) {
     if (!chats.containsKey(userName)) {
       chats[userName] = [];
+    }
+    if (conversationId != null) {
+      convIds[userName] = conversationId;
+      this._loadMessages(userName, conversationId, replace: true);
     }
     if (sysMsg != null) {
       chats[userName]!.add(
@@ -383,6 +472,11 @@ class AppState extends ChangeNotifier {
     );
     notifyListeners();
 
+    if (connected) {
+      // Con sesión las respuestas son reales (llegan por el sondeo del chat).
+      this._sendChatRemote(chatWith!, t);
+      return;
+    }
     if (!offline) {
       final target = chatWith!;
       _timers.add(
@@ -436,12 +530,21 @@ class AppState extends ChangeNotifier {
     final cat = _findCat(type, catId);
 
     if (offline) pending++;
+    if (connected) {
+      this._publishRemote(
+        type: type,
+        catId: catId,
+        text: text,
+        where: pub.ai?['loc'] as String?,
+        prio: pub.ai?['prio'] as String?,
+      );
+    }
 
     if (type == 'need' || type == 'offer') {
       posts.insert(
         0,
         PostItem(
-          id: DateTime.now().millisecondsSinceEpoch,
+          id: 'local-${DateTime.now().millisecondsSinceEpoch}',
           type: type!,
           cat: catId!,
           title: text.isNotEmpty
@@ -526,6 +629,20 @@ class AppState extends ChangeNotifier {
 
   // --- AI Lazarus Protocol ---
   List<HistoryItem> buildInventory() {
+    final remote = remoteInventory;
+    if (connected && remote != null) {
+      final out = <HistoryItem>[];
+      for (final h in remote) {
+        if (h.who == userName && !aiConsent) continue;
+        if (aiRemoved['${h.id}${h.tag}'] ?? false) continue;
+        out.add(h);
+      }
+      for (final h in myLearnings) {
+        if (!aiConsent || (aiRemoved['${h.id}${h.tag}'] ?? false)) continue;
+        if (!out.any((e) => e.id == h.id)) out.add(h);
+      }
+      return out;
+    }
     final out = <HistoryItem>[];
     for (final h in kHistory) {
       if (h.who == '@me' && !aiConsent) continue;
@@ -626,6 +743,20 @@ class AppState extends ChangeNotifier {
           notifyListeners();
         } else {
           timer.cancel();
+          if (connected) {
+            this._runAiRemote().then((ok) {
+              aiStatus = ok ? 'done' : 'idle';
+              aiStep = 0;
+              sheet = null;
+              tabFilter = 'all';
+              notifyListeners();
+              if (ok) {
+                final total = aiMissions.values.fold(0, (sum, m) => sum + m.length);
+                toast('Plan de rescate listo: $total vecinos asignados', icon: 'auto_awesome');
+              }
+            });
+            return;
+          }
           final sw = Stopwatch()..start();
           final prev = preventiveReports().reversed.toList();
           for (final r in prev) {
@@ -660,6 +791,7 @@ class AppState extends ChangeNotifier {
 
   void notifyAiMission(dynamic reportId) {
     aiNotified[reportId] = true;
+    if (connected) this._notifyMissionRemote(reportId);
     final r = reports.where((x) => x.id == reportId).firstOrNull;
     final m = aiMissions[reportId] ?? [];
     if (r != null && r.status == 'p') {
@@ -934,7 +1066,12 @@ class AppState extends ChangeNotifier {
     return '${now.hour}:${now.minute.toString().padLeft(2, '0')}';
   }
 
-  void addReportFromPuente(Map<String, dynamic> d) {
+  void addReportFromPuente(Map<String, dynamic> d, {String? code}) {
+    if (connected && code != null) {
+      this._reportFromSmsRemote(code, d);
+      toast('Reporte agregado al tablero del barrio', icon: 'add_location');
+      return;
+    }
     final catEntry = kTypeCode.entries.firstWhere(
       (e) => kTypeName[e.value] == d['type'],
       orElse: () => const MapEntry('herido', 'H'),

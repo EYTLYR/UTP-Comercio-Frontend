@@ -28,12 +28,16 @@ Future<void> main() async {
   await AppEnvironment.load();
   final permissions = StartupPermissions();
   await permissions.initialize();
-  runApp(NearbyApp(permissions: permissions));
+  runApp(NearbyApp(permissions: permissions, connectToApi: true));
 }
 
 class NearbyApp extends StatefulWidget {
   final StartupPermissions? permissions;
-  const NearbyApp({super.key, this.permissions});
+
+  /// true en la app real: se conecta a la Nearby API (ver lib/api/api_config.dart).
+  /// Las pruebas de widgets usan false y trabajan con los datos de ejemplo.
+  final bool connectToApi;
+  const NearbyApp({super.key, this.permissions, this.connectToApi = false});
 
   @override
   State<NearbyApp> createState() => _NearbyAppState();
@@ -46,6 +50,11 @@ class _NearbyAppState extends State<NearbyApp> {
   void initState() {
     super.initState();
     _state = AppState(permissions: widget.permissions);
+    // Sesión guardada -> inicio con datos del backend; si no, bienvenida.
+    if (widget.connectToApi) {
+      _state.screen = 'splash';
+      _state.bootstrap();
+    }
   }
 
   @override
@@ -156,7 +165,8 @@ class NearbyMasterShell extends StatelessWidget {
                 children: [
                   Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 600),
+                      // En web y tablet se ve solo la app, al ancho de un celular.
+                      constraints: const BoxConstraints(maxWidth: 480),
                       child: _buildAppContent(context),
                     ),
                   ),
@@ -342,7 +352,7 @@ class NearbyMasterShell extends StatelessWidget {
       case 'ruta':
         return 'Ruta a pie';
       case 'chat':
-        return state.chatWith ?? 'Carlos Mendoza';
+        return state.chatWith ?? 'Chat';
       case 'ficha':
         return 'Ficha de emergencia';
       case 'sos-sent':

@@ -557,8 +557,7 @@ class TableroScreen extends StatelessWidget {
               if (r.status == 'p' && !isGoing)
                 ElevatedButton(
                   onPressed: () {
-                    state.going[r.id] = true;
-                    state.refresh();
+                    state.goToReport(r);
                     state.toast(
                       'Te asignaste el reporte. La brigada lo sabe.',
                       icon: 'directions_run',
@@ -658,8 +657,8 @@ class RecursosScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final curRes =
-        kResources.where((r) => r.id == state.resSel).firstOrNull ??
-        kResources.first;
+        state.resources.where((r) => r.id == state.resSel).firstOrNull ??
+        state.resources.first;
     final offers = state.resOffers.where((o) => o.res == curRes.id).toList();
 
     return ListView(
@@ -698,7 +697,7 @@ class RecursosScreen extends StatelessWidget {
             crossAxisSpacing: 10,
             mainAxisSpacing: 10,
             childAspectRatio: 1.5,
-            children: kResources.map((x) {
+            children: state.resources.map((x) {
               final isSel = x.id == state.resSel;
               final total = x.have + x.need;
               final havePercent = total > 0 ? (x.have / total) : 0.5;
@@ -1068,7 +1067,7 @@ class ApoyoScreen extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Column(
-            children: kGroups.map((g) {
+            children: state.groups.map((g) {
               final isJoined = state.joined[g.name] == true;
 
               return Container(

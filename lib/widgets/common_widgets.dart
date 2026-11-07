@@ -498,12 +498,15 @@ class NearbyEmergencyBanner extends StatelessWidget {
                   Text(
                     state.emSource == 'yo'
                         ? 'Activado por ti · toca para opciones'
+                        : state.connected
+                        ? 'Activado por la Municipalidad · toca para opciones'
                         : 'Sismo en Lima · desde las 10:42 · toca para opciones',
                     style: const TextStyle(color: Colors.white70, fontSize: 12),
                   ),
                 ],
               ),
             ),
+            if (state.isBrigade)
             ElevatedButton(
               onPressed: () => state.go('tablero'),
               style: ElevatedButton.styleFrom(
@@ -901,6 +904,23 @@ class NearbyToastWidget extends StatelessWidget {
     if (icon == 'auto_awesome') ic = Icons.auto_awesome;
     if (icon == 'touch_app') ic = Icons.touch_app;
     if (icon == 'celebration') ic = Icons.celebration;
+    const more = <String, IconData>{
+      'error': Icons.error,
+      'lock': Icons.lock,
+      'info': Icons.info,
+      'location_on': Icons.location_on,
+      'campaign': Icons.campaign,
+      'waving_hand': Icons.waving_hand,
+      'logout': Icons.logout,
+      'delete': Icons.delete,
+      'cancel': Icons.cancel,
+      'groups': Icons.groups,
+      'person_add': Icons.person_add,
+      'directions_run': Icons.directions_run,
+      'notifications_active': Icons.notifications_active,
+      'add_location': Icons.add_location,
+    };
+    ic = more[icon] ?? ic;
 
     return Positioned(
       left: 16,

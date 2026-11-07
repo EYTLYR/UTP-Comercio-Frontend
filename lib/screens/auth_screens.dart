@@ -188,13 +188,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
           const Spacer(),
           ElevatedButton.icon(
-            onPressed: _isValid
-                ? () {
-                    state.toast(
-                      'Código enviado al +51 ${state.phoneDraft}',
-                      icon: 'sms',
-                    );
-                    state.go('otp');
+            onPressed: _isValid && !state.busy
+                ? () async {
+                    if (!state.useApi) {
+                      state.toast(
+                        'Código enviado al +51 ${state.phoneDraft}',
+                        icon: 'sms',
+                      );
+                      state.go('otp');
+                      return;
+                    }
+                    if (await state.requestOtp()) state.go('otp');
                   }
                 : null,
             style: ElevatedButton.styleFrom(
@@ -275,10 +279,41 @@ class _OtpScreenState extends State<OtpScreen> {
     super.dispose();
   }
 
-  void _checkCode() {
+  Future<void> _checkCode() async {
     final code = _controllers.map((c) => c.text).join();
     if (code.length < 6) {
       setState(() => _err = '');
+      return;
+    }
+
+    if (widget.state.useApi) {
+      final error = await widget.state.verifyOtp(code);
+      if (!mounted) return;
+      if (error != null) {
+        setState(() {
+          _err = error;
+          _isSuccess = false;
+        });
+        return;
+      }
+      setState(() {
+        _isSuccess = true;
+        _err = '';
+      });
+      Timer(const Duration(milliseconds: 350), () {
+        if (!mounted) return;
+        if (widget.state.regPending) {
+          widget.state.regName = '';
+          widget.state.regLoc = null;
+          widget.state.go('registro');
+        } else {
+          widget.state.go('home', reset: true);
+          widget.state.toast(
+            'Hola de nuevo, ${widget.state.firstName}',
+            icon: 'waving_hand',
+          );
+        }
+      });
       return;
     }
 
@@ -302,14 +337,6 @@ class _OtpScreenState extends State<OtpScreen> {
         _isSuccess = false;
       });
     }
-  }
-
-  void _fillDemo() {
-    const demo = '123456';
-    for (int i = 0; i < 6; i++) {
-      _controllers[i].text = demo[i];
-    }
-    _checkCode();
   }
 
   @override
@@ -430,50 +457,16 @@ class _OtpScreenState extends State<OtpScreen> {
           ],
           const SizedBox(height: 14),
 
-          // Demo hint
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: theme.infoSoft,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.info, color: theme.info, size: 18),
-                const SizedBox(width: 8),
-                const Expanded(
-                  child: Text(
-                    'Prototipo: el código es 123456',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 12.5,
-                      color: NearbyColors.info,
-                    ),
-                  ),
-                ),
-                InkWell(
-                  onTap: _fillDemo,
-                  child: const Text(
-                    'Usarlo',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 13,
-                      decoration: TextDecoration.underline,
-                      color: NearbyColors.info,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-
           TextButton.icon(
             onPressed: _secondsLeft == 0
-                ? () {
+                ? () async {
                     setState(() => _secondsLeft = 30);
                     _startTimer();
-                    state.toast('Te enviamos un nuevo código', icon: 'sms');
+                    if (state.useApi) {
+                      await state.requestOtp();
+                    } else {
+                      state.toast('Te enviamos un nuevo código', icon: 'sms');
+                    }
                   }
                 : null,
             icon: const Icon(Icons.refresh, size: 18),
@@ -689,7 +682,7 @@ class _RegistroScreenState extends State<RegistroScreen> {
                               ),
                             ),
                             Text(
-                              'Tu zona: Zona 3 · Las Flores',
+                              'Tu zona: ${state.zoneName}',
                               style: TextStyle(
                                 color: theme.muted,
                                 fontSize: 12,
@@ -699,14 +692,9 @@ class _RegistroScreenState extends State<RegistroScreen> {
                         ),
                       ),
                       TextButton(
-                        onPressed: () {
-                          state.regLoc = 'loading';
-                          setState(() {});
-                          Timer(const Duration(milliseconds: 1200), () {
-                            if (!mounted) return;
-                            state.regLoc = 'ok';
-                            setState(() {});
-                          });
+                        onPressed: () async {
+                          await state.locateForRegistration();
+                          if (mounted) setState(() {});
                         },
                         child: Text(
                           'Cambiar',
@@ -721,14 +709,9 @@ class _RegistroScreenState extends State<RegistroScreen> {
                 )
               else
                 OutlinedButton.icon(
-                  onPressed: () {
-                    state.regLoc = 'loading';
-                    setState(() {});
-                    Timer(const Duration(milliseconds: 1300), () {
-                      if (!mounted) return;
-                      state.regLoc = 'ok';
-                      setState(() {});
-                    });
+                  onPressed: () async {
+                    await state.locateForRegistration();
+                    if (mounted) setState(() {});
                   },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: theme.ink,
@@ -782,10 +765,11 @@ class _RegistroScreenState extends State<RegistroScreen> {
             border: Border(top: BorderSide(color: theme.line)),
           ),
           child: ElevatedButton.icon(
-            onPressed: _canContinue
-                ? () {
+            onPressed: _canContinue && !state.busy
+                ? () async {
                     state.userName = state.regName.trim();
-                    state.contacts = [];
+                    if (!await state.completeRegistration()) return;
+                    if (!state.useApi) state.contacts = [];
                     state.contactsMode = 'setup';
                     state.perms = {
                       'loc': false,
@@ -837,13 +821,69 @@ class ContactosScreen extends StatefulWidget {
 class _ContactosScreenState extends State<ContactosScreen> {
   String _search = '';
 
+  Future<void> _addContactDialog(BuildContext context) async {
+    final nameCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController();
+    String? error;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: const Text('Nuevo contacto de confianza'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(labelText: 'Nombre'),
+              ),
+              TextField(
+                controller: phoneCtrl,
+                keyboardType: TextInputType.phone,
+                maxLength: 9,
+                decoration: InputDecoration(
+                  labelText: 'Celular (9 dígitos)',
+                  errorText: error,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final e = widget.state.addContact(
+                  nameCtrl.text,
+                  phoneCtrl.text,
+                );
+                if (e != null) {
+                  setLocal(() => error = e);
+                  return;
+                }
+                Navigator.of(ctx).pop();
+              },
+              child: const Text('Agregar'),
+            ),
+          ],
+        ),
+      ),
+    );
+    nameCtrl.dispose();
+    phoneCtrl.dispose();
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = widget.theme;
     final state = widget.state;
     final isSetup = state.contactsMode == 'setup';
 
-    final filtered = kAllContacts
+    final filtered = state.contactBook
         .where((c) => c.name.toLowerCase().contains(_search.toLowerCase()))
         .toList();
 
@@ -894,7 +934,25 @@ class _ContactosScreenState extends State<ContactosScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+              if (state.connected)
+                OutlinedButton.icon(
+                  onPressed: () => _addContactDialog(context),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: theme.ink,
+                    side: BorderSide(color: theme.line, width: 1.5),
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  icon: Icon(Icons.person_add, color: theme.primary, size: 20),
+                  label: const Text(
+                    'Agregar contacto con su celular',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              const SizedBox(height: 12),
 
               // Contacts Card List
               Container(
@@ -1008,7 +1066,8 @@ class _ContactosScreenState extends State<ContactosScreen> {
           child: Column(
             children: [
               ElevatedButton.icon(
-                onPressed: () {
+                onPressed: () async {
+                  await state.saveContacts();
                   if (isSetup) {
                     state.go('permisos');
                   } else {
@@ -1242,7 +1301,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
             ElevatedButton(
               onPressed: () {
                 widget.state.perms[key] = true;
-                if (key == 'ai') widget.state.aiConsent = true;
+                if (key == 'ai') widget.state.setAiConsent(true);
                 setState(() {});
               },
               style: ElevatedButton.styleFrom(
@@ -1301,60 +1360,16 @@ class ListoScreen extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            'Tu cuenta está lista. Un delegado de la Zona 3 confirmará que eres vecina o vecino para darte la insignia de verificado.',
+            'Tu cuenta está lista. Un delegado de tu zona confirmará que eres vecina o vecino para darte la insignia de verificado.',
             textAlign: TextAlign.center,
             style: TextStyle(color: theme.muted, fontSize: 14, height: 1.4),
           ),
           const SizedBox(height: 24),
 
-          // Tutorial highlight card
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: theme.surface,
-              border: Border.all(color: theme.line),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: theme.accentSoft,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(Icons.touch_app, color: theme.accent, size: 24),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Aprende tocando la app',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          color: theme.ink,
-                        ),
-                      ),
-                      Text(
-                        'Te guiamos sobre las pantallas reales. Dura 1 minuto.',
-                        style: TextStyle(color: theme.muted, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
           const Spacer(),
 
           ElevatedButton.icon(
-            onPressed: () {
-              state.go('home', reset: true);
-              state.startTour('main');
-            },
+            onPressed: () => state.go('home', reset: true),
             style: ElevatedButton.styleFrom(
               backgroundColor: theme.btnBg,
               foregroundColor: theme.btnInk,
@@ -1363,26 +1378,10 @@ class ListoScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
               ),
             ),
-            icon: Icon(Icons.play_arrow, color: theme.primary, size: 22),
+            icon: Icon(Icons.home, color: theme.primary, size: 22),
             label: const Text(
-              'Empezar el tutorial interactivo',
+              'Ir al inicio',
               style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-            ),
-          ),
-          const SizedBox(height: 10),
-          OutlinedButton(
-            onPressed: () => state.go('home', reset: true),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: theme.ink,
-              side: BorderSide(color: theme.line),
-              minimumSize: const Size.fromHeight(52),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-            child: const Text(
-              'Ya sé usarla, ir al inicio',
-              style: TextStyle(fontWeight: FontWeight.w800),
             ),
           ),
         ],

@@ -61,7 +61,7 @@ class ReviewItem {
 }
 
 class PostItem {
-  final int id;
+  final String id; // UUID del backend
   final String type; // 'need' or 'offer'
   final String cat;
   final String title;
@@ -145,6 +145,8 @@ class ResOfferItem {
 }
 
 class GroupItem {
+  final String? id; // UUID del backend (null en los datos de ejemplo)
+  final String? phone;
   final String name;
   final IconData icon;
   final String tone;
@@ -153,6 +155,8 @@ class GroupItem {
   final bool live;
 
   const GroupItem({
+    this.id,
+    this.phone,
     required this.name,
     required this.icon,
     required this.tone,
@@ -470,7 +474,7 @@ final List<CategoryItem> kPostCats = [
 
 final List<PostItem> kInitialPosts = [
   PostItem(
-    id: 1,
+    id: '1',
     type: 'need',
     cat: 'herramientas',
     title: 'Necesito un taladro por 2 horas para colgar una repisa',
@@ -479,7 +483,7 @@ final List<PostItem> kInitialPosts = [
     time: 'hace 15 min',
   ),
   PostItem(
-    id: 2,
+    id: '2',
     type: 'offer',
     cat: 'movilidad',
     title: 'Voy al mercado a las 4 pm, tengo 2 asientos libres',
@@ -488,7 +492,7 @@ final List<PostItem> kInitialPosts = [
     time: 'hace 30 min',
   ),
   PostItem(
-    id: 3,
+    id: '3',
     type: 'offer',
     cat: 'materiales',
     title: 'Regalo 10 ladrillos y medio saco de cemento',
@@ -497,7 +501,7 @@ final List<PostItem> kInitialPosts = [
     time: 'hace 1 h',
   ),
   PostItem(
-    id: 4,
+    id: '4',
     type: 'need',
     cat: 'temporal',
     title: '¿Alguien puede acompañar a mi abuela 1 hora el jueves?',
@@ -506,7 +510,7 @@ final List<PostItem> kInitialPosts = [
     time: 'hace 2 h',
   ),
   PostItem(
-    id: 5,
+    id: '5',
     type: 'offer',
     cat: 'habilidades',
     title: 'Enseño a usar el celular a cambio de ayuda con mi jardín',
@@ -515,7 +519,7 @@ final List<PostItem> kInitialPosts = [
     time: 'hace 3 h',
   ),
   PostItem(
-    id: 6,
+    id: '6',
     type: 'need',
     cat: 'movilidad',
     title: 'Necesito que lleven a mi papá a su cita médica el lunes',

@@ -2,6 +2,30 @@
 
 Interfaz y navegación basadas en `../prototipo.html`. La app se adapta a móvil, web y escritorio sin marco de teléfono ni panel fijo de simulación.
 
+## Conexión con el backend (Nearby API)
+
+La app usa la API de [UTP-Comercio-Backend](https://github.com/EYTLYR/UTP-Comercio-Backend) (Spring Boot). Levanta el backend primero (`./mvnw spring-boot:run "-Dspring-boot.run.profiles=local"` con Neon, o `./mvnw spring-boot:test-run` sin internet) y luego la app:
+
+```sh
+flutter pub get
+flutter run -d chrome                                         # web: http://localhost:8080
+flutter run -d emulator-5554                                  # Android: http://10.0.2.2:8080
+flutter run --dart-define=API_URL=http://192.168.1.20:8080    # celular físico: IP de la PC
+flutter build apk --dart-define=API_URL=https://api.midominio.pe
+```
+
+- **Ingreso:** código SMS real (`/auth/otp`). En el perfil `dev` del backend el código es `123456`. La sesión se guarda (token de refresco) y se renueva sola.
+- **Registro:** nombre, ubicación del GPS (zona más cercana), contactos de confianza (se agregan con nombre y celular) y consentimiento de IA.
+- **Datos:** servicios y Visto Bueno, reseñas, muro de favores, chat (se actualiza cada 4 s), mapa, recursos, grupos de apoyo, tablero de reportes, ficha médica y lo que la IA aprendió.
+- **SOS:** envía la ubicación real, muestra cuántos vecinos, contactos y brigadistas recibieron la alerta y quién va en camino. Cada 20 s la app revisa si un vecino cercano pidió ayuda y abre «Alerta de un vecino».
+- **Modos:** la Municipalidad (o un delegado) cambia el modo de toda la zona desde el interruptor de emergencia; los vecinos lo ven en su app. Un vecino puede activarlo solo en su app o volver al modo normal.
+- **Brigada:** «Tablero», «Red de rescate» y «Modo brigadista» solo se muestran a BRIGADIST, DELEGATE y ADMIN. El plan de rescate con IA y el aviso de misiones usan el backend.
+- **Sin conexión:** con «Sin conexión» del simulador, las publicaciones, reportes, mensajes, check-ins y SOS van a una cola y se envían en orden al volver la señal (`/sync/outbox`).
+
+Código: `lib/api/` (cliente HTTP, configuración, traducción de datos) y `lib/state/app_state_backend.dart` (todas las llamadas). Sin sesión, por ejemplo en las pruebas de widgets, la app usa los datos de ejemplo de `lib/models/models.dart`.
+
+Android permite HTTP sin cifrar (`usesCleartextTraffic`) para probar contra un backend local; con una API en HTTPS se puede quitar. iOS permite solo la red local (`NSAllowsLocalNetworking`).
+
 ## Ambientes
 
 La app lee automáticamente el archivo `.env` de la raíz antes de iniciar. Al clonar el proyecto, copia `.env.example` a `.env` (este último está ignorado por Git):
@@ -51,7 +75,7 @@ Se utiliza [speech_to_text](https://pub.dev/packages/speech_to_text). En Windows
 
 ## Tutorial
 
-El tutorial resalta los controles reales, desplaza automáticamente el contenido y solo deja interactuar con el objetivo del paso. Las instrucciones y botones se acomodan al espacio disponible. La guía de emergencia también funciona sobre las hojas modales.
+La app ya no ofrece el tutorial (se quitaron los botones de inicio, perfil, cuenta lista y emergencia). El código queda para el simulador de desarrollo y las pruebas. El tutorial resalta los controles reales, desplaza automáticamente el contenido y solo deja interactuar con el objetivo del paso. Las instrucciones y botones se acomodan al espacio disponible. La guía de emergencia también funciona sobre las hojas modales.
 
 Las publicaciones de práctica no se guardan. Al salir se restauran las recomendaciones, el borrador, los filtros y el estado anterior de conexión/emergencia. Salir cancela cualquier avance pendiente.
 
@@ -81,4 +105,4 @@ Exportar vistas de Flutter a `build/previews/`:
 flutter test --dart-define=PREVIEW=true --dart-define=PREVIEW_WIDTH=390 --dart-define=APP_ENV=production test/prototype_flows_test.dart --plain-name "exporta vistas"
 ```
 
-Las llamadas, SMS, ubicación, clasificación de IA y transmisión por sonido conservan la simulación local del prototipo. Los datos no persisten al reiniciar. Nunito se incluye con su licencia en `assets/fonts/`.
+Las llamadas telefónicas y la transmisión por sonido siguen simuladas. Sin backend (pruebas de widgets), la app usa los datos de ejemplo y no persiste cambios. Nunito se incluye con su licencia en `assets/fonts/`.

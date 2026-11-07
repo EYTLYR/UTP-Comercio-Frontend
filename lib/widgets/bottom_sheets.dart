@@ -226,7 +226,7 @@ class NearbyBottomSheetModal extends StatelessWidget {
                 '10:42 · ${yo ? "Alerta personal" : "Sismo en Lima"}',
               ),
               const Divider(height: 16),
-              _kvRow(Icons.location_on, 'Zona', 'Zona 3 · Las Flores'),
+              _kvRow(Icons.location_on, 'Zona', state.zoneName),
             ],
           ),
         ),
@@ -524,7 +524,8 @@ class NearbyBottomSheetModal extends StatelessWidget {
 
   Widget _buildJoinSheet(BuildContext context, String? groupName) {
     final g =
-        kGroups.where((x) => x.name == groupName).firstOrNull ?? kGroups.first;
+        state.groups.where((x) => x.name == groupName).firstOrNull ??
+        (state.groups.isNotEmpty ? state.groups.first : kGroups.first);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -573,7 +574,7 @@ class NearbyBottomSheetModal extends StatelessWidget {
         const SizedBox(height: 18),
         ElevatedButton(
           onPressed: () {
-            state.joined[g.name] = true;
+            state.joinGroup(g);
             state.closeSheet();
             state.toast('Te uniste a «${g.name}»', icon: 'person_add');
           },
@@ -635,11 +636,7 @@ class NearbyBottomSheetModal extends StatelessWidget {
         ElevatedButton(
           onPressed: () {
             state.closeSheet();
-            state.emergency = false;
-            state.zoneEm = false;
-            state.phoneDraft = '';
-            state.go('splash', reset: true);
-            state.toast('Cerraste sesión', icon: 'logout');
+            state.logout();
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: NearbyColors.sos,
@@ -732,7 +729,8 @@ class _VoiceSheetState extends State<_VoiceSheet> {
       setState(() => _usingText = false);
       return;
     }
-    final classified = widget.state.classify(text);
+    final classified = await widget.state.classifyRemote(text);
+    if (!mounted) return;
     widget.state.pub.reset(
       step: 2,
       type: classified['type'] as String?,

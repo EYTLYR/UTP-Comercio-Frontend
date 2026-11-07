@@ -742,7 +742,7 @@ class _PublishScreenState extends State<PublishScreen> {
         ElevatedButton(
           onPressed: () {
             if (p.type == 'vulnerable') {
-              state.go('tablero', reset: true);
+              state.go(state.isBrigade ? 'tablero' : 'home', reset: true);
             } else if (p.type == 'service') {
               state.go('servicios', reset: true);
             } else if (state.emergency) {

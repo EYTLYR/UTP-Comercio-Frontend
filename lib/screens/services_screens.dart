@@ -603,7 +603,7 @@ class ServiceDetailScreen extends StatelessWidget {
                 child: _actionButton(
                   icon: Icons.chat,
                   label: 'Mensaje',
-                  onTap: () => state.openChat(s.name),
+                  onTap: () => state.contactService(s),
                 ),
               ),
               const SizedBox(width: 8),
@@ -670,7 +670,10 @@ class ServiceDetailScreen extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Column(
-            children: kReviews.map((r) => _buildReviewCard(r)).toList(),
+            children: state
+                .reviewsFor(s.id)
+                .map((r) => _buildReviewCard(r))
+                .toList(),
           ),
         ),
       ],

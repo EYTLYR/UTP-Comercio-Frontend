@@ -277,6 +277,7 @@ class _SosCountdownScreenState extends State<SosCountdownScreen>
     _deadline?.cancel();
     _countdown.stop();
     widget.state.go('sos-sent');
+    widget.state.sendSos();
   }
 
   @override
@@ -485,6 +486,35 @@ class SosSentScreen extends StatelessWidget {
       );
     }
 
+    // Con sesión: lo que respondió el backend (POST /sos y GET /sos/{id}).
+    final live = state.connected;
+    final r = state.sosResult;
+    int n(String k) => (r?[k] as num?)?.toInt() ?? 0;
+    final neighborsTitle = !live
+        ? '32 vecinos alertados'
+        : r == null
+        ? 'Enviando tu alerta…'
+        : '${n('notifiedNeighbors')} vecinos alertados';
+    final contactNames = state.contacts
+        .map((id) => state.contactBook.where((c) => c.id == id).firstOrNull?.name)
+        .whereType<String>()
+        .join(', ');
+    final contactsTitle = !live
+        ? '3 contactos ven tu ubicación'
+        : '${r == null ? state.contacts.length : n('contactsNotified')} contactos ven tu ubicación';
+    final contactsSub = !live
+        ? 'Mamá, Carlos, Sra. Rosa'
+        : (contactNames.isEmpty ? 'Agrega contactos en tu perfil' : contactNames);
+    final brigadeSub = !live
+        ? '12 brigadistas'
+        : r == null
+        ? 'Avisando…'
+        : '${n('brigadeNotified')} brigadistas';
+    final responders = ((state.sosDetail?['responders'] as List?) ?? const [])
+        .cast<Map<String, dynamic>>()
+        .where((x) => x['status'] != 'DECLINED')
+        .toList();
+
     return ListView(
       key: const ValueKey('sos-sent-scroll'),
       padding: EdgeInsets.zero,
@@ -501,7 +531,7 @@ class SosSentScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Text(
-                    '10:47',
+                    state.connected ? state.nowTime() : '10:47',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
@@ -534,7 +564,9 @@ class SosSentScreen extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'Tipo: $typeLabel · Jr. Las Flores 245 (±10 m)',
+                state.connected
+                    ? 'Tipo: $typeLabel · tu ubicación actual'
+                    : 'Tipo: $typeLabel · Jr. Las Flores 245 (±10 m)',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 13.5,
@@ -613,7 +645,7 @@ class SosSentScreen extends StatelessWidget {
                               icon: Icons.groups,
                               color: NearbyColors.sos,
                               softColor: theme.sosSoft,
-                              title: '32 vecinos alertados',
+                              title: neighborsTitle,
                               subtitle: 'En un radio de 500 m',
                               trailing: Icon(
                                 Icons.check_circle,
@@ -625,8 +657,8 @@ class SosSentScreen extends StatelessWidget {
                               icon: Icons.share_location,
                               color: theme.info,
                               softColor: theme.infoSoft,
-                              title: '3 contactos ven tu ubicación',
-                              subtitle: 'Mamá, Carlos, Sra. Rosa',
+                              title: contactsTitle,
+                              subtitle: contactsSub,
                               trailing: Icon(
                                 Icons.check_circle,
                                 color: theme.primary,
@@ -638,7 +670,7 @@ class SosSentScreen extends StatelessWidget {
                               color: theme.violet,
                               softColor: theme.violetSoft,
                               title: 'Brigada Zona 3 notificada',
-                              subtitle: '12 brigadistas',
+                              subtitle: brigadeSub,
                               trailing: Icon(
                                 Icons.check_circle,
                                 color: theme.primary,
@@ -666,31 +698,63 @@ class SosSentScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Column(
-                      children: [
-                        _statusRow(
-                          icon: Icons.person,
-                          color: theme.violet,
-                          softColor: theme.violetSoft,
-                          title: 'Rosa Flores va en camino',
-                          subtitle: 'A 150 m · llega en 2 min',
-                          trailing: Icon(
-                            Icons.directions_walk,
-                            color: theme.primary,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        _statusRow(
-                          icon: Icons.medical_services,
-                          color: NearbyColors.sos,
-                          softColor: theme.sosSoft,
-                          title: 'Brigada de primeros auxilios',
-                          subtitle: 'Llega en 5 min',
-                          trailing: Icon(
-                            Icons.directions_run,
-                            color: theme.primary,
-                          ),
-                        ),
-                      ],
+                      children: live
+                          ? [
+                              if (responders.isEmpty)
+                                _statusRow(
+                                  icon: Icons.hourglass_top,
+                                  color: theme.violet,
+                                  softColor: theme.violetSoft,
+                                  title: 'Esperando a tus vecinos',
+                                  subtitle: 'Te avisamos apenas alguien vaya en camino',
+                                  trailing: Icon(
+                                    Icons.schedule,
+                                    color: theme.muted,
+                                  ),
+                                ),
+                              for (final x in responders) ...[
+                                _statusRow(
+                                  icon: Icons.person,
+                                  color: theme.violet,
+                                  softColor: theme.violetSoft,
+                                  title: x['status'] == 'ARRIVED'
+                                      ? '${x['name'] ?? 'Un vecino'} llegó'
+                                      : '${x['name'] ?? 'Un vecino'} va en camino',
+                                  subtitle:
+                                      'A ${x['distanceM'] ?? '?'} m · llega en ${x['etaMinutes'] ?? '?'} min',
+                                  trailing: Icon(
+                                    Icons.directions_walk,
+                                    color: theme.primary,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                              ],
+                            ]
+                          : [
+                            _statusRow(
+                              icon: Icons.person,
+                              color: theme.violet,
+                              softColor: theme.violetSoft,
+                              title: 'Rosa Flores va en camino',
+                              subtitle: 'A 150 m · llega en 2 min',
+                              trailing: Icon(
+                                Icons.directions_walk,
+                                color: theme.primary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            _statusRow(
+                              icon: Icons.medical_services,
+                              color: NearbyColors.sos,
+                              softColor: theme.sosSoft,
+                              title: 'Brigada de primeros auxilios',
+                              subtitle: 'Llega en 5 min',
+                              trailing: Icon(
+                                Icons.directions_run,
+                                color: theme.primary,
+                              ),
+                            ),
+                          ],
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -773,17 +837,12 @@ class SosSentScreen extends StatelessWidget {
                 if (!state.emergency) ...[
                   OutlinedButton.icon(
                     onPressed: () {
-                      state.emergency = true;
-                      state.emSource = 'yo';
+                      state.activateLocalEmergency();
                       state.go('home', reset: true);
-                      if (!state.seenEmTour) {
-                        state.startTour('em');
-                      } else {
-                        state.toast(
-                          'Modo emergencia activado en tu app',
-                          icon: 'crisis_alert',
-                        );
-                      }
+                      state.toast(
+                        'Modo emergencia activado en tu app',
+                        icon: 'crisis_alert',
+                      );
                     },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: NearbyColors.sos,
@@ -807,6 +866,7 @@ class SosSentScreen extends StatelessWidget {
 
                 ElevatedButton.icon(
                   onPressed: () {
+                    state.sosSafe();
                     state.go('home', reset: true);
                     state.toast(
                       'Avisamos a todos que estás a salvo',
@@ -1019,8 +1079,34 @@ class AlertaRecibidaScreen extends StatelessWidget {
     required this.theme,
   });
 
+  static const _typeLabels = {
+    'HEALTH': 'Salud',
+    'FIRE': 'Incendio',
+    'ROBBERY': 'Robo',
+    'EARTHQUAKE': 'Sismo',
+    'VIOLENCE': 'Violencia',
+    'OTHER': 'Emergencia',
+  };
+
   @override
   Widget build(BuildContext context) {
+    final sos = state.connected ? state.incomingSos : null;
+    final who = (sos?['userName'] as String?) ?? 'Rosa Flores';
+    final initials = who
+        .split(' ')
+        .where((w) => w.isNotEmpty)
+        .take(2)
+        .map((w) => w[0].toUpperCase())
+        .join();
+    final type = sos == null ? 'Salud' : (_typeLabels[sos['type']] ?? 'Emergencia');
+    final dist = sos == null ? 'a 150 m' : 'a ${sos['distanceM'] ?? '?'} m';
+    final ago = sos == null
+        ? 'hace 1 min'
+        : ((sos['minutesAgo'] as num? ?? 0) < 1 ? 'ahora' : 'hace ${sos['minutesAgo']} min');
+    final going = (sos?['goingCount'] as num?)?.toInt() ?? 2;
+    final detail = sos == null
+        ? 'Jr. Los Pinos 210 · ubicación en vivo. 31 vecinos más recibieron esta alerta; 2 ya van en camino.'
+        : 'Ubicación aproximada para proteger su privacidad. ${going == 0 ? 'Nadie va todavía: tu ayuda cuenta.' : '$going ${going == 1 ? 'vecino ya va' : 'vecinos ya van'} en camino.'}';
     return Container(
       color: NearbyColors.sos,
       child: SafeArea(
@@ -1071,10 +1157,10 @@ class AlertaRecibidaScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
-                    'RF',
-                    style: TextStyle(
+                    initials,
+                    style: const TextStyle(
                       color: NearbyColors.sosDark,
                       fontWeight: FontWeight.w900,
                       fontSize: 32,
@@ -1085,7 +1171,7 @@ class AlertaRecibidaScreen extends StatelessWidget {
               const SizedBox(height: 22),
 
               Text(
-                'Rosa Flores necesita ayuda',
+                '$who necesita ayuda',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 25,
@@ -1101,15 +1187,15 @@ class AlertaRecibidaScreen extends StatelessWidget {
                 runSpacing: 6,
                 alignment: WrapAlignment.center,
                 children: [
-                  _chip(Icons.medical_services, 'Salud'),
-                  _chip(Icons.near_me, 'a 150 m'),
-                  _chip(Icons.schedule, 'hace 1 min'),
+                  _chip(Icons.medical_services, type),
+                  _chip(Icons.near_me, dist),
+                  _chip(Icons.schedule, ago),
                 ],
               ),
               const SizedBox(height: 16),
 
-              const Text(
-                'Jr. Los Pinos 210 · ubicación en vivo. 31 vecinos más recibieron esta alerta; 2 ya van en camino.',
+              Text(
+                detail,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white,
@@ -1122,14 +1208,15 @@ class AlertaRecibidaScreen extends StatelessWidget {
 
               ElevatedButton.icon(
                 onPressed: () {
+                  state.respondSos(true);
                   state.routeTo = {
-                    'title': 'Rosa Flores · Jr. Los Pinos 210',
+                    'title': sos == null ? 'Rosa Flores · Jr. Los Pinos 210' : '$who · $dist',
                     'icon': Icons.emergency,
                     'kind': 'help',
                   };
                   state.go('ruta', reset: true);
                   state.toast(
-                    'Rosa y la brigada saben que vas en camino',
+                    '${who.split(' ').first} y la brigada saben que vas en camino',
                     icon: 'directions_run',
                   );
                 },
@@ -1175,7 +1262,7 @@ class AlertaRecibidaScreen extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () => state.startCall('Rosa Flores'),
+                      onPressed: () => state.startCall(who),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
                         side: const BorderSide(color: Colors.white70, width: 2),
@@ -1185,8 +1272,8 @@ class AlertaRecibidaScreen extends StatelessWidget {
                         ),
                       ),
                       icon: const Icon(Icons.call, size: 18),
-                      label: const Text(
-                        'Llamar a Rosa',
+                      label: Text(
+                        'Llamar a ${who.split(' ').first}',
                         style: TextStyle(
                           fontWeight: FontWeight.w800,
                           fontSize: 13,
@@ -1200,6 +1287,7 @@ class AlertaRecibidaScreen extends StatelessWidget {
 
               TextButton(
                 onPressed: () {
+                  state.respondSos(false);
                   state.go('home', reset: true);
                   state.toast(
                     'Entendido. Avisamos a otros vecinos cercanos.',

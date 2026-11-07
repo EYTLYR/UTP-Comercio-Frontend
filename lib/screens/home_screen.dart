@@ -174,6 +174,7 @@ class HomeScreen extends StatelessWidget {
         ),
 
         // AI Summary Banner
+        if (state.isBrigade)
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
           child: InkWell(
@@ -352,56 +353,6 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
 
-        // Interactive tutorial banner
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-          child: InkWell(
-            onTap: () => state.startTour('main'),
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: theme.surface,
-                border: Border.all(color: theme.line),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: theme.violetSoft,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(Icons.school, color: theme.violet, size: 26),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '¿Primera vez?',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            color: theme.ink,
-                            fontSize: 14.5,
-                          ),
-                        ),
-                        Text(
-                          'Aprende tocando la app (1 minuto)',
-                          style: TextStyle(color: theme.muted, fontSize: 12.5),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(Icons.chevron_right, color: theme.muted),
-                ],
-              ),
-            ),
-          ),
-        ),
       ],
     );
   }
@@ -513,11 +464,14 @@ class HomeScreen extends StatelessWidget {
                       children: [
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: () {
+                            onPressed: () async {
                               state.checkin = true;
                               state.refresh();
+                              final sent = await state.sendCheckIn(true);
                               state.toast(
-                                'Avisamos a tus 3 contactos que estás bien',
+                                sent == null
+                                    ? 'Avisamos a tus contactos que estás bien'
+                                    : 'Avisamos a tus $sent contactos que estás bien',
                                 icon: 'check_circle',
                               );
                             },
@@ -565,6 +519,7 @@ class HomeScreen extends StatelessWidget {
         ),
 
         // AI Plan Button / Active summary
+        if (state.isBrigade)
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
           child: state.aiStatus == 'done'
@@ -710,14 +665,17 @@ class HomeScreen extends StatelessWidget {
         // Section "Tablero del barrio" with stats
         _buildSectionHeader(
           'Tablero del barrio',
-          actionText: 'Ver todo',
-          onAction: () => state.go('tablero'),
+          actionText: state.isBrigade ? 'Ver todo' : null,
+          onAction: state.isBrigade ? () => state.go('tablero') : null,
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              _buildStatCard('${state.reports.length + 14}', 'Reportes'),
+              _buildStatCard(
+                '${state.connected ? state.reports.length : state.reports.length + 14}',
+                'Reportes',
+              ),
               const SizedBox(width: 8),
               _buildStatCard('$pendingCount', 'Por atender'),
               const SizedBox(width: 8),
@@ -1154,8 +1112,7 @@ class HomeScreen extends StatelessWidget {
               const Spacer(),
               ElevatedButton(
                 onPressed: () {
-                  state.going[r.id] = true;
-                  state.refresh();
+                  state.goToReport(r);
                   state.toast(
                     'Te asignaste el reporte. La brigada lo sabe.',
                     icon: 'directions_run',

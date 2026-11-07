@@ -748,6 +748,7 @@ class _PuenteScreenState extends State<PuenteScreen> {
                                   onPressed: () {
                                     widget.state.addReportFromPuente(
                                       decompressed,
+                                      code: code,
                                     );
                                     widget.state.go('tablero', reset: true);
                                   },
