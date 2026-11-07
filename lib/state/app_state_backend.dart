@@ -312,6 +312,7 @@ extension NearbyBackend on AppState {
           body: {'lat': regLat, 'lng': regLng, 'addressText': regAddress},
         );
         _applyUser(withZone as Map<String, dynamic>);
+        userAddress = regAddress;
       }
       regPending = false;
       await loadAll();
@@ -323,6 +324,40 @@ extension NearbyBackend on AppState {
   }
 
   // ================================================================ perfil
+
+  /// Actualiza la dirección y/o coordenadas del hogar del usuario.
+  Future<bool> updateUserLocation({
+    required String address,
+    double? lat,
+    double? lng,
+  }) async {
+    userAddress = address.trim();
+    regAddress = address.trim();
+    if (lat != null) regLat = lat;
+    if (lng != null) regLng = lng;
+    refresh();
+
+    if (!connected) return true;
+    try {
+      final body = <String, Object?>{
+        'addressText': address.trim(),
+      };
+      if (lat != null && lng != null) {
+        body['lat'] = lat;
+        body['lng'] = lng;
+      } else if (regLat != null && regLng != null) {
+        body['lat'] = regLat;
+        body['lng'] = regLng;
+      }
+      final withZone = await api.put('me/location', body: body);
+      _applyUser(withZone as Map<String, dynamic>);
+      refresh();
+      return true;
+    } on ApiException catch (e) {
+      toast(e.message, icon: 'error');
+      return false;
+    }
+  }
 
   /// Contactos de confianza elegidos (hasta 3).
   Future<void> saveContacts() async {
@@ -421,6 +456,7 @@ extension NearbyBackend on AppState {
     if (!connected) return;
     await Future.wait([
       _loadMe(),
+      _loadLocation(),
       _loadServices(),
       _loadPosts(),
       _loadReports(),
@@ -623,10 +659,29 @@ extension NearbyBackend on AppState {
         .toList();
   });
 
+  Future<void> _loadLocation() => _quiet(() async {
+    final loc = await api.get('me/location') as Map<String, dynamic>;
+    final addr = loc['addressText'] as String?;
+    if (addr != null && addr.isNotEmpty) {
+      userAddress = addr;
+      regAddress = addr;
+    }
+    final lat = (loc['lat'] as num?)?.toDouble();
+    final lng = (loc['lng'] as num?)?.toDouble();
+    if (lat != null) regLat = lat;
+    if (lng != null) regLng = lng;
+    final zName = loc['zoneName'] as String?;
+    if (zName != null && zName.isNotEmpty) {
+      zoneName = zName;
+    }
+  });
+
   /// Recarga lo que muestra cada pantalla al entrar a ella.
   void _onEnter(String name) {
     if (!connected || tourName != null) return;
     switch (name) {
+      case 'perfil':
+        _loadLocation().then((_) => refresh());
       case 'servicios':
         _loadServices().then((_) => refresh());
       case 'svc':
