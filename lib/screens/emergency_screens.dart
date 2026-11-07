@@ -485,10 +485,13 @@ class SosSentScreen extends StatelessWidget {
       );
     }
 
-    return Column(
+    return ListView(
+      key: const ValueKey('sos-sent-scroll'),
+      padding: EdgeInsets.zero,
       children: [
         // Red Top Header
         Container(
+          key: const ValueKey('sos-sent-header'),
           color: NearbyColors.sos,
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 28),
           child: Column(
@@ -543,17 +546,17 @@ class SosSentScreen extends StatelessWidget {
         ),
 
         // Body Content
-        Expanded(
-          child: Container(
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              color: theme.bg,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(28),
-              ),
-            ),
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        Container(
+          key: const ValueKey('sos-sent-details'),
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: theme.bg,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -708,7 +711,7 @@ class SosSentScreen extends StatelessWidget {
                   physics: const NeverScrollableScrollPhysics(),
                   crossAxisSpacing: 8,
                   mainAxisSpacing: 8,
-                  childAspectRatio: 2.4,
+                  mainAxisExtent: MediaQuery.textScalerOf(context).scale(78),
                   children: kCalls.map((c) {
                     return InkWell(
                       onTap: () => state.startCall(c.num),
