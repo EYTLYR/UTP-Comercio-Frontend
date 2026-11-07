@@ -13,7 +13,14 @@ import 'package:utp_comercio_frontend/widgets/common_widgets.dart';
 Widget harness(AppState state) => AnimatedBuilder(
   animation: state,
   builder: (context, _) => MaterialApp(
-    theme: ThemeData(fontFamily: 'Nunito'),
+    debugShowCheckedModeBanner: false,
+    theme: ThemeData(
+      fontFamily: 'Nunito',
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: state.dark ? NearbyColors.darkPrimary : NearbyColors.primary,
+        brightness: state.dark ? Brightness.dark : Brightness.light,
+      ),
+    ),
     home: NearbyMasterShell(
       state: state,
       theme: NearbyThemeData.build(
@@ -92,6 +99,8 @@ void main() {
     final state = AppState()..startTour('main');
     state.tourIndex = 3;
     await tester.pumpWidget(harness(state));
+    await tester.pump();
+    await tester.pump();
     await tester.tap(find.text('Servicios').last);
     await tester.pump(const Duration(milliseconds: 400));
     expect(state.screen, 'servicios');
@@ -102,18 +111,39 @@ void main() {
 
   if (const bool.fromEnvironment('PREVIEW')) {
     testWidgets('exporta vistas para revisión visual', (tester) async {
-      tester.view.physicalSize = const Size(1280, 940);
+      const previewWidth = int.fromEnvironment(
+        'PREVIEW_WIDTH',
+        defaultValue: 1280,
+      );
+      tester.view.physicalSize = Size(previewWidth.toDouble(), 940);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       final state = AppState();
       final key = GlobalKey();
-      for (final screen in ['home', 'servicios', 'sos-sent', 'red']) {
-        state.go(screen);
+      for (final screen in [
+        'home',
+        'servicios',
+        'sos-sent',
+        'red',
+        'tutorial',
+        'voice',
+      ]) {
+        if (screen == 'tutorial') {
+          state.startTour('main');
+          state.tourIndex = 1;
+        } else if (screen == 'voice') {
+          state.endTour();
+          state.openSheet('voice');
+        } else {
+          state.go(screen);
+        }
         await tester.pumpWidget(
           RepaintBoundary(key: key, child: harness(state)),
         );
         await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump();
+        await tester.pump();
         final boundary =
             key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
         await tester.runAsync(() async {

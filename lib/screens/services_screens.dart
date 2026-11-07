@@ -101,6 +101,9 @@ class _ServicesScreenState extends State<ServicesScreen> {
               final c = kServCats[i];
               final isSel = state.servCat == c.id;
               return FilterChip(
+                key: c.id == 'gasfiteria'
+                    ? state.tourTarget('service-category')
+                    : null,
                 label: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -117,7 +120,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                 onSelected: (_) {
                   state.servCat = c.id;
                   state.refresh();
-                  state.checkTourEvent('servcat');
+                  if (c.id == 'gasfiteria') state.checkTourEvent('servcat');
                 },
                 backgroundColor: theme.surface,
                 selectedColor: theme.btnBg,
@@ -252,6 +255,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       child: InkWell(
+        key: s.id == 'julio' ? state.tourTarget('service-julio') : null,
         onTap: () {
           state.selService = s.id;
           state.go('svc');
@@ -482,6 +486,7 @@ class ServiceDetailScreen extends StatelessWidget {
 
         // Big Visto Bueno Card
         Padding(
+          key: state.tourTarget('vb-score'),
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Container(
             padding: const EdgeInsets.all(16),
@@ -603,6 +608,7 @@ class ServiceDetailScreen extends StatelessWidget {
               Expanded(
                 child: _actionButton(
                   icon: Icons.thumb_up,
+                  key: state.tourTarget('vb'),
                   label: given ? 'Visto bueno dado' : 'Dar visto bueno',
                   isOn: given,
                   onTap: () => state.toggleVb(s.id),
@@ -670,12 +676,14 @@ class ServiceDetailScreen extends StatelessWidget {
   }
 
   Widget _actionButton({
+    Key? key,
     required IconData icon,
     required String label,
     bool isOn = false,
     required VoidCallback onTap,
   }) {
     return InkWell(
+      key: key,
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
       child: Container(

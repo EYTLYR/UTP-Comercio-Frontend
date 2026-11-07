@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'config/app_environment.dart';
 import 'screens/ai_screens.dart';
 import 'screens/auth_screens.dart';
 import 'screens/board_screens.dart';
@@ -19,8 +20,9 @@ import 'widgets/common_widgets.dart';
 import 'widgets/interactive_tour.dart';
 import 'widgets/simulation_panel.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppEnvironment.load();
   runApp(const NearbyApp());
 }
 
@@ -93,123 +95,53 @@ class NearbyMasterShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final isDesktop = width > 820;
-
-    if (isDesktop) {
-      return Scaffold(
-        backgroundColor: NearbyColors.stage,
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Simulation Left Panel
-                SimulationPanel(state: state, theme: theme),
-                const SizedBox(width: 36),
-                // Phone Device Mock
-                _buildPhoneContainer(context, isDesktop: true),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    // Mobile / Narrow Viewport
-    return Scaffold(
-      backgroundColor: theme.bg,
-      endDrawer: Drawer(
-        width: 320,
-        backgroundColor: theme.surface,
-        child: SimulationPanel(state: state, theme: theme, isDrawer: true),
-      ),
-      body: SafeArea(
-        bottom: false,
-        child: Stack(
-          children: [
-            _buildPhoneInner(context),
-            // Floating pill to open simulation panel on mobile
-            Positioned(
-              right: 14,
-              top: 10,
-              child: Builder(
-                builder: (ctx) => InkWell(
-                  onTap: () => Scaffold.of(ctx).openEndDrawer(),
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: NearbyColors.navy.withValues(alpha: 0.85),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: const [
-                        BoxShadow(color: Colors.black26, blurRadius: 8),
-                      ],
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.tune, color: Colors.white, size: 14),
-                        SizedBox(width: 4),
-                        Text(
-                          'Simulador',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+    return PopScope(
+      canPop:
+          state.screen == 'home' &&
+          state.sheet == null &&
+          state.tourName == null,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (state.sheet != null) {
+          state.closeSheet();
+        } else if (state.tourName != null) {
+          state.endTour();
+        } else if (state.screen != 'home') {
+          state.back();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: theme.bg,
+        endDrawer: AppEnvironment.showDevelopmentTools
+            ? Drawer(
+                width: 320,
+                backgroundColor: theme.surface,
+                child: SimulationPanel(
+                  state: state,
+                  theme: theme,
+                  isDrawer: true,
+                ),
+              )
+            : null,
+        body: SafeArea(
+          child: Stack(
+            children: [
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 600),
+                  child: _buildAppContent(context),
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPhoneContainer(BuildContext context, {required bool isDesktop}) {
-    final mediaH = MediaQuery.of(context).size.height;
-    final targetH = (mediaH - 48).clamp(0.0, 844.0);
-    final targetW = targetH * (390 / 844);
-
-    return SizedBox(
-      width: targetW,
-      height: targetH,
-      child: FittedBox(
-        child: Container(
-          width: 390,
-          height: 844,
-          decoration: BoxDecoration(
-            color: const Color(0xFF151515),
-            borderRadius: BorderRadius.circular(56),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x66000000),
-                blurRadius: 38,
-                offset: Offset(0, 16),
-              ),
+              if (AppEnvironment.showDevelopmentTools)
+                const _DevelopmentToolsButton(),
             ],
-            border: Border.all(color: const Color(0xFF2B2B2B), width: 11),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(46),
-            child: _buildPhoneInner(context),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildPhoneInner(BuildContext context) {
+  Widget _buildAppContent(BuildContext context) {
     final meta = _getScreenMeta(state.screen);
     final emUI = state.emergency && meta.bar != null && !meta.noEm;
 
@@ -223,10 +155,6 @@ class NearbyMasterShell extends StatelessWidget {
         children: [
           Column(
             children: [
-              // Phone Status Bar
-              if (MediaQuery.sizeOf(context).width > 820)
-                _buildStatusBar(light: meta.full != null),
-
               // Screen Top Bar (if applicable)
               if (meta.bar == 'main')
                 NearbyTopBar(state: state, theme: theme)
@@ -254,67 +182,18 @@ class NearbyMasterShell extends StatelessWidget {
             ],
           ),
 
-          // Interactive Coachmarks Overlay
+          if (state.sheet != null)
+            NearbyBottomSheetModal(state: state, theme: theme),
           if (state.tourName != null)
             InteractiveTourOverlay(state: state, theme: theme),
 
-          // Modal Bottom Sheet Overlay
-          if (state.sheet != null)
-            NearbyBottomSheetModal(state: state, theme: theme),
-
           // Floating Toast Widget
-          if (state.toastMessage != null)
+          if (state.toastMessage != null && state.tourName == null)
             NearbyToastWidget(
               message: state.toastMessage!,
               icon: state.toastIcon,
             ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildStatusBar({required bool light}) {
-    return IconTheme(
-      data: IconThemeData(color: light ? Colors.white : theme.ink),
-      child: DefaultTextStyle.merge(
-        style: TextStyle(color: light ? Colors.white : theme.ink),
-        child: Container(
-          height: 46,
-          padding: const EdgeInsets.fromLTRB(34, 4, 26, 0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Time
-              const Text(
-                '9:41',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.2,
-                ),
-              ),
-              // Dynamic Island
-              Container(
-                width: 118,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-              // Cellular, Wifi, Battery icons
-              Row(
-                children: [
-                  const Icon(Icons.signal_cellular_alt, size: 15),
-                  const SizedBox(width: 4),
-                  Icon(state.offline ? Icons.wifi_off : Icons.wifi, size: 15),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.battery_5_bar, size: 16),
-                ],
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -468,3 +347,45 @@ const Map<String, ScreenMeta> _screensMeta = {
   'puente': ScreenMeta(bar: 'back', noEm: true),
   'perfil': ScreenMeta(bar: 'back'),
 };
+
+class _DevelopmentToolsButton extends StatefulWidget {
+  const _DevelopmentToolsButton();
+  @override
+  State<_DevelopmentToolsButton> createState() =>
+      _DevelopmentToolsButtonState();
+}
+
+class _DevelopmentToolsButtonState extends State<_DevelopmentToolsButton> {
+  Offset? _position;
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, box) {
+      final position =
+          _position ?? Offset(box.maxWidth - 64, box.maxHeight - 150);
+      return Stack(
+        children: [
+          Positioned(
+            left: position.dx.clamp(
+              8.0,
+              (box.maxWidth - 56).clamp(8.0, double.infinity),
+            ),
+            top: position.dy.clamp(
+              8.0,
+              (box.maxHeight - 56).clamp(8.0, double.infinity),
+            ),
+            child: GestureDetector(
+              onPanUpdate: (event) =>
+                  setState(() => _position = position + event.delta),
+              child: FloatingActionButton.small(
+                heroTag: 'development-tools',
+                tooltip: 'Simulador',
+                onPressed: () => Scaffold.of(context).openEndDrawer(),
+                child: const Icon(Icons.tune),
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}

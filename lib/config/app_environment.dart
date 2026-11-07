@@ -1,0 +1,40 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+
+/// Public app configuration. Release builds never include development controls.
+abstract final class AppEnvironment {
+  static const _definedName = String.fromEnvironment('APP_ENV');
+  static String? _fileName;
+
+  static String get name => _definedName.isNotEmpty
+      ? _definedName
+      : _fileName ?? (kReleaseMode ? 'production' : 'development');
+
+  static bool get showDevelopmentTools =>
+      !kReleaseMode && name == 'development';
+
+  /// Called before runApp; a full restart reloads the bundled .env file.
+  static Future<void> load({AssetBundle? bundle}) async {
+    _fileName = null;
+    try {
+      final content = await (bundle ?? rootBundle).loadString('.env');
+      for (var line
+          in content.replaceFirst(RegExp(r'^\uFEFF'), '').split('\n')) {
+        line = line.trim();
+        if (line.startsWith('export ')) line = line.substring(7).trimLeft();
+        final match = RegExp(r'^APP_ENV\s*=\s*(.*)$').firstMatch(line);
+        if (match == null) continue;
+        var value = match.group(1)!.trim();
+        if (value.startsWith('"') || value.startsWith("'")) {
+          final end = value.indexOf(value[0], 1);
+          value = end < 0 ? '' : value.substring(1, end);
+        } else {
+          value = value.split(RegExp(r'\s+#')).first.trim();
+        }
+        _fileName = value;
+      }
+    } on FlutterError {
+      // A missing asset falls back to the build-mode defaults above.
+    }
+  }
+}

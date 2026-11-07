@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../models/models.dart';
+import '../services/speech_input.dart';
 
 class PublishDraft {
   int step;
@@ -39,11 +40,27 @@ class PublishDraft {
 
 class AppState extends ChangeNotifier {
   final List<Timer> _timers = [];
+  final SpeechInput voice;
+  final Map<String, GlobalKey> tourTargets = {};
+  GlobalKey tourTarget(String name) =>
+      tourTargets.putIfAbsent(name, () => GlobalKey(debugLabel: name));
+  Timer? _tourTimer;
+  Map<String, bool>? _tourVbBefore;
+  ({
+    bool emergency,
+    bool offline,
+    String category,
+    String service,
+    PublishDraft draft,
+  })?
+  _tourBefore;
 
   void refresh() => notifyListeners();
 
   @override
   void dispose() {
+    voice.dispose();
+    _tourTimer?.cancel();
     _toastTimer?.cancel();
     for (final timer in _timers) {
       timer.cancel();
@@ -152,10 +169,43 @@ class AppState extends ChangeNotifier {
   int tourIndex = 0;
   bool tourBusy = false;
 
-  AppState() {
-    services = List.from(kInitialServices);
+  AppState({SpeechInput? voice}) : voice = voice ?? DeviceSpeechInput() {
+    services = kInitialServices
+        .map(
+          (s) => ServiceItem(
+            id: s.id,
+            name: s.name,
+            job: s.job,
+            cat: s.cat,
+            icon: s.icon,
+            tone: s.tone,
+            vb: s.vb,
+            dist: s.dist,
+            price: s.price,
+            hours: s.hours,
+            emerg: s.emerg,
+          ),
+        )
+        .toList();
     posts = List.from(kInitialPosts);
-    reports = List.from(kInitialReports);
+    reports = kInitialReports
+        .map(
+          (r) => ReportItem(
+            id: r.id,
+            cat: r.cat,
+            who: r.who,
+            where: r.where,
+            detail: r.detail,
+            prio: r.prio,
+            status: r.status,
+            by: r.by,
+            time: r.time,
+            x: r.x,
+            y: r.y,
+            ai: r.ai,
+          ),
+        )
+        .toList();
     resOffers = List.from(kInitialResOffers);
   }
 
@@ -362,6 +412,12 @@ class AppState extends ChangeNotifier {
 
   // --- Publishing ---
   void finishPublish() {
+    if (tourName == 'main') {
+      pub.step = 3;
+      notifyListeners();
+      checkTourEvent('publish');
+      return;
+    }
     final type = pub.type;
     final catId = pub.cat;
     final text = pub.text;
@@ -763,13 +819,30 @@ class AppState extends ChangeNotifier {
 
   // --- Interactive Tour ---
   void startTour(String name) {
+    _tourTimer?.cancel();
+    if (tourName != null) endTour();
+    _tourVbBefore = Map.of(vbGiven);
+    _tourBefore = (
+      emergency: emergency,
+      offline: offline,
+      category: servCat,
+      service: selService,
+      draft: PublishDraft(
+        step: pub.step,
+        type: pub.type,
+        cat: pub.cat,
+        text: pub.text,
+        photo: pub.photo,
+        ai: pub.ai == null ? null : Map.of(pub.ai!),
+      ),
+    );
     sheet = null;
     screen = 'home';
     hist.clear();
-    if (name == 'main') {
-      emergency = false;
-      offline = false;
-    }
+    pub.reset();
+    servCat = 'all';
+    emergency = name == 'em';
+    offline = false;
     tourName = name;
     tourIndex = 0;
     tourBusy = false;
@@ -777,58 +850,69 @@ class AppState extends ChangeNotifier {
   }
 
   void nextTourStep() {
+    if (tourName == null) return;
+    _tourTimer?.cancel();
+    tourBusy = false;
     tourIndex++;
+    if (tourIndex >= (tourName == 'main' ? 17 : 5)) {
+      endTour(true);
+      return;
+    }
     notifyListeners();
   }
 
   void endTour([bool completed = false]) {
-    final n = tourName;
+    final name = tourName;
+    _tourTimer?.cancel();
     tourName = null;
     tourIndex = 0;
-    if (n == 'em') seenEmTour = true;
+    tourBusy = false;
+    if (_tourVbBefore != null) vbGiven = _tourVbBefore!;
+    _tourVbBefore = null;
+    final before = _tourBefore;
+    _tourBefore = null;
+    if (before != null) {
+      emergency = before.emergency;
+      offline = before.offline;
+      servCat = before.category;
+      selService = before.service;
+      pub = before.draft;
+    }
+    sheet = null;
+    if (name == 'em') seenEmTour = true;
+    screen = 'home';
+    hist.clear();
     notifyListeners();
-    if (completed && n == 'main') {
+    if (completed && name == 'main') {
       toast('Tutorial completado. ¡Bien hecho!', icon: 'celebration');
     }
   }
 
   void checkTourEvent(String event) {
     if (tourName == null || tourBusy) return;
-    // Map event to tour advancement
-    if (tourName == 'main') {
-      final stepEvents = {
-        1: 'sos-hold',
-        3: 'screen:servicios',
-        4: 'servcat',
-        5: 'screen:svc',
-        7: 'vb',
-        8: 'screen:servicios',
-        9: 'screen:publicar',
-        10: 'ptype',
-        11: 'pcat',
-        12: 'publish',
-        13: 'screen:home',
-      };
-      if (stepEvents[tourIndex] == event) {
-        tourBusy = true;
-        _timers.add(
-          Timer(const Duration(milliseconds: 320), () {
-            tourBusy = false;
-            nextTourStep();
-          }),
-        );
-      }
-    } else if (tourName == 'em') {
-      if (tourIndex == 3 && event == 'sheet:em') {
-        tourBusy = true;
-        _timers.add(
-          Timer(const Duration(milliseconds: 320), () {
-            tourBusy = false;
-            nextTourStep();
-          }),
-        );
-      }
-    }
+    const events = {
+      1: 'sos-hold',
+      3: 'screen:servicios',
+      4: 'servcat',
+      5: 'screen:svc',
+      7: 'vb',
+      8: 'screen:servicios',
+      9: 'screen:publicar',
+      10: 'ptype',
+      11: 'pcat',
+      12: 'publish',
+      13: 'screen:home',
+    };
+    final matches = tourName == 'main'
+        ? events[tourIndex] == event
+        : tourIndex == 3 && event == 'sheet:em';
+    if (!matches) return;
+    final name = tourName;
+    final index = tourIndex;
+    tourBusy = true;
+    _tourTimer = Timer(const Duration(milliseconds: 320), () {
+      if (tourName == name && tourIndex == index) nextTourStep();
+    });
   }
 
   String nowTime() => _nowTime();

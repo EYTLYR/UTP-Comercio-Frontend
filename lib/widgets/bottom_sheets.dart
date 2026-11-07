@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../state/app_state.dart';
 import '../theme/nearby_theme.dart';
+import '../services/speech_input.dart';
 
 class NearbyBottomSheetModal extends StatelessWidget {
   final NearbyThemeData theme;
@@ -23,54 +24,71 @@ class NearbyBottomSheetModal extends StatelessWidget {
     final type = state.sheet!['type'] as String;
     final id = state.sheet!['id'];
 
-    return Container(
-      color: Colors.black.withValues(alpha: 0.55),
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 460),
-          decoration: BoxDecoration(
-            color: theme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Grab handle
-              Center(
-                child: Container(
-                  width: 44,
-                  height: 5,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: theme.line,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
-
-              if (type == 'ai-run')
-                _buildAiRunSheet(context)
-              else if (type == 'voice')
-                _VoiceSheet(theme: theme, state: state)
-              else if (type == 'sonic')
-                _SonicSheet(theme: theme, state: state)
-              else if (type == 'em')
-                _buildEmSheet(context)
-              else if (type == 'em-off')
-                _buildEmOffSheet(context)
-              else if (type == 'photo')
-                _buildPhotoSheet(context)
-              else if (type == 'join')
-                _buildJoinSheet(context, id as String?)
-              else if (type == 'logout')
-                _buildLogoutSheet(context),
-            ],
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: state.closeSheet,
+            child: ColoredBox(color: Colors.black.withValues(alpha: 0.55)),
           ),
         ),
-      ),
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: Container(
+            constraints: BoxConstraints(
+              maxWidth: 460,
+              maxHeight:
+                  MediaQuery.sizeOf(context).height -
+                  MediaQuery.viewInsetsOf(context).bottom -
+                  24,
+            ),
+            decoration: BoxDecoration(
+              color: theme.surface,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(28),
+              ),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 28),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Grab handle
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 5,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: theme.line,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  ),
+
+                  if (type == 'ai-run')
+                    _buildAiRunSheet(context)
+                  else if (type == 'voice')
+                    _VoiceSheet(theme: theme, state: state)
+                  else if (type == 'sonic')
+                    _SonicSheet(theme: theme, state: state)
+                  else if (type == 'em')
+                    _buildEmSheet(context)
+                  else if (type == 'em-off')
+                    _buildEmOffSheet(context)
+                  else if (type == 'photo')
+                    _buildPhotoSheet(context)
+                  else if (type == 'join')
+                    _buildJoinSheet(context, id as String?)
+                  else if (type == 'logout')
+                    _buildLogoutSheet(context),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -234,6 +252,7 @@ class NearbyBottomSheetModal extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         OutlinedButton.icon(
+          key: state.tourTarget('em-exit'),
           onPressed: () => state.openSheet('em-off'),
           style: OutlinedButton.styleFrom(
             foregroundColor: NearbyColors.sos,
@@ -669,193 +688,155 @@ class NearbyBottomSheetModal extends StatelessWidget {
   }
 }
 
-// --- Voice Input with Animated Wave & Typing Simulator ---
+// --- Real microphone input. Text is always reviewed before use. ---
 class _VoiceSheet extends StatefulWidget {
   final NearbyThemeData theme;
   final AppState state;
-
   const _VoiceSheet({required this.theme, required this.state});
-
   @override
   State<_VoiceSheet> createState() => _VoiceSheetState();
 }
 
 class _VoiceSheetState extends State<_VoiceSheet> {
-  String _typedText = '';
-  Timer? _typeTimer;
-  Timer? _finishTimer;
-
-  String get _demoPhrase => widget.state.emergency
-      ? 'Por favor ayúdenme, se cayó la pared de mi casa en Los Pinos 340 y mi papá está herido de un brazo'
-      : 'Necesito que alguien me preste una escalera para mañana en la tarde';
+  late final SpeechInput _voice;
+  final _text = TextEditingController();
+  String _lastTranscript = '';
+  bool _usingText = false;
 
   @override
   void initState() {
     super.initState();
-    _startDemoTyping();
+    _voice = widget.state.voice;
+    _voice.addListener(_onVoice);
   }
 
-  void _startDemoTyping() {
-    final phrase = _demoPhrase;
-    int index = 0;
-    _typeTimer = Timer.periodic(const Duration(milliseconds: 38), (t) {
-      index = (index + 2).clamp(0, phrase.length);
-      setState(() {
-        _typedText = phrase.substring(0, index);
-      });
-      if (index >= phrase.length) {
-        t.cancel();
-        _finish();
-      }
-    });
+  void _onVoice() {
+    if (!mounted) return;
+    if (_voice.transcript != _lastTranscript) {
+      _lastTranscript = _voice.transcript;
+      _text.value = TextEditingValue(
+        text: _lastTranscript,
+        selection: TextSelection.collapsed(offset: _lastTranscript.length),
+      );
+    }
+    setState(() {});
   }
 
-  void _finish() {
-    _finishTimer = Timer(const Duration(milliseconds: 1100), () {
-      final classified = widget.state.classify(_typedText);
-      widget.state.pub.reset(
-        step: 2,
-        type: classified['type'] as String?,
-        cat: classified['cat'] as String?,
-        text: _typedText,
-      );
-      widget.state.pub.ai = classified;
-      widget.state.closeSheet();
-      if (widget.state.screen != 'publicar') {
-        widget.state.go('publicar');
-      }
-      widget.state.toast(
-        classified['cat'] != null
-            ? 'La IA llenó el formulario. Revisa y publica.'
-            : 'Elige la categoría para continuar',
-        icon: 'auto_awesome',
-      );
-    });
+  Future<void> _useText() async {
+    if (_usingText) return;
+    setState(() => _usingText = true);
+    await _voice.stop();
+    if (!mounted) return;
+    final text = _text.text.trim();
+    if (text.isEmpty) {
+      setState(() => _usingText = false);
+      return;
+    }
+    final classified = widget.state.classify(text);
+    widget.state.pub.reset(
+      step: 2,
+      type: classified['type'] as String?,
+      cat: classified['cat'] as String?,
+      text: text,
+    );
+    widget.state.pub.ai = classified;
+    widget.state.closeSheet();
+    if (widget.state.screen != 'publicar') widget.state.go('publicar');
+    widget.state.toast(
+      'Revisa el texto y la categoría antes de publicar.',
+      icon: 'auto_awesome',
+    );
   }
 
   @override
   void dispose() {
-    _typeTimer?.cancel();
-    _finishTimer?.cancel();
+    _voice.removeListener(_onVoice);
+    _voice.cancel();
+    _text.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final classified = widget.state.classify(_typedText);
-    final chips = (classified['chips'] as List<List<String>>?) ?? [];
-
+    final theme = widget.theme;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [NearbyColors.violet, Color(0xFF8B5CF6)],
-            ),
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: const Icon(Icons.graphic_eq, color: Colors.white, size: 28),
+        Icon(
+          _voice.listening ? Icons.mic : Icons.mic_none,
+          color: theme.violet,
+          size: 42,
         ),
         const SizedBox(height: 12),
         Text(
-          'Te escucho…',
+          _voice.listening ? 'Te escucho…' : 'Dilo con tu voz',
           style: TextStyle(
-            fontSize: 20,
+            fontSize: 22,
             fontWeight: FontWeight.w900,
-            color: widget.theme.ink,
+            color: theme.ink,
           ),
         ),
         const SizedBox(height: 6),
         Text(
-          'Cuéntalo con tus palabras. La IA llena el formulario por ti${widget.state.offline ? ", incluso sin internet" : ""}.',
-          style: TextStyle(color: widget.theme.muted, fontSize: 13.5),
+          'Activa el micrófono, cuéntalo con tus palabras y revisa el texto antes de continuar.',
+          style: TextStyle(color: theme.muted, fontSize: 13.5),
+        ),
+        if (_voice.listening) const Center(child: _WaveBars()),
+        const SizedBox(height: 14),
+        if (_voice.error != null) ...[
+          Semantics(
+            liveRegion: true,
+            child: Text(_voice.error!, style: TextStyle(color: theme.sosDark)),
+          ),
+          const SizedBox(height: 12),
+        ],
+        TextField(
+          key: const ValueKey('voice-transcript'),
+          controller: _text,
+          minLines: 2,
+          maxLines: 4,
+          onChanged: (_) => setState(() {}),
+          style: TextStyle(color: theme.ink),
+          decoration: InputDecoration(
+            hintText: 'Tu voz aparecerá aquí. También puedes escribir.',
+            filled: true,
+            fillColor: theme.surface2,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+          ),
         ),
         const SizedBox(height: 14),
-
-        // Wave animation
-        const Center(child: _WaveBars()),
-        const SizedBox(height: 12),
-
-        // Transcript box
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: widget.theme.surface2,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Text(
-            _typedText.isEmpty ? 'Habla ahora…' : _typedText,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: _typedText.isEmpty ? widget.theme.muted : widget.theme.ink,
-              height: 1.4,
-            ),
+        OutlinedButton.icon(
+          onPressed: _voice.preparing || _usingText
+              ? null
+              : () async {
+                  if (_voice.listening) {
+                    await _voice.stop();
+                  } else {
+                    await _voice.start();
+                  }
+                },
+          icon: Icon(_voice.listening ? Icons.stop : Icons.mic),
+          label: Text(
+            _voice.preparing
+                ? 'Preparando micrófono…'
+                : _voice.listening
+                ? 'Detener micrófono'
+                : 'Activar micrófono',
           ),
         ),
-        const SizedBox(height: 10),
-
-        // Detected chips
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: chips.map((c) {
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: widget.theme.violetSoft,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                c[1],
-                style: TextStyle(
-                  color: widget.theme.violet,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 12,
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         ElevatedButton(
-          onPressed: () {
-            _typeTimer?.cancel();
-            setState(() {
-              _typedText = _demoPhrase;
-            });
-            _finish();
-          },
+          onPressed: _text.text.trim().isEmpty || _usingText ? null : _useText,
           style: ElevatedButton.styleFrom(
-            backgroundColor: widget.theme.btnBg,
-            foregroundColor: widget.theme.btnInk,
+            backgroundColor: theme.btnBg,
+            foregroundColor: theme.btnInk,
             minimumSize: const Size.fromHeight(48),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
           ),
-          child: const Text(
-            'Usar frase de demostración',
-            style: TextStyle(fontWeight: FontWeight.w800),
-          ),
+          child: const Text('Usar este texto'),
         ),
-        const SizedBox(height: 6),
-        Center(
-          child: TextButton(
-            onPressed: () => widget.state.closeSheet(),
-            child: Text(
-              'Cancelar',
-              style: TextStyle(
-                color: widget.theme.muted,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
+        TextButton(
+          onPressed: widget.state.closeSheet,
+          child: const Text('Cancelar'),
         ),
       ],
     );

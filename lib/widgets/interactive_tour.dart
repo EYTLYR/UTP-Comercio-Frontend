@@ -144,205 +144,347 @@ final List<TourStepDef> kEmTourSteps = [
   ),
 ];
 
-class InteractiveTourOverlay extends StatelessWidget {
+class InteractiveTourOverlay extends StatefulWidget {
   final AppState state;
   final NearbyThemeData theme;
-
   const InteractiveTourOverlay({
     super.key,
     required this.state,
     required this.theme,
   });
+  @override
+  State<InteractiveTourOverlay> createState() => _InteractiveTourOverlayState();
+}
+
+class _InteractiveTourOverlayState extends State<InteractiveTourOverlay>
+    with WidgetsBindingObserver {
+  final _overlayKey = GlobalKey();
+  Rect? _target;
+  String? _signature;
+  int _generation = 0;
+  Size? _size;
+
+  String? get _targetName {
+    final state = widget.state;
+    if (state.tourName == 'em') {
+      return {
+        0: 'em-banner',
+        1: 'checkin',
+        2: 'nav-publicar',
+        3: 'em-banner',
+        4: 'em-exit',
+      }[state.tourIndex];
+    }
+    return {
+      1: 'sos',
+      2: 'calls',
+      3: 'nav-servicios',
+      4: 'service-category',
+      5: 'service-julio',
+      6: 'vb-score',
+      7: 'vb',
+      8: 'back',
+      9: 'nav-publicar',
+      10: 'publish-type',
+      11: 'publish-category',
+      12: 'publish-submit',
+      13: 'publish-home',
+      14: 'profile',
+    }[state.tourIndex];
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeMetrics() => _schedule();
+
+  void _schedule() {
+    final generation = ++_generation;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || generation != _generation) return;
+      final targetContext =
+          widget.state.tourTargets[_targetName]?.currentContext;
+      if (targetContext == null) return;
+      await Scrollable.ensureVisible(targetContext, alignment: 0.45);
+      if (!mounted || generation != _generation || !targetContext.mounted) {
+        return;
+      }
+      _measure(targetContext);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && generation == _generation && targetContext.mounted) {
+          _measure(targetContext);
+        }
+      });
+    });
+  }
+
+  void _measure(BuildContext targetContext) {
+    final target = targetContext.findRenderObject();
+    final overlay = _overlayKey.currentContext?.findRenderObject();
+    if (target is! RenderBox ||
+        overlay is! RenderBox ||
+        !target.attached ||
+        !target.hasSize) {
+      return;
+    }
+    final rect =
+        (target.localToGlobal(Offset.zero, ancestor: overlay) & target.size)
+            .inflate(6)
+            .intersect(Offset.zero & overlay.size);
+    if (rect.isEmpty || rect == _target) return;
+    setState(() => _target = rect);
+  }
+
+  @override
+  void dispose() {
+    _generation++;
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (state.tourName == null) return const SizedBox.shrink();
-
+    final state = widget.state;
+    final theme = widget.theme;
     final steps = state.tourName == 'main' ? kMainTourSteps : kEmTourSteps;
-    if (state.tourIndex >= steps.length) return const SizedBox.shrink();
-
-    final s = steps[state.tourIndex];
-    final progress = (state.tourIndex + 1) / steps.length;
-
+    if (state.tourName == null || state.tourIndex >= steps.length) {
+      return const SizedBox.shrink();
+    }
+    final step = steps[state.tourIndex];
+    final signature =
+        '${state.tourName}:${state.tourIndex}:${state.sheet?['type']}';
+    if (signature != _signature) {
+      _signature = signature;
+      _target = null;
+      _schedule();
+    }
     return Positioned.fill(
-      child: IgnorePointer(
-        ignoring: false,
-        child: Container(
-          color: s.isAction
+      child: LayoutBuilder(
+        builder: (context, box) {
+          final size = box.biggest;
+          if (_size != size) {
+            _size = size;
+            _schedule();
+          }
+          final target = _target;
+          final above = target?.top ?? 0;
+          final below = target == null ? 0.0 : size.height - target.bottom;
+          final placeAbove = above > below;
+          final available = target == null
+              ? size.height - 32
+              : (placeAbove ? above : below) - 24;
+          final cardHeight = available.clamp(
+            100.0,
+            (size.height - 32).clamp(100.0, 320.0),
+          );
+          final top = target == null
               ? null
-              : Colors.black.withValues(alpha: s.isCenter ? 0.74 : 0.65),
-          padding: const EdgeInsets.all(18),
-          child: SafeArea(
-            child: Align(
-              alignment: s.isCenter
-                  ? Alignment.center
-                  : (state.tourName == 'main' &&
-                            [3, 9, 12, 13].contains(state.tourIndex)
-                        ? Alignment.topCenter
-                        : Alignment.bottomCenter),
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 400),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x66000000),
-                      blurRadius: 36,
-                      offset: Offset(0, 16),
-                    ),
-                  ],
+              : placeAbove
+              ? null
+              : target.bottom + 12;
+          final bottom = target != null && placeAbove
+              ? size.height - target.top + 12
+              : null;
+          Widget barrier(Rect rect) => Positioned.fromRect(
+            rect: rect,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {},
+            ),
+          );
+          return Stack(
+            key: _overlayKey,
+            fit: StackFit.expand,
+            children: [
+              IgnorePointer(
+                child: CustomPaint(
+                  painter: _TourSpotlightPainter(
+                    target: target,
+                    color: Colors.black.withValues(alpha: 0.68),
+                    outline: theme.primary,
+                  ),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (s.isCenter && s.icon != null) ...[
-                      Container(
-                        width: 58,
-                        height: 58,
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: NearbyColors.primarySoft,
-                          borderRadius: BorderRadius.circular(18),
+              ),
+              if (target != null && step.isAction) ...[
+                barrier(Rect.fromLTRB(0, 0, size.width, target.top)),
+                barrier(
+                  Rect.fromLTRB(0, target.bottom, size.width, size.height),
+                ),
+                barrier(
+                  Rect.fromLTRB(0, target.top, target.left, target.bottom),
+                ),
+                barrier(
+                  Rect.fromLTRB(
+                    target.right,
+                    target.top,
+                    size.width,
+                    target.bottom,
+                  ),
+                ),
+              ] else
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {},
+                  ),
+                ),
+              Positioned(
+                left: 16,
+                right: 16,
+                top: top,
+                bottom: bottom,
+                child: target == null
+                    ? Center(
+                        child: _card(step, steps.length, theme, cardHeight),
+                      )
+                    : _card(step, steps.length, theme, cardHeight),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _card(
+    TourStepDef step,
+    int count,
+    NearbyThemeData theme,
+    double maxHeight,
+  ) {
+    final state = widget.state;
+    return Material(
+      color: theme.surface,
+      borderRadius: BorderRadius.circular(24),
+      elevation: 12,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxHeight, maxWidth: 460),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    step.isAction ? Icons.touch_app : step.icon ?? Icons.school,
+                    color: theme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'PASO ${state.tourIndex + 1} DE $count${step.isAction ? ' · TU TURNO' : ''}',
+                      style: TextStyle(
+                        color: theme.primaryDark,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Salir del tutorial',
+                    onPressed: () => state.endTour(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Semantics(
+                        liveRegion: true,
+                        child: Text(
+                          step.title,
+                          style: TextStyle(
+                            color: theme.ink,
+                            fontSize: 19,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
-                        child: Icon(
-                          s.icon,
-                          color: NearbyColors.primary,
-                          size: 32,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        step.desc,
+                        style: TextStyle(
+                          color: theme.muted,
+                          fontSize: 14,
+                          height: 1.4,
                         ),
                       ),
                     ],
-                    Row(
-                      children: [
-                        Icon(
-                          s.isAction ? Icons.touch_app : Icons.school,
-                          color: s.isAction
-                              ? NearbyColors.sosDark
-                              : NearbyColors.primaryDark,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          s.isAction
-                              ? 'TU TURNO'
-                              : 'PASO ${state.tourIndex + 1} DE ${steps.length}',
-                          style: TextStyle(
-                            fontFamily: 'Nunito',
-                            fontSize: 12,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.8,
-                            color: s.isAction
-                                ? NearbyColors.sosDark
-                                : NearbyColors.primaryDark,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      s.title,
-                      style: const TextStyle(
-                        fontFamily: 'Nunito',
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        color: NearbyColors.navy,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      s.desc,
-                      style: const TextStyle(
-                        fontFamily: 'Nunito',
-                        fontSize: 14.5,
-                        color: Color(0xFF46546A),
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        if (s.isAction)
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.arrow_downward,
-                                color: NearbyColors.primaryDark,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Toca la pantalla para avanzar',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  color: NearbyColors.primaryDark,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
-                          )
-                        else
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              if (state.tourIndex >= steps.length - 1) {
-                                state.endTour(true);
-                              } else {
-                                state.nextTourStep();
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: NearbyColors.navy,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                            ),
-                            label: Text(
-                              s.btn ?? 'Siguiente',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            icon: const Icon(Icons.arrow_forward, size: 16),
-                          ),
-                        const Spacer(),
-                        TextButton(
-                          onPressed: () => state.endTour(false),
-                          child: const Text(
-                            'Salir',
-                            style: TextStyle(
-                              color: NearbyColors.muted,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    // Progress bar
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(3),
-                      child: LinearProgressIndicator(
-                        value: progress,
-                        minHeight: 5,
-                        backgroundColor: const Color(0xFFE4EAEE),
-                        valueColor: const AlwaysStoppedAnimation(
-                          NearbyColors.primary,
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(height: 12),
+              if (!step.isAction)
+                FilledButton(
+                  onPressed: state.nextTourStep,
+                  child: Text(step.btn ?? 'Siguiente'),
+                )
+              else
+                Text(
+                  'Toca el control resaltado para continuar.',
+                  style: TextStyle(
+                    color: theme.primaryDark,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              const SizedBox(height: 10),
+              LinearProgressIndicator(
+                value: (state.tourIndex + 1) / count,
+                color: theme.primary,
+                backgroundColor: theme.line,
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+}
+
+class _TourSpotlightPainter extends CustomPainter {
+  final Rect? target;
+  final Color color;
+  final Color outline;
+  _TourSpotlightPainter({
+    required this.target,
+    required this.color,
+    required this.outline,
+  });
+  @override
+  void paint(Canvas canvas, Size size) {
+    final background = Path()..addRect(Offset.zero & size);
+    if (target == null) {
+      canvas.drawPath(background, Paint()..color = color);
+    } else {
+      final shape = RRect.fromRectAndRadius(target!, const Radius.circular(14));
+      final hole = Path()..addRRect(shape);
+      canvas.drawPath(
+        Path.combine(PathOperation.difference, background, hole),
+        Paint()..color = color,
+      );
+      canvas.drawRRect(
+        shape,
+        Paint()
+          ..color = outline
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_TourSpotlightPainter oldDelegate) =>
+      target != oldDelegate.target ||
+      color != oldDelegate.color ||
+      outline != oldDelegate.outline;
 }

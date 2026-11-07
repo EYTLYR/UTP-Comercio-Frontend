@@ -106,6 +106,7 @@ class _PublishScreenState extends State<PublishScreen> {
             child: Column(
               children: [
                 ElevatedButton.icon(
+                  key: state.tourTarget('publish-submit'),
                   onPressed: p.cat != null
                       ? () {
                           p.text = _textController.text;
@@ -238,6 +239,7 @@ class _PublishScreenState extends State<PublishScreen> {
           return Container(
             margin: const EdgeInsets.only(bottom: 10),
             child: InkWell(
+              key: t.id == 'need' ? state.tourTarget('publish-type') : null,
               onTap: () {
                 state.pub.type = t.id;
                 state.pub.cat = null;
@@ -429,10 +431,13 @@ class _PublishScreenState extends State<PublishScreen> {
           physics: const NeverScrollableScrollPhysics(),
           crossAxisSpacing: 10,
           mainAxisSpacing: 10,
-          childAspectRatio: 1.6,
+          mainAxisExtent: 118 * theme.scaleFactor,
           children: categories.map((c) {
             final isSel = p.cat == c.id;
             return InkWell(
+              key: c.id == 'herramientas'
+                  ? state.tourTarget('publish-category')
+                  : null,
               onTap: () {
                 p.cat = c.id;
                 state.refresh();
@@ -763,6 +768,7 @@ class _PublishScreenState extends State<PublishScreen> {
         ),
         const SizedBox(height: 10),
         OutlinedButton.icon(
+          key: state.tourTarget('publish-home'),
           onPressed: () => state.selectTab('home'),
           style: OutlinedButton.styleFrom(
             foregroundColor: theme.ink,

@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Nearby usa el micrófono para dictar pedidos y reportes cuando lo solicitas.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Nearby convierte tu voz en texto para que puedas revisarlo antes de publicar.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleExecutable</key>

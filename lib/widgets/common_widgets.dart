@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../models/models.dart';
@@ -29,6 +31,8 @@ class _SosHoldButtonState extends State<SosHoldButton>
   late AnimationController _controller;
   late AnimationController _pulse;
   bool _isHolding = false;
+  int? _holdingPointer;
+  Offset? _pointerOrigin;
 
   @override
   void initState() {
@@ -74,10 +78,31 @@ class _SosHoldButtonState extends State<SosHoldButton>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => _onDown(),
-      onTapUp: (_) => _onUp(),
-      onTapCancel: () => _onUp(),
+    return Listener(
+      behavior: HitTestBehavior.opaque,
+      onPointerDown: (event) {
+        if (_holdingPointer != null || event.buttons != 1) return;
+        _holdingPointer = event.pointer;
+        _pointerOrigin = event.position;
+        _onDown();
+      },
+      onPointerMove: (event) {
+        if (event.pointer == _holdingPointer &&
+            (event.position - _pointerOrigin!).distance > 18) {
+          _holdingPointer = null;
+          _onUp();
+        }
+      },
+      onPointerUp: (event) {
+        if (event.pointer != _holdingPointer) return;
+        _holdingPointer = null;
+        _onUp();
+      },
+      onPointerCancel: (event) {
+        if (event.pointer != _holdingPointer) return;
+        _holdingPointer = null;
+        _onUp();
+      },
       child: AnimatedScale(
         scale: _isHolding ? 0.94 : 1.0,
         duration: const Duration(milliseconds: 150),
@@ -113,8 +138,9 @@ class _SosHoldButtonState extends State<SosHoldButton>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: SweepGradient(
-                      startAngle: -1.5708,
-                      endAngle: 4.7123,
+                      startAngle: 0,
+                      endAngle: math.pi * 2,
+                      transform: const GradientRotation(-math.pi / 2),
                       colors: const [Colors.white, Color(0x42FFFFFF)],
                       stops: [_controller.value, _controller.value],
                     ),
@@ -308,6 +334,7 @@ class NearbyTopBar extends StatelessWidget {
 
           // User Avatar MQ
           InkWell(
+            key: state.tourTarget('profile'),
             onTap: () => state.go('perfil'),
             borderRadius: BorderRadius.circular(999),
             child: Container(
@@ -355,6 +382,7 @@ class NearbyTopBarBack extends StatelessWidget {
       child: Row(
         children: [
           InkWell(
+            key: state.tourTarget('back'),
             onTap: () => state.back(),
             borderRadius: BorderRadius.circular(999),
             child: Container(
@@ -429,6 +457,7 @@ class NearbyEmergencyBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
+      key: state.tourTarget('em-banner'),
       onTap: () => state.openSheet('em'),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
@@ -587,6 +616,7 @@ class NearbyBottomNav extends StatelessWidget {
           final isSelected = cur == t.id && !t.isFab;
           return Expanded(
             child: InkWell(
+              key: state.tourTarget('nav-${t.id}'),
               onTap: () => state.selectTab(t.id),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -742,6 +772,7 @@ class NearbySosCard extends StatelessWidget {
 
           // Center hold button
           SosHoldButton(
+            key: state.tourTarget('sos'),
             size: 148,
             onComplete: () {
               if (state.tourName != null) {
@@ -777,6 +808,7 @@ class NearbySosCard extends StatelessWidget {
 
           // Direct calls 105, 116, 106
           Row(
+            key: state.tourTarget('calls'),
             children: kCalls.take(3).map((c) {
               return Expanded(
                 child: Padding(

@@ -444,6 +444,7 @@ class HomeScreen extends StatelessWidget {
 
         // Check-in card "¿Cómo estás?"
         Container(
+          key: state.tourTarget('checkin'),
           margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
