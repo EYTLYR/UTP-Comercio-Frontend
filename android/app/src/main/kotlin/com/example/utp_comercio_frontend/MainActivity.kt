@@ -48,7 +48,7 @@ class MainActivity : FlutterActivity() {
                 "call" -> {
                     val number = call.argument<String>("number") ?: ""
                     if (!Regex("^\\+?[0-9]{3,15}$").matches(number)) { result.success(false) }
-                    else if (call.argument<Boolean>("emergency") == true) { result.success(openPhone(number, false)) }
+                    else if (call.argument<Boolean>("emergency") == true || call.argument<Boolean>("dialOnly") == true) { result.success(openPhone(number, false)) }
                     else if (ContextCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) { result.success(openPhone(number, true)) }
                     else if (pendingCall != null) { result.success(false) }
                     else { pendingNumber = number; pendingCall = result; requestPermissions(arrayOf(Manifest.permission.CALL_PHONE), 722) }

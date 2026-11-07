@@ -631,11 +631,24 @@ extension NearbyBackend on AppState {
     _pollTimer = Timer.periodic(const Duration(seconds: 20), (_) => _poll());
     _chatTimer = Timer.periodic(const Duration(seconds: 4), (_) {
       if (screen == 'chat') _pollChat();
+      if (connected && !offline) _incomingVoiceCall();
       if (screen == 'sos-sent') _pollSos();
     });
   }
 
+  Future<void> _incomingVoiceCall() async {
+    if (_disposed || internetCall.active) return;
+    if (await internetCall.checkIncoming() && !_disposed) {
+      final incoming = internetCall.details!;
+      final name = incoming['callerName'] as String? ?? 'Vecino';
+      callWith = {'name': name, 'icon': Icons.person, 'emergency': false};
+      convIds[name] = incoming['conversationId'] as String;
+      go('llamada');
+    }
+  }
+
   void _stopPolling() {
+    if (internetCall.active) unawaited(internetCall.end());
     _pollTimer?.cancel();
     _chatTimer?.cancel();
     _pollTimer = null;

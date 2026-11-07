@@ -79,6 +79,25 @@ void main() {
           .setMockMethodCallHandler(DeviceActions.channel, null);
     },
   );
+  test('opening the dialer explicitly never requests a direct call', () async {
+    MethodCall? request;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(DeviceActions.channel, (call) async {
+          request = call;
+          return true;
+        });
+    expect(
+      await DeviceActions().call('987654321', emergency: false, dialOnly: true),
+      isTrue,
+    );
+    expect(request!.arguments, {
+      'number': '987654321',
+      'emergency': false,
+      'dialOnly': true,
+    });
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(DeviceActions.channel, null);
+  });
   testWidgets('bottom notices show remaining time and dismiss on swipe', (
     tester,
   ) async {

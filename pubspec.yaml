@@ -44,6 +44,7 @@ dependencies:
   latlong2: ^0.9.1
   geolocator: ^14.1.2
   url_launcher: ^6.3.3
+  flutter_webrtc: ^1.6.3
 
 dev_dependencies:
   flutter_test:

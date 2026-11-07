@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../state/app_state.dart';
 import '../theme/nearby_theme.dart';
@@ -373,46 +375,158 @@ class CallScreen extends StatelessWidget {
   final NearbyThemeData theme;
   const CallScreen({super.key, required this.state, required this.theme});
   @override
-  Widget build(BuildContext context) => ColoredBox(
-    color: NearbyColors.navy,
-    child: Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.phone_in_talk, color: Colors.white, size: 72),
-          const SizedBox(height: 24),
-          Text(
-            state.callWith?['name'] as String? ?? 'Teléfono',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 26,
-              fontWeight: FontWeight.w900,
+  Widget build(BuildContext context) {
+    final call = state.internetCall;
+    final emergency = state.callWith?['emergency'] == true;
+    final inApp = call.active;
+    final label = switch (call.phase) {
+      'preparing' => 'Preparando micrófono y conexión…',
+      'ringing' => 'Esperando que el vecino responda…',
+      'incoming' => 'Llamada entrante de Nearby',
+      'connecting' => 'Conectando audio…',
+      'connected' => 'En llamada · ${call.elapsed}',
+      'ending' => 'Cerrando llamada…',
+      'ended' => 'Llamada finalizada',
+      'failed' => 'No se pudo conectar',
+      _ => 'Elige cómo quieres llamar',
+    };
+    return ColoredBox(
+      color: NearbyColors.navy,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            const SizedBox(height: 32),
+            const Icon(Icons.phone_in_talk, color: Colors.white, size: 72),
+            const SizedBox(height: 24),
+            Text(
+              state.callWith?['name'] as String? ?? 'Teléfono',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 26,
+                fontWeight: FontWeight.w900,
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'La llamada se realiza con el teléfono del dispositivo. Para emergencias, confirma el número en el marcador.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white70, fontSize: 16),
-          ),
-          const SizedBox(height: 28),
-          FilledButton.icon(
-            onPressed: state.launchCurrentCall,
-            icon: const Icon(Icons.call),
-            label: const Text('Abrir teléfono'),
-          ),
-          const SizedBox(height: 12),
-          TextButton(
-            onPressed: state.back,
-            child: const Text(
-              'Volver a Nearby',
-              style: TextStyle(color: Colors.white),
+            const SizedBox(height: 12),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70, fontSize: 16),
             ),
-          ),
-        ],
+            if (call.error != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(
+                  call.error!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            const SizedBox(height: 24),
+            if (call.phase == 'incoming')
+              FilledButton.icon(
+                onPressed: call.accept,
+                icon: const Icon(Icons.call),
+                label: const Text('Contestar en Nearby'),
+              ),
+            if (call.phase == 'connected')
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  FilledButton.tonalIcon(
+                    onPressed: call.toggleMute,
+                    icon: Icon(call.muted ? Icons.mic_off : Icons.mic),
+                    label: Text(call.muted ? 'Activar micrófono' : 'Silenciar'),
+                  ),
+                  if (!kIsWeb)
+                    FilledButton.tonalIcon(
+                      onPressed: call.toggleSpeaker,
+                      icon: Icon(
+                        call.speaker ? Icons.volume_up : Icons.hearing,
+                      ),
+                      label: Text(call.speaker ? 'Auricular' : 'Altavoz'),
+                    ),
+                ],
+              ),
+            if (inApp) ...[
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: NearbyColors.sos,
+                ),
+                onPressed: () => call.end(),
+                icon: const Icon(Icons.call_end),
+                label: Text(call.phase == 'incoming' ? 'Rechazar' : 'Colgar'),
+              ),
+            ] else ...[
+              if (!emergency) ...[
+                FilledButton.icon(
+                  key: const ValueKey('nearby-internet-call'),
+                  onPressed: state.startInternetCall,
+                  icon: const Icon(Icons.wifi_calling_3),
+                  label: const Text('Llamar dentro de Nearby'),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Por internet · Ambos usuarios deben tener Nearby abierto.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white70),
+                ),
+                const SizedBox(height: 20),
+              ],
+              FilledButton.icon(
+                key: const ValueKey('nearby-cellular-call'),
+                onPressed: state.callLaunching
+                    ? null
+                    : () => state.launchCurrentCall(),
+                icon: const Icon(Icons.call),
+                label: Text(
+                  emergency
+                      ? 'Llamar al servicio de emergencia'
+                      : 'Llamar por línea celular',
+                ),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                key: const ValueKey('nearby-open-dialer'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: const BorderSide(color: Colors.white54),
+                ),
+                onPressed: state.callLaunching
+                    ? null
+                    : () => state.launchCurrentCall(dialOnly: true),
+                icon: const Icon(Icons.dialpad),
+                label: const Text('Abrir marcador del teléfono'),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                emergency
+                    ? 'Las emergencias se confirman en el marcador del sistema.'
+                    : 'La llamada celular utiliza tu operador y el permiso de llamadas del dispositivo.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white70),
+              ),
+            ],
+            const SizedBox(height: 20),
+            TextButton(
+              onPressed: state.back,
+              child: const Text(
+                'Volver a Nearby',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+            if (call.rendererReady)
+              SizedBox(
+                width: 1,
+                height: 1,
+                child: RTCVideoView(call.remoteAudio),
+              ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }

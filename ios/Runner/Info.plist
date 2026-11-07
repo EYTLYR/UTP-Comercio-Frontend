@@ -13,8 +13,10 @@
     <key>NSBluetoothAlwaysUsageDescription</key>
     <string>Nearby necesita Bluetooth para encontrar y conectar dispositivos cercanos compatibles.</string>
 
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Nearby usa la red para conectar llamadas de voz entre vecinos.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Nearby usa el micrófono para dictar pedidos y reportes cuando lo solicitas.</string>
+	<string>Nearby usa el micrófono para llamadas de voz y para dictar pedidos y reportes cuando lo solicitas.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Nearby convierte tu voz en texto para que puedas revisarlo antes de publicar.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>

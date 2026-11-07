@@ -818,68 +818,129 @@ class NearbySosCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
 
-          // Direct calls 105, 116, 106
-          Row(
-            key: state.tourTarget('calls'),
-            children: kCalls.take(3).map((c) {
-              return Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: InkWell(
-                    onTap: () => state.startCall(c.num),
-                    borderRadius: BorderRadius.circular(14),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.28),
-                        ),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(c.icon, color: Colors.white, size: 24),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  c.num,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 15,
-                                    height: 1.1,
-                                  ),
-                                ),
-                                Text(
-                                  c.label,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
+          // Equal cells preserve the prototype's three-column layout.
+          EmergencyCallShortcuts(state: state),
         ],
       ),
     );
   }
+}
+
+/// Same size for all three shortcuts; stack content together when scaled text
+/// cannot fit beside the icon, rather than breaking a service name mid-word.
+class EmergencyCallShortcuts extends StatelessWidget {
+  final AppState state;
+  const EmergencyCallShortcuts({super.key, required this.state});
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, bounds) {
+      final calls = kCalls.take(3).toList();
+      final width = (bounds.maxWidth - 16) / 3;
+      const labelStyle = TextStyle(
+        color: Colors.white70,
+        fontSize: 10.5,
+        fontWeight: FontWeight.w600,
+      );
+      final stacked = calls.any((call) {
+        final painter = TextPainter(
+          text: TextSpan(
+            text: call.label,
+            style: DefaultTextStyle.of(context).style.merge(labelStyle),
+          ),
+          textScaler: MediaQuery.textScalerOf(context),
+          textDirection: Directionality.of(context),
+          maxLines: 1,
+        )..layout();
+        final needsSpace = painter.width > width - 46;
+        painter.dispose();
+        return needsSpace;
+      });
+      return IntrinsicHeight(
+        child: Row(
+          key: state.tourTarget('calls'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var i = 0; i < calls.length; i++) ...[
+              if (i > 0) const SizedBox(width: 8),
+              Expanded(
+                child: Tooltip(
+                  message: 'Llamar a ${calls[i].label}, ${calls[i].num}',
+                  child: InkWell(
+                    onTap: () => state.startCall(calls[i].num),
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      key: ValueKey('sos-call-${calls[i].num}'),
+                      constraints: const BoxConstraints(minHeight: 50),
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: .15),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: .28),
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: stacked
+                          ? Column(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  calls[i].icon,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                                const SizedBox(height: 6),
+                                _details(calls[i], labelStyle, true),
+                              ],
+                            )
+                          : Row(
+                              children: [
+                                Icon(
+                                  calls[i].icon,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: _details(calls[i], labelStyle, false),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+    },
+  );
+  Widget _details(CallItem call, TextStyle labelStyle, bool centered) => Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: centered
+        ? CrossAxisAlignment.center
+        : CrossAxisAlignment.start,
+    children: [
+      Text(
+        call.num,
+        maxLines: 1,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w900,
+          fontSize: 15,
+          height: 1.1,
+        ),
+      ),
+      Text(
+        call.label,
+        maxLines: 1,
+        softWrap: false,
+        overflow: TextOverflow.ellipsis,
+        style: labelStyle,
+      ),
+    ],
+  );
 }
 
 // --- Emil Kowalski Tactile Pressable Scale ---

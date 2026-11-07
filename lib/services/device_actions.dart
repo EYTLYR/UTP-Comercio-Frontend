@@ -15,13 +15,18 @@ class DeviceActions {
     }
   }
 
-  Future<bool> call(String number, {required bool emergency}) async {
+  Future<bool> call(
+    String number, {
+    required bool emergency,
+    bool dialOnly = false,
+  }) async {
     if (!RegExp(r'^\+?[0-9]{3,15}$').hasMatch(number)) return false;
     try {
       if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
         return await channel.invokeMethod<bool>('call', {
               'number': number,
               'emergency': emergency,
+              if (dialOnly) 'dialOnly': true,
             }) ??
             false;
       }

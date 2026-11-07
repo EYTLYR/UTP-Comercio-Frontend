@@ -9,6 +9,7 @@ import '../api/mappers.dart';
 import '../models/models.dart';
 import '../services/location_service.dart';
 import '../services/device_actions.dart';
+import '../services/internet_call.dart';
 import '../services/speech_input.dart';
 import '../services/startup_permissions.dart';
 
@@ -49,6 +50,8 @@ class PublishDraft {
 
 class AppState extends ChangeNotifier {
   final deviceActions = DeviceActions();
+  late final internetCall = InternetCall(api: api);
+  bool callLaunching = false;
   String? otpDevCode;
   int otpResendSeconds = 30;
   bool networkMaps = true;
@@ -96,6 +99,8 @@ class AppState extends ChangeNotifier {
     _pollTimer?.cancel();
     _chatTimer?.cancel();
     voice.dispose();
+    internetCall.removeListener(refresh);
+    internetCall.dispose();
     _tourTimer?.cancel();
     _toastTimer?.cancel();
     for (final timer in _timers) {
@@ -257,6 +262,7 @@ class AppState extends ChangeNotifier {
   }) : voice = voice ?? DeviceSpeechInput(),
        api = api ?? ApiClient(),
        location = location ?? LocationService() {
+    internetCall.addListener(refresh);
     services = kInitialServices
         .map(
           (s) => ServiceItem(
@@ -320,6 +326,9 @@ class AppState extends ChangeNotifier {
   }
 
   void go(String name, {bool reset = false}) {
+    if (screen == 'llamada' && name != 'llamada' && internetCall.active) {
+      unawaited(internetCall.end());
+    }
     _toastTimer?.cancel();
     toastMessage = null;
     toastIcon = null;
@@ -340,6 +349,9 @@ class AppState extends ChangeNotifier {
   }
 
   void back() {
+    if (screen == 'llamada' && internetCall.active) {
+      unawaited(internetCall.end());
+    }
     if (hist.isNotEmpty) {
       screen = hist.removeLast();
     } else {
@@ -531,6 +543,11 @@ class AppState extends ChangeNotifier {
 
   // --- Call ---
   void startCall(String target) {
+    if (internetCall.active) {
+      go('llamada');
+      return;
+    }
+    internetCall.resetSelection();
     final c = kCalls.where((x) => x.num == target).firstOrNull;
     if (c != null) {
       callWith = {
@@ -550,21 +567,62 @@ class AppState extends ChangeNotifier {
             ?.phone ??
         target;
     go('llamada');
-    launchCurrentCall();
   }
 
-  Future<void> launchCurrentCall() async {
-    final number = callWith?['number'] as String? ?? '';
+  Future<void> launchCurrentCall({bool dialOnly = false}) async {
+    if (callLaunching) return;
+    final number = (callWith?['number'] as String? ?? '').replaceAll(
+      RegExp(r'[\s()\-]'),
+      '',
+    );
     if (!RegExp(r'^\+?[0-9]{3,15}$').hasMatch(number)) {
       toast('Este contacto todavía no tiene un número registrado');
       return;
     }
-    final opened = await deviceActions.call(
-      number,
-      emergency: callWith?['emergency'] == true,
-    );
-    if (!opened && !_disposed) {
-      toast('No se pudo abrir el teléfono. Marca $number manualmente');
+    callLaunching = true;
+    refresh();
+    try {
+      final opened = await deviceActions.call(
+        number,
+        emergency: callWith?['emergency'] == true,
+        dialOnly: dialOnly,
+      );
+      if (!opened && !_disposed) {
+        toast('No se pudo abrir el teléfono. Marca $number manualmente');
+      }
+    } finally {
+      callLaunching = false;
+      refresh();
+    }
+  }
+
+  Future<void> startInternetCall() async {
+    if (!connected || offline) {
+      toast(
+        'Inicia sesión y conéctate a internet para llamar dentro de Nearby',
+      );
+      return;
+    }
+    final target = callWith?['name'] as String? ?? '';
+    var conversation = convIds[target];
+    try {
+      if (conversation == null) {
+        final service = services.where((s) => s.name == target).firstOrNull;
+        if (service != null) {
+          final ref = await api.post('services/${service.id}/contact') as Map;
+          conversation = ref['conversationId'] as String?;
+          if (conversation != null) convIds[target] = conversation;
+        }
+      }
+      if (conversation == null) {
+        toast(
+          'Abre primero una conversación con este vecino para llamarlo por internet',
+        );
+        return;
+      }
+      await internetCall.start(conversation);
+    } on ApiException catch (error) {
+      toast(error.message, icon: 'error');
     }
   }
 

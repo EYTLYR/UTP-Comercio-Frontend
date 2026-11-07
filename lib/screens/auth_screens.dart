@@ -32,6 +32,32 @@ Widget _buildPdots(int currentStep, NearbyThemeData theme) {
   );
 }
 
+/// Keep the footer low on tall screens and allow the entire form to scroll
+/// when the keyboard or large text leaves less vertical space.
+class _AccessForm extends StatelessWidget {
+  final List<Widget> children;
+  const _AccessForm({required this.children});
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, bounds) => SingleChildScrollView(
+      key: const ValueKey('access-form-scroll'),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minHeight: (bounds.maxHeight - 34).clamp(0, double.infinity),
+        ),
+        child: IntrinsicHeight(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: children,
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 // --- 1. Login Screen ---
 class LoginScreen extends StatefulWidget {
   final AppState state;
@@ -79,155 +105,151 @@ class _LoginScreenState extends State<LoginScreen> {
     final theme = widget.theme;
     final state = widget.state;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 58,
-            height: 58,
-            decoration: BoxDecoration(
-              color: theme.primarySoft,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Icon(Icons.smartphone, color: theme.primary, size: 30),
+    return _AccessForm(
+      children: [
+        Container(
+          width: 58,
+          height: 58,
+          decoration: BoxDecoration(
+            color: theme.primarySoft,
+            borderRadius: BorderRadius.circular(18),
           ),
-          const SizedBox(height: 14),
-          Text(
-            'Ingresa con tu celular',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              color: theme.ink,
-            ),
+          child: Icon(Icons.smartphone, color: theme.primary, size: 30),
+        ),
+        const SizedBox(height: 14),
+        Text(
+          'Ingresa con tu celular',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+            color: theme.ink,
           ),
-          const SizedBox(height: 6),
-          Text(
-            'Te enviaremos un código por SMS. No necesitas correo ni contraseña.',
-            style: TextStyle(color: theme.muted, fontSize: 14),
-          ),
-          const SizedBox(height: 24),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Te enviaremos un código por SMS. No necesitas correo ni contraseña.',
+          style: TextStyle(color: theme.muted, fontSize: 14),
+        ),
+        const SizedBox(height: 24),
 
-          Text(
-            'Número de celular',
-            style: TextStyle(
-              fontWeight: FontWeight.w800,
-              color: theme.ink,
-              fontSize: 13.5,
-            ),
+        Text(
+          'Número de celular',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            color: theme.ink,
+            fontSize: 13.5,
           ),
-          const SizedBox(height: 8),
+        ),
+        const SizedBox(height: 8),
 
-          Container(
-            height: 58,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              color: theme.surface,
-              border: Border.all(
-                color: _err.isNotEmpty ? NearbyColors.sos : theme.line,
-                width: 1.5,
-              ),
-              borderRadius: BorderRadius.circular(16),
+        Container(
+          height: 58,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: theme.surface,
+            border: Border.all(
+              color: _err.isNotEmpty ? NearbyColors.sos : theme.line,
+              width: 1.5,
             ),
-            child: Row(
-              children: [
-                Row(
-                  children: [
-                    const Text('🇵🇪', style: TextStyle(fontSize: 18)),
-                    const SizedBox(width: 6),
-                    Text(
-                      '+51',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        color: theme.muted,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-                Container(
-                  width: 1.5,
-                  height: 24,
-                  margin: const EdgeInsets.symmetric(horizontal: 12),
-                  color: theme.line,
-                ),
-                Expanded(
-                  child: TextField(
-                    controller: _phoneController,
-                    keyboardType: TextInputType.phone,
-                    maxLength: 9,
-                    onChanged: _onChanged,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            children: [
+              Row(
+                children: [
+                  const Text('🇵🇪', style: TextStyle(fontSize: 18)),
+                  const SizedBox(width: 6),
+                  Text(
+                    '+51',
                     style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 18,
-                      color: theme.ink,
-                      letterSpacing: 1.2,
-                    ),
-                    decoration: const InputDecoration(
-                      hintText: '987 654 321',
-                      border: InputBorder.none,
-                      counterText: '',
+                      fontWeight: FontWeight.w900,
+                      color: theme.muted,
+                      fontSize: 16,
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          if (_err.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                const Icon(Icons.error, color: NearbyColors.sos, size: 16),
-                const SizedBox(width: 6),
-                Text(
-                  _err,
-                  style: const TextStyle(
-                    color: NearbyColors.sos,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 12.5,
-                  ),
-                ),
-              ],
-            ),
-          ],
-
-          const Spacer(),
-          ElevatedButton.icon(
-            onPressed: _isValid && !state.busy && !_busy
-                ? () async {
-                    setState(() => _busy = true);
-                    try {
-                      if (await state.requestOtp() && mounted) state.go('otp');
-                    } finally {
-                      if (mounted) setState(() => _busy = false);
-                    }
-                  }
-                : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: theme.btnBg,
-              foregroundColor: theme.btnInk,
-              minimumSize: const Size.fromHeight(54),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                ],
               ),
-            ),
-            icon: Icon(Icons.sms, color: theme.primary, size: 20),
-            label: const Text(
-              'Enviar código',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-            ),
+              Container(
+                width: 1.5,
+                height: 24,
+                margin: const EdgeInsets.symmetric(horizontal: 12),
+                color: theme.line,
+              ),
+              Expanded(
+                child: TextField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  maxLength: 9,
+                  onChanged: _onChanged,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 18,
+                    color: theme.ink,
+                    letterSpacing: 1.2,
+                  ),
+                  decoration: const InputDecoration(
+                    hintText: '987 654 321',
+                    border: InputBorder.none,
+                    counterText: '',
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
-          Center(
-            child: Text(
-              'Al continuar aceptas los términos y la política de privacidad de Nearby.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: theme.muted, fontSize: 11.5),
-            ),
+        ),
+        if (_err.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              const Icon(Icons.error, color: NearbyColors.sos, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                _err,
+                style: const TextStyle(
+                  color: NearbyColors.sos,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12.5,
+                ),
+              ),
+            ],
           ),
         ],
-      ),
+
+        const Spacer(),
+        ElevatedButton.icon(
+          onPressed: _isValid && !state.busy && !_busy
+              ? () async {
+                  setState(() => _busy = true);
+                  try {
+                    if (await state.requestOtp() && mounted) state.go('otp');
+                  } finally {
+                    if (mounted) setState(() => _busy = false);
+                  }
+                }
+              : null,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: theme.btnBg,
+            foregroundColor: theme.btnInk,
+            minimumSize: const Size.fromHeight(54),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+          icon: Icon(Icons.sms, color: theme.primary, size: 20),
+          label: const Text(
+            'Enviar código',
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Center(
+          child: Text(
+            'Al continuar aceptas los términos y la política de privacidad de Nearby.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: theme.muted, fontSize: 11.5),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -334,202 +356,198 @@ class _OtpScreenState extends State<OtpScreen> {
     final theme = widget.theme;
     final state = widget.state;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 58,
-            height: 58,
-            decoration: BoxDecoration(
-              color: theme.infoSoft,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Icon(Icons.sms, color: theme.info, size: 30),
+    return _AccessForm(
+      children: [
+        Container(
+          width: 58,
+          height: 58,
+          decoration: BoxDecoration(
+            color: theme.infoSoft,
+            borderRadius: BorderRadius.circular(18),
           ),
-          const SizedBox(height: 14),
-          Text(
-            'Escribe el código',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              color: theme.ink,
-            ),
+          child: Icon(Icons.sms, color: theme.info, size: 30),
+        ),
+        const SizedBox(height: 14),
+        Text(
+          'Escribe el código',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+            color: theme.ink,
           ),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 4,
-            children: [
-              Text(
-                'Lo enviamos por SMS al +51 ${state.phoneDraft.isNotEmpty ? state.phoneDraft : state.userPhone}. ',
-                style: TextStyle(color: theme.muted, fontSize: 13.5),
+        ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 4,
+          children: [
+            Text(
+              'Lo enviamos por SMS al +51 ${state.phoneDraft.isNotEmpty ? state.phoneDraft : state.userPhone}. ',
+              style: TextStyle(color: theme.muted, fontSize: 13.5),
+            ),
+            InkWell(
+              onTap: () => state.back(),
+              child: Text(
+                'Cambiar',
+                style: TextStyle(
+                  color: theme.primaryDark,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 13.5,
+                ),
               ),
-              InkWell(
-                onTap: () => state.back(),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+
+        // 6 OTP boxes
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: List.generate(6, (i) {
+            return SizedBox(
+              width: ((MediaQuery.sizeOf(context).width - 40) / 6).clamp(0, 48),
+              height: 58,
+              child: TextField(
+                controller: _controllers[i],
+                focusNode: _focusNodes[i],
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                autofillHints: const [AutofillHints.oneTimeCode],
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                maxLength: 6,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  color: _isSuccess ? theme.primary : theme.ink,
+                ),
+                decoration: InputDecoration(
+                  counterText: '',
+                  filled: true,
+                  fillColor: _isSuccess ? theme.primarySoft : theme.surface,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(
+                      color: _err.isNotEmpty ? NearbyColors.sos : theme.line,
+                      width: 1.5,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(color: theme.primary, width: 2),
+                  ),
+                ),
+                onChanged: (val) {
+                  if (val.length == 6) {
+                    _fillCode(val);
+                    return;
+                  }
+                  if (val.length > 1) {
+                    _controllers[i].text = val.substring(val.length - 1);
+                  }
+                  if (val.isNotEmpty && i < 5) {
+                    _focusNodes[i + 1].requestFocus();
+                  } else if (val.isEmpty && i > 0) {
+                    _focusNodes[i - 1].requestFocus();
+                  }
+                  _checkCode();
+                },
+              ),
+            );
+          }),
+        ),
+        if (_err.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Icon(Icons.error, color: NearbyColors.sos, size: 16),
+              const SizedBox(width: 6),
+              Expanded(
                 child: Text(
-                  'Cambiar',
-                  style: TextStyle(
-                    color: theme.primaryDark,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 13.5,
+                  _err,
+                  style: const TextStyle(
+                    color: NearbyColors.sos,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12.5,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
+        ],
+        const SizedBox(height: 14),
 
-          // 6 OTP boxes
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(6, (i) {
-              return SizedBox(
-                width: 48,
-                height: 58,
-                child: TextField(
-                  controller: _controllers[i],
-                  focusNode: _focusNodes[i],
-                  keyboardType: TextInputType.number,
-                  textAlign: TextAlign.center,
-                  autofillHints: const [AutofillHints.oneTimeCode],
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  maxLength: 6,
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    color: _isSuccess ? theme.primary : theme.ink,
-                  ),
-                  decoration: InputDecoration(
-                    counterText: '',
-                    filled: true,
-                    fillColor: _isSuccess ? theme.primarySoft : theme.surface,
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(
-                        color: _err.isNotEmpty ? NearbyColors.sos : theme.line,
-                        width: 1.5,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: theme.primary, width: 2),
-                    ),
-                  ),
-                  onChanged: (val) {
-                    if (val.length == 6) {
-                      _fillCode(val);
-                      return;
-                    }
-                    if (val.length > 1) {
-                      _controllers[i].text = val.substring(val.length - 1);
-                    }
-                    if (val.isNotEmpty && i < 5) {
-                      _focusNodes[i + 1].requestFocus();
-                    } else if (val.isEmpty && i > 0) {
-                      _focusNodes[i - 1].requestFocus();
-                    }
-                    _checkCode();
-                  },
-                ),
-              );
-            }),
-          ),
-          if (_err.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Row(
+        // Only the code returned by a development backend can be shown.
+        if (AppEnvironment.showDevelopmentTools && state.otpDevCode != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: theme.infoSoft,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
               children: [
-                const Icon(Icons.error, color: NearbyColors.sos, size: 16),
-                const SizedBox(width: 6),
+                Icon(Icons.info, color: theme.info, size: 18),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    _err,
-                    style: const TextStyle(
-                      color: NearbyColors.sos,
+                    'Servidor de desarrollo: ${state.otpDevCode}',
+                    style: TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 12.5,
+                      color: NearbyColors.info,
+                    ),
+                  ),
+                ),
+                InkWell(
+                  onTap: _fillDemo,
+                  child: const Text(
+                    'Usarlo',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 13,
+                      decoration: TextDecoration.underline,
+                      color: NearbyColors.info,
                     ),
                   ),
                 ),
               ],
             ),
-          ],
-          const SizedBox(height: 14),
+          ),
+        const SizedBox(height: 12),
 
-          // Only the code returned by a development backend can be shown.
-          if (AppEnvironment.showDevelopmentTools && state.otpDevCode != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: theme.infoSoft,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info, color: theme.info, size: 18),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Servidor de desarrollo: ${state.otpDevCode}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 12.5,
-                        color: NearbyColors.info,
-                      ),
-                    ),
-                  ),
-                  InkWell(
-                    onTap: _fillDemo,
-                    child: const Text(
-                      'Usarlo',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 13,
-                        decoration: TextDecoration.underline,
-                        color: NearbyColors.info,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          const SizedBox(height: 12),
-
-          TextButton.icon(
-            onPressed: _secondsLeft == 0 && !state.busy
-                ? () async {
-                    if (_verifying) return;
-                    _verifying = true;
-                    try {
-                      final sent = await state.requestOtp();
-                      if (!mounted || !sent) return;
-                      setState(() => _secondsLeft = state.otpResendSeconds);
-                      _timer?.cancel();
-                      _startTimer();
-                    } finally {
-                      _verifying = false;
-                    }
+        TextButton.icon(
+          onPressed: _secondsLeft == 0 && !state.busy
+              ? () async {
+                  if (_verifying) return;
+                  _verifying = true;
+                  try {
+                    final sent = await state.requestOtp();
+                    if (!mounted || !sent) return;
+                    setState(() => _secondsLeft = state.otpResendSeconds);
+                    _timer?.cancel();
+                    _startTimer();
+                  } finally {
+                    _verifying = false;
                   }
-                : null,
-            icon: const Icon(Icons.refresh, size: 18),
-            label: Text(
-              _secondsLeft > 0
-                  ? 'Reenviar código en 0:${_secondsLeft.toString().padLeft(2, "0")}'
-                  : 'Reenviar SMS',
-              style: const TextStyle(fontWeight: FontWeight.w800),
-            ),
+                }
+              : null,
+          icon: const Icon(Icons.refresh, size: 18),
+          label: Text(
+            _secondsLeft > 0
+                ? 'Reenviar código en 0:${_secondsLeft.toString().padLeft(2, "0")}'
+                : 'Reenviar SMS',
+            style: const TextStyle(fontWeight: FontWeight.w800),
           ),
+        ),
 
-          const Spacer(),
-          Center(
-            child: Text(
-              'Puedes autorizar la lectura de este único SMS para completar el código, o escribirlo manualmente.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: theme.muted, fontSize: 12),
-            ),
+        const Spacer(),
+        Center(
+          child: Text(
+            'Puedes autorizar la lectura de este único SMS para completar el código, o escribirlo manualmente.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: theme.muted, fontSize: 12),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -699,7 +717,10 @@ class _RegistroScreenState extends State<RegistroScreen> {
                         ),
                         label: const Text(
                           'Detectar ubicación real',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                         onPressed: () async {
                           final pos = await state.location.current();
@@ -707,9 +728,12 @@ class _RegistroScreenState extends State<RegistroScreen> {
                             tempLat = pos.lat;
                             tempLng = pos.lng;
                             if (pos.city != null && pos.city!.isNotEmpty) {
-                              addrController.text = pos.region != null ? '${pos.city}, ${pos.region}' : pos.city!;
+                              addrController.text = pos.region != null
+                                  ? '${pos.city}, ${pos.region}'
+                                  : pos.city!;
                             } else {
-                              addrController.text = 'Ubicación actual (${pos.lat.toStringAsFixed(4)}, ${pos.lng.toStringAsFixed(4)})';
+                              addrController.text =
+                                  'Ubicación actual (${pos.lat.toStringAsFixed(4)}, ${pos.lng.toStringAsFixed(4)})';
                             }
                           });
                         },
