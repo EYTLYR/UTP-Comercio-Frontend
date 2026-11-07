@@ -1420,3 +1420,26 @@ Map<String, dynamic>? decompressSOS(String code) {
     if (gps != null) 'lng': gps.lng,
   };
 }
+
+/// Ficha médica del vecino. No se guarda en el estado global al iniciar: se carga solo al abrir la
+/// ficha (con huella, rostro o PIN) y se borra de la memoria al salir de esa pantalla o cerrar sesión.
+class MedicalCard {
+  String sangre;
+  String alergias;
+  String condiciones;
+  List<String> vive;
+
+  MedicalCard({
+    this.sangre = 'No sé',
+    this.alergias = '',
+    this.condiciones = '',
+    List<String>? vive,
+  }) : vive = vive ?? [];
+
+  /// Datos de ejemplo del modo demo (sin backend).
+  factory MedicalCard.demo() => MedicalCard(
+    sangre: 'O+',
+    alergias: 'Penicilina',
+    vive: ['mayor'],
+  );
+}

@@ -935,7 +935,13 @@ class SosSentScreen extends StatelessWidget {
                 ],
 
                 ElevatedButton.icon(
-                  onPressed: () {
+                  onPressed: () async {
+                    // Cerrar un SOS activo pide huella, rostro o PIN: nadie más puede apagar tu alerta.
+                    if (!await state.confirmIdentity(
+                      'Confirma que estás a salvo para cerrar la alerta',
+                    )) {
+                      return;
+                    }
                     state.sosSafe();
                     state.go('home', reset: true);
                     state.toast(

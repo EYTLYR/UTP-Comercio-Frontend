@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>NSFaceIDUsageDescription</key>
+    <string>Nearby usa Face ID para proteger tu ficha médica y confirmar que cierras un SOS.</string>
     <key>NSCameraUsageDescription</key>
     <string>Nearby necesita la cámara para adjuntar fotos a pedidos y reportes.</string>
     <key>NSLocationWhenInUseUsageDescription</key>

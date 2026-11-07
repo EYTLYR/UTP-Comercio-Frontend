@@ -109,6 +109,14 @@ flutter test --dart-define=PREVIEW=true --dart-define=PREVIEW_WIDTH=390 --dart-d
 
 Las llamadas telefónicas y la transmisión por sonido siguen simuladas. Sin backend (pruebas de widgets), la app usa los datos de ejemplo y no persiste cambios. Nunito se incluye con su licencia en `assets/fonts/`.
 
+## Sesión cifrada y ficha médica protegida
+
+- **Sesión:** el token de refresco y el celular se guardan con `flutter_secure_storage` (`lib/api/session_store.dart`). En Android se cifran con AES-GCM y la clave queda en el Keystore; en iOS van al Keychain, disponibles después del primer desbloqueo. Si había una sesión vieja en `SharedPreferences` (texto plano), se mueve al almacenamiento cifrado la primera vez y se borra.
+- **Ficha médica:** la sangre, las alergias, las condiciones y con quién vives ya no se cargan al abrir la app ni se muestran en el perfil. Al tocar **Ficha de emergencia** se pide huella, rostro o el PIN del teléfono (`lib/services/biometric_guard.dart`, con `local_auth`). Solo entonces se descarga la ficha, y se borra de la memoria al salir de la pantalla o al cerrar sesión. Los brigadistas la siguen viendo desde el backend cuando envías un SOS.
+- **Cerrar un SOS:** "Estoy a salvo · cerrar alerta" también pide huella, rostro o PIN, para que nadie más pueda apagar tu alerta. Cancelar durante la cuenta regresiva, antes de enviarla, no lo pide.
+- **Sin bloqueo de pantalla, en web y en pruebas** no hay con qué verificar, así que se permite el acceso.
+- **Requisitos:** Android usa `FlutterFragmentActivity` y `minSdk` 24 con el permiso `USE_BIOMETRIC`; iOS tiene `NSFaceIDUsageDescription` en `Info.plist`.
+
 ## SMS, llamadas y mapa del dispositivo
 
 El acceso usa `/api/v1/auth/otp/request` y `/api/v1/auth/otp/verify` del cliente compartido. El código no se acepta localmente: lo valida el backend. En Android con Google Play Services se solicita consentimiento para leer un único SMS (SMS User Consent); si se rechaza o no está disponible, permite escribir o pegar el código. iOS usa la sugerencia de código del teclado. No se solicita acceso general a las notificaciones ni al buzón. El código de desarrollo solo se muestra si el backend devuelve `devCode` y la app está en desarrollo. Para recibir SMS reales, el backend debe usar su proveedor SMS real; el proveedor `console` solo escribe el mensaje en los logs.

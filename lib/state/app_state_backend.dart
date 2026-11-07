@@ -201,6 +201,7 @@ extension NearbyBackend on AppState {
     } catch (_) {}
     await api.clearSession();
     connected = false;
+    closeMedicalCard();
     viewedZone = null;
     homeZoneLat = null;
     homeZoneLng = null;
@@ -425,20 +426,20 @@ extension NearbyBackend on AppState {
       d.length == 9 ? '+51 ${d.substring(0, 3)} *** ${d.substring(6)}' : d;
 
   Future<void> saveMedicalCard() async {
-    if (!connected) return;
+    final card = medical;
+    if (!connected || card == null) return;
+    // El cuerpo se arma ya: la pantalla borra la ficha de la memoria al cerrarse.
+    final body = {
+      'bloodType': card.sangre,
+      'allergies': card.alergias,
+      'conditions': card.condiciones,
+      'livesWith': card.vive
+          .map((v) => Api2App.reverse(Api2App.livesWith, v))
+          .whereType<String>()
+          .toList(),
+    };
     try {
-      await api.put(
-        'me/medical-card',
-        body: {
-          'bloodType': sangre,
-          'allergies': alergias,
-          'conditions': condiciones,
-          'livesWith': vive
-              .map((v) => Api2App.reverse(Api2App.livesWith, v))
-              .whereType<String>()
-              .toList(),
-        },
-      );
+      await api.put('me/medical-card', body: body);
     } on ApiException catch (e) {
       toast(e.message, icon: 'error');
     }
@@ -482,7 +483,7 @@ extension NearbyBackend on AppState {
       _loadPins(),
       _loadInventory(),
       _loadContacts(),
-      _loadMedicalCard(),
+      // La ficha médica no se carga aquí: solo al abrirla (openMedicalCard).
     ]);
     refresh();
     // Con wifi, guarda el mapa de 5 km alrededor de la casa para usarlo sin internet.
@@ -669,13 +670,15 @@ extension NearbyBackend on AppState {
 
   Future<void> _loadMedicalCard() => _quiet(() async {
     final m = await api.get('me/medical-card') as Map<String, dynamic>;
-    sangre = (m['bloodType'] as String?) ?? sangre;
-    alergias = (m['allergies'] as String?) ?? '';
-    condiciones = (m['conditions'] as String?) ?? '';
-    vive = ((m['livesWith'] as List?) ?? const [])
-        .map((v) => Api2App.livesWith[v])
-        .whereType<String>()
-        .toList();
+    medical = MedicalCard(
+      sangre: (m['bloodType'] as String?) ?? 'No sé',
+      alergias: (m['allergies'] as String?) ?? '',
+      condiciones: (m['conditions'] as String?) ?? '',
+      vive: ((m['livesWith'] as List?) ?? const [])
+          .map((v) => Api2App.livesWith[v])
+          .whereType<String>()
+          .toList(),
+    );
   });
 
   Future<void> _loadLocation() => _quiet(() async {

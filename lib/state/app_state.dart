@@ -10,6 +10,7 @@ import '../models/models.dart';
 import '../services/location_service.dart';
 import '../services/offline_tiles.dart';
 import '../services/device_actions.dart';
+import '../services/biometric_guard.dart';
 import '../services/internet_call.dart';
 import '../services/speech_input.dart';
 import '../services/startup_permissions.dart';
@@ -73,6 +74,7 @@ class AppState extends ChangeNotifier {
   /// Nearby API. Sin sesión (pruebas, demo) la app usa los datos de ejemplo.
   final ApiClient api;
   final LocationService location;
+  final BiometricGuard biometric;
   final tourViewportKey = GlobalKey();
   final Map<String, GlobalKey> tourTargets = {};
   GlobalKey tourTarget(String name) =>
@@ -238,11 +240,45 @@ class AppState extends ChangeNotifier {
   List<String> contacts = ['mama', 'carlos', 'rosa'];
   String contactsMode = 'manage'; // 'setup' or 'manage'
 
-  // Ficha
-  String sangre = 'O+';
-  String alergias = 'Penicilina';
-  String condiciones = '';
-  List<String> vive = ['mayor'];
+  // Ficha médica: null salvo mientras la pantalla 'ficha' está abierta (ver openMedicalCard).
+  MedicalCard? medical;
+
+  /// Pide huella, rostro o PIN y, si el vecino se identifica, carga la ficha y la abre.
+  Future<void> openMedicalCard() async {
+    if (!await biometric.authorize('Desbloquea tu ficha médica')) {
+      toast('No pudimos verificar que eres tú', icon: 'lock');
+      return;
+    }
+    if (_disposed) return;
+    if (connected) {
+      await this._loadMedicalCard();
+    } else {
+      medical = MedicalCard.demo();
+    }
+    if (_disposed) return;
+    if (medical == null) {
+      toast('No se pudo cargar tu ficha. Revisa tu conexión.', icon: 'error');
+      return;
+    }
+    if (screen == 'ficha') {
+      refresh();
+    } else {
+      go('ficha');
+    }
+  }
+
+  /// Borra la ficha de la memoria (al salir de la pantalla o cerrar sesión). No notifica:
+  /// se llama desde dispose.
+  void closeMedicalCard() {
+    medical = null;
+  }
+
+  /// Huella, rostro o PIN antes de una acción sensible, como cerrar un SOS activo.
+  Future<bool> confirmIdentity(String reason) async {
+    final ok = await biometric.authorize(reason);
+    if (!ok && !_disposed) toast('No pudimos verificar que eres tú', icon: 'lock');
+    return ok;
+  }
 
   // Selections & filters
   String servCat = 'all';
@@ -370,9 +406,11 @@ class AppState extends ChangeNotifier {
     this.permissions,
     ApiClient? api,
     LocationService? location,
+    BiometricGuard? biometric,
   }) : voice = voice ?? DeviceSpeechInput(),
        api = api ?? ApiClient(),
-       location = location ?? LocationService() {
+       location = location ?? LocationService(),
+       biometric = biometric ?? BiometricGuard() {
     internetCall.addListener(refresh);
     services = kInitialServices
         .map(

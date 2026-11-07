@@ -12,11 +12,12 @@ import androidx.core.content.ContextCompat
 import com.google.android.gms.auth.api.phone.SmsRetriever
 import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.common.api.Status
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
-class MainActivity : FlutterActivity() {
+// FlutterFragmentActivity: local_auth (huella, rostro o PIN) necesita una FragmentActivity.
+class MainActivity : FlutterFragmentActivity() {
     private lateinit var channel: MethodChannel
     private var registered = false
     private var pendingNumber: String? = null

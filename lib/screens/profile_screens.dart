@@ -24,10 +24,12 @@ class FichaScreen extends StatefulWidget {
 }
 
 class _FichaScreenState extends State<FichaScreen> {
-  late String _sangre;
-  late TextEditingController _alergiasCtrl;
-  late TextEditingController _condicionesCtrl;
-  late Set<String> _vive;
+  /// Ficha que se está mostrando (la carga AppState.openMedicalCard con huella, rostro o PIN).
+  MedicalCard? _card;
+  String _sangre = 'No sé';
+  final TextEditingController _alergiasCtrl = TextEditingController();
+  final TextEditingController _condicionesCtrl = TextEditingController();
+  Set<String> _vive = {};
 
   final List<String> _bloodTypes = [
     'O+',
@@ -53,24 +55,36 @@ class _FichaScreenState extends State<FichaScreen> {
   @override
   void initState() {
     super.initState();
-    _sangre = widget.state.sangre;
-    _alergiasCtrl = TextEditingController(text: widget.state.alergias);
-    _condicionesCtrl = TextEditingController(text: widget.state.condiciones);
-    _vive = Set.from(widget.state.vive);
+    _bind();
+  }
+
+  /// Toma la ficha cargada (si ya está) una sola vez.
+  void _bind() {
+    final card = widget.state.medical;
+    if (card == null || identical(card, _card)) return;
+    _card = card;
+    _sangre = card.sangre;
+    _alergiasCtrl.text = card.alergias;
+    _condicionesCtrl.text = card.condiciones;
+    _vive = Set.from(card.vive);
   }
 
   @override
   void dispose() {
     _alergiasCtrl.dispose();
     _condicionesCtrl.dispose();
+    // Fuera de esta pantalla la ficha no queda en memoria.
+    widget.state.closeMedicalCard();
     super.dispose();
   }
 
   void _save() {
-    widget.state.sangre = _sangre;
-    widget.state.alergias = _alergiasCtrl.text.trim();
-    widget.state.condiciones = _condicionesCtrl.text.trim();
-    widget.state.vive = _vive.toList();
+    final card = _card;
+    if (card == null) return;
+    card.sangre = _sangre;
+    card.alergias = _alergiasCtrl.text.trim();
+    card.condiciones = _condicionesCtrl.text.trim();
+    card.vive = _vive.toList();
     widget.state.saveMedicalCard();
     widget.state.toast('Ficha médica actualizada', icon: 'check_circle');
     widget.state.back();
@@ -78,6 +92,8 @@ class _FichaScreenState extends State<FichaScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _bind();
+    if (_card == null) return _locked();
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -227,6 +243,39 @@ class _FichaScreenState extends State<FichaScreen> {
       ),
     );
   }
+
+  Widget _locked() => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.lock, size: 48, color: NearbyColors.sos),
+          const SizedBox(height: 12),
+          const Text(
+            'Tu ficha médica está protegida',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Usa tu huella, tu rostro o el PIN del teléfono para verla o editarla.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: widget.state.openMedicalCard,
+            icon: const Icon(Icons.fingerprint),
+            label: const Text(
+              'Desbloquear',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 /* ========================================================================= */
@@ -243,16 +292,6 @@ class PerfilScreen extends StatelessWidget {
     final cs = state.contactBook
         .where((c) => state.contacts.contains(c.id))
         .toList();
-    final viveMap = {
-      'mayor': 'adulto mayor',
-      'ninos': 'niños',
-      'disc': 'persona con discapacidad',
-      'mascotas': 'mascotas',
-    };
-    final viveText = state.vive.isNotEmpty
-        ? 'Vive con: ${state.vive.map((v) => viveMap[v] ?? v).join(', ')}'
-        : 'Vive sola o solo';
-
     final userLearnedItems = state.connected
         ? state.myLearnings
               .where((e) => !(state.aiRemoved['${e.id}${e.tag}'] ?? false))
@@ -491,12 +530,12 @@ class PerfilScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Ficha de emergencia
+          // Ficha de emergencia: protegida con huella, rostro o PIN; no se muestra aquí.
           _SectionHeader(
             title: 'Ficha de emergencia',
-            actionLabel: 'Editar',
-            actionIcon: Icons.edit,
-            onTap: () => state.go('ficha'),
+            actionLabel: 'Ver',
+            actionIcon: Icons.lock_open,
+            onTap: state.openMedicalCard,
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -506,63 +545,18 @@ class PerfilScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
                 side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
               ),
-              child: Column(
-                children: [
-                  ListTile(
-                    leading: const Icon(
-                      Icons.bloodtype,
-                      color: NearbyColors.sos,
-                    ),
-                    title: Text(
-                      'Tipo de sangre ${state.sangre}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
-                    ),
-                    subtitle: const Text(
-                      'Visible solo para brigadistas',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(
-                      Icons.medication,
-                      color: NearbyColors.primary,
-                    ),
-                    title: Text(
-                      state.alergias.isNotEmpty
-                          ? 'Alergia: ${state.alergias}'
-                          : 'Sin alergias registradas',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
-                    ),
-                    subtitle: Text(
-                      state.condiciones.isNotEmpty
-                          ? state.condiciones
-                          : 'Sin condiciones médicas registradas',
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(Icons.home, color: NearbyColors.accent),
-                    title: Text(
-                      viveText,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
-                    ),
-                    subtitle: const Text(
-                      'Prioridad en evacuación',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  ),
-                ],
+              child: ListTile(
+                leading: const Icon(Icons.lock, color: NearbyColors.sos),
+                title: const Text(
+                  'Ficha médica protegida',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                ),
+                subtitle: const Text(
+                  'Sangre, alergias y con quién vives. Toca para verla con tu huella, rostro o PIN.',
+                  style: TextStyle(fontSize: 12),
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: state.openMedicalCard,
               ),
             ),
           ),

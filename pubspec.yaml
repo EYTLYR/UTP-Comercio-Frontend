@@ -49,6 +49,9 @@ dependencies:
   hive_ce: ^2.22.0
   path_provider: ^2.1.5
   connectivity_plus: ^7.0.0
+  # Sesión cifrada (Keystore / Keychain) y huella, rostro o PIN para la ficha médica y cerrar un SOS.
+  flutter_secure_storage: ^11.2.0
+  local_auth: ^3.0.2
 
 dev_dependencies:
   flutter_test:
