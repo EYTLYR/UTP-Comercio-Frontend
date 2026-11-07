@@ -8,6 +8,7 @@ import '../api/api_client.dart';
 import '../api/mappers.dart';
 import '../models/models.dart';
 import '../services/location_service.dart';
+import '../services/offline_tiles.dart';
 import '../services/device_actions.dart';
 import '../services/internet_call.dart';
 import '../services/speech_input.dart';
@@ -284,6 +285,61 @@ class AppState extends ChangeNotifier {
   Map<dynamic, bool> aiNotified = {};
   String? lastCode;
   bool decoded = false;
+
+  // Mapa sin conexión (services/offline_tiles.dart y screens/sms_map_screen.dart)
+  /// Punto recibido por SMS que muestra la pantalla 'mapa-sms'.
+  ({double lat, double lng, String title, String sub})? smsPoint;
+
+  /// Centro del mapa guardado: la casa del vecino o, si no la hay, su zona.
+  ({double lat, double lng})? get offlineMapCenter {
+    final lat = regLat ?? homeZoneLat;
+    final lng = regLng ?? homeZoneLng;
+    return lat == null || lng == null ? null : (lat: lat, lng: lng);
+  }
+
+  /// Abre el mapa (funciona sin internet) con un marcador en las coordenadas del SMS.
+  void openSmsMap(
+    double lat,
+    double lng, {
+    required String title,
+    String sub = '',
+  }) {
+    smsPoint = (lat: lat, lng: lng, title: title, sub: sub);
+    go('mapa-sms');
+  }
+
+  /// Descarga el mapa de 5 km alrededor de la casa si aún no está guardado.
+  /// Sola, solo con wifi; con [manual] (botón del perfil) también con datos.
+  Future<void> ensureOfflineMap({bool manual = false}) async {
+    final tiles = OfflineTiles.instance;
+    final c = offlineMapCenter;
+    if (!tiles.ready) {
+      if (manual) {
+        toast(
+          'El mapa sin conexión está disponible en la app del celular',
+          icon: 'info',
+        );
+      }
+      return;
+    }
+    if (c == null) {
+      if (manual) {
+        toast('Guarda tu dirección para descargar el mapa', icon: 'location_on');
+      }
+      return;
+    }
+    if (!manual && (!tiles.unmetered || tiles.covers(c.lat, c.lng))) return;
+    final ok = await tiles.downloadRegion(c.lat, c.lng);
+    if (_disposed) return;
+    if (ok) {
+      toast('Mapa de tu zona guardado para usar sin internet', icon: 'cloud_done');
+    } else if (manual) {
+      toast(
+        tiles.status.value.error ?? 'No se pudo descargar el mapa',
+        icon: 'error',
+      );
+    }
+  }
 
   // Sheets
   Map<String, dynamic>? sheet;
@@ -741,7 +797,14 @@ class AppState extends ChangeNotifier {
           y: 50,
         ),
       );
-      lastCode = compressSOS(cat: catId ?? 'herido', loc: where, prio: prio);
+      final gps = location.last;
+      lastCode = compressSOS(
+        cat: catId ?? 'herido',
+        loc: where,
+        prio: prio,
+        lat: gps != null && gps.real ? gps.lat : null,
+        lng: gps != null && gps.real ? gps.lng : null,
+      );
     } else if (type == 'needres' || type == 'offerres') {
       resOffers.insert(
         0,

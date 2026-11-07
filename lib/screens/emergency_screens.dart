@@ -542,10 +542,13 @@ class SosSentScreen extends StatelessWidget {
         'General';
 
     if (off && state.lastCode == null) {
+      final gps = state.location.last;
       state.lastCode = compressSOS(
         cat: state.sosType ?? 'otro',
         loc: 'Jr. Las Flores 245',
         prio: 'alta',
+        lat: gps != null && gps.real ? gps.lat : null,
+        lng: gps != null && gps.real ? gps.lng : null,
       );
     }
 

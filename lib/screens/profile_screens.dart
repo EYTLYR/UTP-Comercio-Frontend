@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../widgets/navigation_chrome.dart';
 
 import '../models/models.dart';
+import '../services/offline_tiles.dart';
 import '../state/app_state.dart';
 import '../theme/nearby_theme.dart';
 
@@ -799,23 +800,7 @@ class PerfilScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  const ListTile(
-                    leading: Icon(
-                      Icons.download_done,
-                      color: NearbyColors.accent,
-                    ),
-                    title: Text(
-                      'Zona descargada · 4.2 MB',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
-                    ),
-                    subtitle: Text(
-                      'Mapa, directorio y contactos disponibles offline',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  ),
+                  _OfflineMapTile(state: state),
                   const Divider(height: 1),
                   ListTile(
                     leading: const Icon(
@@ -1351,6 +1336,100 @@ class _SectionHeader extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// Estado real del mapa sin conexión: descargar, progreso, tamaño y borrar.
+class _OfflineMapTile extends StatelessWidget {
+  final AppState state;
+  const _OfflineMapTile({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final tiles = OfflineTiles.instance;
+    if (!tiles.ready) {
+      return const ListTile(
+        leading: Icon(Icons.map_outlined, color: NearbyColors.accent),
+        title: Text(
+          'Mapa sin conexión',
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+        ),
+        subtitle: Text(
+          'Disponible en la app del celular',
+          style: TextStyle(fontSize: 12),
+        ),
+      );
+    }
+    return ValueListenableBuilder<OfflineMapStatus>(
+      valueListenable: tiles.status,
+      builder: (context, s, _) {
+        final radius = OfflineTiles.defaultRadiusKm.toStringAsFixed(0);
+        if (s.downloading) {
+          return ListTile(
+            leading: const Icon(Icons.downloading, color: NearbyColors.primary),
+            title: Text(
+              'Descargando mapa · ${(s.progress * 100).round()} %',
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+            ),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: LinearProgressIndicator(value: s.progress),
+            ),
+            trailing: IconButton(
+              tooltip: 'Cancelar descarga',
+              onPressed: tiles.cancelDownload,
+              icon: const Icon(Icons.close),
+            ),
+          );
+        }
+        final c = state.offlineMapCenter;
+        final current = c != null && tiles.covers(c.lat, c.lng);
+        final when = s.savedAt == null
+            ? ''
+            : ' · ${s.savedAt!.day}/${s.savedAt!.month} '
+                  '${s.savedAt!.hour}:${s.savedAt!.minute.toString().padLeft(2, '0')}';
+        return ListTile(
+          leading: Icon(
+            s.saved ? Icons.download_done : Icons.download_for_offline,
+            color: s.saved ? NearbyColors.primary : NearbyColors.accent,
+          ),
+          title: Text(
+            s.saved
+                ? 'Mapa de tu zona guardado · ${s.sizeText}'
+                : 'Descargar mapa de tu zona ($radius km)',
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          ),
+          subtitle: Text(
+            s.error ??
+                (s.saved
+                    ? (current
+                          ? '${s.tiles} teselas$when. Se ve aunque no haya internet.'
+                          : 'Guardado para otra dirección: vuelve a descargarlo.')
+                    : 'Así el mapa no sale en blanco sin internet (unos 5 MB).'),
+            style: const TextStyle(fontSize: 12),
+          ),
+          trailing: s.saved
+              ? PopupMenuButton<String>(
+                  tooltip: 'Opciones del mapa guardado',
+                  onSelected: (v) {
+                    if (v == 'update') {
+                      state.ensureOfflineMap(manual: true);
+                    } else {
+                      tiles.clear();
+                    }
+                  },
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(value: 'update', child: Text('Actualizar')),
+                    PopupMenuItem(value: 'clear', child: Text('Borrar')),
+                  ],
+                )
+              : const Icon(Icons.chevron_right),
+          onTap: s.saved && current
+              ? null
+              : () => state.ensureOfflineMap(manual: true),
+        );
+      },
     );
   }
 }

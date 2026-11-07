@@ -485,6 +485,8 @@ extension NearbyBackend on AppState {
       _loadMedicalCard(),
     ]);
     refresh();
+    // Con wifi, guarda el mapa de 5 km alrededor de la casa para usarlo sin internet.
+    unawaited(ensureOfflineMap());
   }
 
   Future<void> _quiet(Future<void> Function() load) async {
@@ -1361,6 +1363,9 @@ extension NearbyBackend on AppState {
   Future<void> _reportFromSmsRemote(String code, Map<String, dynamic> d) async {
     if (!connected) return;
     try {
+      // El backend decodifica solo el código; el GPS (#G:lat,lng) va aparte.
+      final gps = smsCoordinates(code);
+      code = extractSosCode(code) ?? code;
       final decoded = await api.post(
         'sms/decode',
         body: {'code': code},
@@ -1385,8 +1390,11 @@ extension NearbyBackend on AppState {
               : 'HIGH',
           'detail': 'Recibido por SMS sin internet ($code)',
           'addressText': decoded['addressText'] ?? d['where'],
-          if (decoded['lat'] != null) 'lat': decoded['lat'],
-          if (decoded['lng'] != null) 'lng': decoded['lng'],
+          if (gps != null) ...{'lat': gps.lat, 'lng': gps.lng}
+          else if (decoded['lat'] != null) ...{
+            'lat': decoded['lat'],
+            'lng': decoded['lng'],
+          },
         },
       );
       await _loadReports();

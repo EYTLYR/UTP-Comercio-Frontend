@@ -1350,21 +1350,54 @@ String locCode(String? loc) {
   return '$code$num';
 }
 
+/// Código SOS para SMS. Con [lat]/[lng] agrega el GPS al final
+/// (`#G:-11.97900,-77.00300`, 5 decimales ≈ 1 m); sigue cabiendo en 1 SMS.
 String compressSOS({
   required String cat,
   int injured = 1,
   required String loc,
   String prio = 'alta',
+  double? lat,
+  double? lng,
 }) {
   final type = kTypeCode[cat] ?? 'X';
   final p = prio == 'alta' ? 'ALTA' : 'MEDIA';
-  return 'NB#SOS!$type$injured@${locCode(loc)}\$P:$p';
+  final gps = lat != null && lng != null && lat.isFinite && lng.isFinite
+      ? '#G:${lat.toStringAsFixed(5)},${lng.toStringAsFixed(5)}'
+      : '';
+  return 'NB#SOS!$type$injured@${locCode(loc)}\$P:$p$gps';
 }
 
+final RegExp _sosCodeRe = RegExp(
+  r'NB#SOS!([A-Z])(\d)@([A-Z]+?)(\d+)\$P:(ALTA|MEDIA)',
+);
+
+/// Solo el código SOS (sin el GPS ni el resto del texto) dentro de un SMS,
+/// por ejemplo el que manda el backend: "... Código NB#SOS!H1@LF245$P:ALTA".
+String? extractSosCode(String text) =>
+    _sosCodeRe.firstMatch(text.toUpperCase())?.group(0);
+
+/// Coordenadas GPS dentro de un SMS: el sufijo `#G:lat,lng` del código
+/// comprimido o un enlace como `https://maps.google.com/?q=-11.97900,-77.00300`.
+({double lat, double lng})? smsCoordinates(String text) {
+  final m = RegExp(
+    r'(-?\d{1,2}\.\d{3,})\s*,\s*(-?\d{1,3}\.\d{3,})',
+  ).firstMatch(text);
+  if (m == null) return null;
+  final lat = double.tryParse(m.group(1)!);
+  final lng = double.tryParse(m.group(2)!);
+  if (lat == null || lng == null || lat.abs() > 90 || lng.abs() > 180) {
+    return null;
+  }
+  return (lat: lat, lng: lng);
+}
+
+/// Descomprime el código SOS. Acepta el SMS completo (busca el código dentro)
+/// y, si trae GPS, devuelve también 'lat' y 'lng'.
 Map<String, dynamic>? decompressSOS(String code) {
-  final regex = RegExp(r'^NB#SOS!([A-Z])(\d)@([A-Z]+?)(\d+)\$P:(ALTA|MEDIA)$');
-  final match = regex.firstMatch(code.trim().toUpperCase());
+  final match = _sosCodeRe.firstMatch(code.trim().toUpperCase());
   if (match == null) return null;
+  final gps = smsCoordinates(code);
   final t = match.group(1)!;
   final n = int.parse(match.group(2)!);
   final pre = match.group(3)!;
@@ -1383,5 +1416,7 @@ Map<String, dynamic>? decompressSOS(String code) {
     'injured': n,
     'where': where,
     'prio': p == 'ALTA' ? 'Alta' : 'Media',
+    if (gps != null) 'lat': gps.lat,
+    if (gps != null) 'lng': gps.lng,
   };
 }

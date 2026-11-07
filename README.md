@@ -115,7 +115,7 @@ El acceso usa `/api/v1/auth/otp/request` y `/api/v1/auth/otp/verify` del cliente
 
 Los números de emergencia abren el marcador para confirmar la llamada. Otros números registrados usan el permiso `CALL_PHONE` en Android; si se rechaza, se abre el marcador. En otras plataformas se usa `tel:`. Los contactos sin teléfono registrado no simulan una llamada. Los controles de audio y la duración corresponden a la aplicación Teléfono.
 
-El mapa usa OpenStreetMap y los pines con coordenadas del backend. «Mi ubicación» solicita acceso al GPS. Se puede navegar sin concederlo; la cartografía necesita conexión. El mapa utiliza los puntos geográficos del backend y no incluye una opción de ejemplos. Los avisos aparecen al pie con una barra de duración y se descartan con un deslizamiento o el botón cerrar.
+El mapa usa OpenStreetMap y los pines con coordenadas del backend. «Mi ubicación» solicita acceso al GPS. Se puede navegar sin concederlo. Sin internet el mapa usa las teselas guardadas de 5 km alrededor de la casa (se descargan solas con wifi o desde Perfil › Sin conexión), y el modo brigadista muestra en ese mapa el punto GPS de un SMS: ver [docs/MAPA_OFFLINE.md](docs/MAPA_OFFLINE.md). El mapa utiliza los puntos geográficos del backend y no incluye una opción de ejemplos. Los avisos aparecen al pie con una barra de duración y se descartan con un deslizamiento o el botón cerrar.
 
 Si aparece el error de SDK `android-37`, ejecuta `flutter pub get` con este `pubspec.lock`: `permission_handler` permanece fijado en `12.0.1`, compatible con el SDK del proyecto. Los avisos de versiones más nuevas disponibles no son errores y no requieren actualizar las versiones principales.
 

@@ -22,10 +22,14 @@ import 'widgets/common_widgets.dart';
 import 'widgets/navigation_chrome.dart';
 import 'widgets/interactive_tour.dart';
 import 'widgets/simulation_panel.dart';
+import 'screens/sms_map_screen.dart';
+import 'services/offline_tiles.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppEnvironment.load();
+  // Caché del mapa sin conexión (no hace nada en web).
+  await OfflineTiles.instance.init();
   final permissions = StartupPermissions();
   await permissions.initialize();
   runApp(NearbyApp(permissions: permissions, connectToApi: true));
@@ -360,6 +364,8 @@ class NearbyMasterShell extends StatelessWidget {
         return RedScreen(state: state, theme: theme);
       case 'puente':
         return PuenteScreen(state: state, theme: theme);
+      case 'mapa-sms':
+        return SmsMapScreen(state: state, theme: theme);
       case 'perfil':
         return PerfilScreen(state: state, theme: theme);
 
@@ -402,6 +408,8 @@ class NearbyMasterShell extends StatelessWidget {
         return 'Red de rescate';
       case 'puente':
         return 'Modo brigadista';
+      case 'mapa-sms':
+        return 'Ubicación del SMS';
       case 'perfil':
         return 'Mi perfil';
       default:
@@ -434,6 +442,7 @@ const Map<String, ScreenMeta> _screensMeta = {
   'publicar': ScreenMeta(bar: 'back', nav: true),
   'mapa': ScreenMeta(bar: 'main', nav: true),
   'ruta': ScreenMeta(bar: 'back'),
+  'mapa-sms': ScreenMeta(bar: 'back'),
   'chat': ScreenMeta(bar: 'back'),
   'llamada': ScreenMeta(full: 'navyfull'),
   'ficha': ScreenMeta(bar: 'back'),

@@ -756,6 +756,32 @@ class _PuenteScreenState extends State<PuenteScreen> {
                               ),
                             ],
                           ),
+                          if (decompressed['lat'] is double &&
+                              decompressed['lng'] is double) ...[
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.map),
+                                label: const Text(
+                                  'Ver en el mapa (funciona sin internet)',
+                                  style: TextStyle(fontWeight: FontWeight.w700),
+                                ),
+                                onPressed: () => widget.state.openSmsMap(
+                                  decompressed['lat'] as double,
+                                  decompressed['lng'] as double,
+                                  title:
+                                      '${decompressed['type']} · ${decompressed['where']}',
+                                  sub: 'Prioridad ${decompressed['prio']}',
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -843,7 +869,7 @@ class _PuenteScreenState extends State<PuenteScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Formato: NB#SOS!{tipo}{personas}@{lugar}\$P:{prioridad}. Ej. NB#SOS!A2@MC12\$P:ALTA',
+                          'Formato: NB#SOS!{tipo}{personas}@{lugar}\$P:{prioridad}[#G:lat,lng]. Ej. NB#SOS!A2@MC12\$P:ALTA#G:-11.97900,-77.00300. También puedes pegar el SMS completo.',
                           style: TextStyle(
                             fontSize: 10,
                             color: Colors.grey.shade600,

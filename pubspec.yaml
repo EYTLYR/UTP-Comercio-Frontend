@@ -45,6 +45,10 @@ dependencies:
   geolocator: ^14.1.2
   url_launcher: ^6.3.3
   flutter_webrtc: ^1.6.3
+  # Mapa sin conexión: teselas de OSM guardadas en disco (ver docs/MAPA_OFFLINE.md).
+  hive_ce: ^2.22.0
+  path_provider: ^2.1.5
+  connectivity_plus: ^7.0.0
 
 dev_dependencies:
   flutter_test:

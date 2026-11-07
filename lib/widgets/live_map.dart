@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/models.dart';
 import '../services/location_service.dart';
+import '../services/offline_tiles.dart';
 import 'navigation_chrome.dart';
 
 class LiveMap extends StatefulWidget {
@@ -39,6 +40,8 @@ class _LiveMapState extends State<LiveMap> {
   bool _busy = false;
   bool _approximate = false;
   bool _tileError = false;
+  // Caché del mapa offline; null en web y en pruebas (usa la red como antes).
+  late final TileProvider? _cached = OfflineTiles.instance.provider();
   LatLng get _initialCenter {
     if (widget.centerLat != null && widget.centerLng != null) {
       return LatLng(widget.centerLat!, widget.centerLng!);
@@ -110,10 +113,16 @@ class _LiveMapState extends State<LiveMap> {
           ),
           children: [
             TileLayer(
-              tileProvider: widget.tileProvider,
+              tileProvider: widget.tileProvider ?? _cached,
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'com.example.utp_comercio_frontend',
-              maxNativeZoom: 19,
+              // Sin internet solo hay teselas guardadas hasta el zoom 16: se amplían.
+              maxNativeZoom:
+                  _cached != null &&
+                      widget.tileProvider == null &&
+                      !OfflineTiles.instance.online.value
+                  ? OfflineTiles.maxZoom
+                  : 19,
               errorTileCallback: (_, _, _) {
                 if (!_tileError && mounted) {
                   _tileError = true;
