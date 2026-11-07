@@ -214,14 +214,14 @@ class NearbyMasterShell extends StatelessWidget {
               bottom: meta.nav && MediaQuery.viewInsetsOf(context).bottom == 0
                   ? NearbyBottomNav(state: state, theme: theme)
                   : null,
-              child: _buildScreenContent(state.screen),
+              child: _buildAnimatedScreen(state.screen),
             )
           else
             Column(
               children: [
                 _topChrome(meta, emUI),
                 Expanded(
-                  child: ClipRect(child: _buildScreenContent(state.screen)),
+                  child: ClipRect(child: _buildAnimatedScreen(state.screen)),
                 ),
                 if (meta.nav && MediaQuery.viewInsetsOf(context).bottom == 0)
                   NearbyBottomNav(state: state, theme: theme),
@@ -259,6 +259,27 @@ class NearbyMasterShell extends StatelessWidget {
       if (meta.bar != null && state.offline) NearbyOfflineBanner(state: state),
     ],
   );
+
+  Widget _buildAnimatedScreen(String screen) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 200),
+      switchInCurve: const Cubic(0.23, 1.0, 0.32, 1.0),
+      switchOutCurve: Curves.easeInQuad,
+      transitionBuilder: (child, animation) {
+        return FadeTransition(
+          opacity: animation,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.985, end: 1.0).animate(animation),
+            child: child,
+          ),
+        );
+      },
+      child: KeyedSubtree(
+        key: ValueKey(screen),
+        child: _buildScreenContent(screen),
+      ),
+    );
+  }
 
   Widget _buildScreenContent(String screen) {
     switch (screen) {
