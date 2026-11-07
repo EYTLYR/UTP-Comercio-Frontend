@@ -29,7 +29,7 @@ class WallScreen extends StatelessWidget {
               Text(
                 'Muro solidario',
                 style: TextStyle(
-                  fontSize: 24 * theme.scaleFactor,
+                  fontSize: 24,
                   fontWeight: FontWeight.w900,
                   color: theme.ink,
                   letterSpacing: -0.5,
@@ -61,8 +61,8 @@ class WallScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      RichText(
-                        text: TextSpan(
+                      Text.rich(
+                        TextSpan(
                           style: TextStyle(
                             fontFamily: 'Nunito',
                             color: theme.ink,
@@ -298,13 +298,15 @@ class WallScreen extends StatelessWidget {
             p.title,
             style: TextStyle(
               fontWeight: FontWeight.w800,
-              fontSize: 14.5 * theme.scaleFactor,
+              fontSize: 14.5,
               color: theme.ink,
               height: 1.3,
             ),
           ),
           const SizedBox(height: 8),
-          Row(
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            runSpacing: 4,
             children: [
               CircleAvatar(
                 radius: 12,

@@ -676,6 +676,14 @@ class PerfilScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
+          if (state.permissions != null)
+            ListTile(
+              leading: const Icon(Icons.admin_panel_settings_outlined),
+              title: const Text('Permisos del dispositivo'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: state.permissions!.open,
+            ),
+
           // Accesibilidad
           const _SectionHeader(title: 'Accesibilidad'),
           Padding(

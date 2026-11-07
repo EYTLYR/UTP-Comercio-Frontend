@@ -102,55 +102,103 @@ class NearbyThemeData {
     required bool hc,
     required bool emergency,
   }) {
-    return NearbyThemeData(
-      dark: dark,
-      lg: lg,
-      hc: hc,
-      emergency: emergency,
-    );
+    return NearbyThemeData(dark: dark, lg: lg, hc: hc, emergency: emergency);
   }
 
   Color get ai => violet;
   Color get aiSoft => violetSoft;
 
-  Color get bg => dark ? NearbyColors.darkBg : NearbyColors.bg;
-  Color get surface => dark ? NearbyColors.darkSurface : NearbyColors.surface;
-  Color get surface2 => dark ? NearbyColors.darkSurface2 : NearbyColors.surface2;
-  Color get ink => dark ? NearbyColors.darkInk : NearbyColors.ink;
+  Color get bg => hc
+      ? (dark ? Colors.black : Colors.white)
+      : (dark ? NearbyColors.darkBg : NearbyColors.bg);
+  Color get surface => hc
+      ? (dark ? const Color(0xFF080808) : Colors.white)
+      : (dark ? NearbyColors.darkSurface : NearbyColors.surface);
+  Color get surface2 => hc
+      ? (dark ? const Color(0xFF202020) : const Color(0xFFE8E8E8))
+      : (dark ? NearbyColors.darkSurface2 : NearbyColors.surface2);
+  Color get ink => hc
+      ? (dark ? Colors.white : Colors.black)
+      : (dark ? NearbyColors.darkInk : NearbyColors.ink);
   Color get muted => hc
-      ? (dark ? const Color(0xFFC9D3E0) : const Color(0xFF2B3646))
+      ? (dark ? Colors.white : Colors.black)
       : (dark ? NearbyColors.darkMuted : NearbyColors.muted);
   Color get line => hc
-      ? (dark ? const Color(0xFF5A6F94) : const Color(0xFF8D9AAA))
+      ? (dark ? const Color(0xFFE8E8E8) : const Color(0xFF222222))
       : (dark ? NearbyColors.darkLine : NearbyColors.line);
 
-  Color get primary => dark ? NearbyColors.darkPrimary : NearbyColors.primary;
-  Color get primaryDark => dark ? NearbyColors.darkPrimaryDark : NearbyColors.primaryDark;
-  Color get primarySoft => dark ? NearbyColors.darkPrimarySoft : NearbyColors.primarySoft;
+  Color get primary => hc
+      ? (dark ? const Color(0xFF65FFD0) : const Color(0xFF00543F))
+      : (dark ? NearbyColors.darkPrimary : NearbyColors.primary);
+  Color get primaryDark => hc
+      ? (dark ? const Color(0xFF8AFFDB) : const Color(0xFF00382B))
+      : (dark ? NearbyColors.darkPrimaryDark : NearbyColors.primaryDark);
+  Color get primarySoft =>
+      dark ? NearbyColors.darkPrimarySoft : NearbyColors.primarySoft;
 
-  Color get btnBg => dark ? NearbyColors.darkBtnBg : NearbyColors.btnBg;
-  Color get btnInk => dark ? NearbyColors.darkBtnInk : NearbyColors.btnInk;
+  Color get btnBg => hc
+      ? (dark ? Colors.white : Colors.black)
+      : (dark ? NearbyColors.darkBtnBg : NearbyColors.btnBg);
+  Color get btnInk => hc
+      ? (dark ? Colors.black : Colors.white)
+      : (dark ? NearbyColors.darkBtnInk : NearbyColors.btnInk);
 
   Color get accent => dark ? NearbyColors.darkAccent : NearbyColors.accent;
-  Color get accentInk => dark ? NearbyColors.darkAccentInk : NearbyColors.accentInk;
-  Color get accentSoft => dark ? NearbyColors.darkAccentSoft : NearbyColors.accentSoft;
+  Color get accentInk =>
+      dark ? NearbyColors.darkAccentInk : NearbyColors.accentInk;
+  Color get accentSoft =>
+      dark ? NearbyColors.darkAccentSoft : NearbyColors.accentSoft;
 
   Color get sos => dark ? NearbyColors.darkSos : NearbyColors.sos;
   Color get sosDark => dark ? NearbyColors.darkSosDark : NearbyColors.sosDark;
   Color get sosSoft => dark ? NearbyColors.darkSosSoft : NearbyColors.sosSoft;
 
   Color get info => dark ? NearbyColors.darkInfo : NearbyColors.info;
-  Color get infoSoft => dark ? NearbyColors.darkInfoSoft : NearbyColors.infoSoft;
+  Color get infoSoft =>
+      dark ? NearbyColors.darkInfoSoft : NearbyColors.infoSoft;
 
   Color get violet => dark ? NearbyColors.darkViolet : NearbyColors.violet;
-  Color get violetSoft => dark ? NearbyColors.darkVioletSoft : NearbyColors.violetSoft;
+  Color get violetSoft =>
+      dark ? NearbyColors.darkVioletSoft : NearbyColors.violetSoft;
 
   Color get mapBg => dark ? NearbyColors.darkMapBg : NearbyColors.mapBg;
-  Color get mapStreet => dark ? NearbyColors.darkMapStreet : NearbyColors.mapStreet;
+  Color get mapStreet =>
+      dark ? NearbyColors.darkMapStreet : NearbyColors.mapStreet;
   Color get mapPark => dark ? NearbyColors.darkMapPark : NearbyColors.mapPark;
-  Color get mapLabel => dark ? NearbyColors.darkMapLabel : NearbyColors.mapLabel;
+  Color get mapLabel =>
+      dark ? NearbyColors.darkMapLabel : NearbyColors.mapLabel;
 
   Color get logoInk => dark ? NearbyColors.darkInk : NearbyColors.navy;
 
-  double get scaleFactor => lg ? 1.15 : 1.0;
+  ThemeData get materialTheme => ThemeData(
+    useMaterial3: true,
+    fontFamily: 'Nunito',
+    scaffoldBackgroundColor: bg,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: primary,
+      brightness: dark ? Brightness.dark : Brightness.light,
+      contrastLevel: hc ? 1 : 0,
+    ).copyWith(surface: surface, onSurface: ink, outline: line),
+    dividerColor: line,
+  );
+
+  double get scaleFactor => lg ? 1.4 : 1.0;
+}
+
+/// Preserve system text accessibility and multiply every font by the app setting.
+class NearbyTextScaler extends TextScaler {
+  final TextScaler system;
+  final double factor;
+  const NearbyTextScaler(this.system, this.factor);
+  @override
+  double scale(double fontSize) => system.scale(fontSize) * factor;
+  @override
+  double get textScaleFactor => system.scale(16) / 16 * factor;
+  @override
+  bool operator ==(Object other) =>
+      other is NearbyTextScaler &&
+      system == other.system &&
+      factor == other.factor;
+  @override
+  int get hashCode => Object.hash(system, factor);
 }

@@ -270,11 +270,13 @@ class _RedScreenState extends State<RedScreen> {
                                     color: Colors.grey,
                                   ),
                                   SizedBox(width: 4),
-                                  Text(
-                                    'Detalle visible solo para brigadistas',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.grey,
+                                  Expanded(
+                                    child: Text(
+                                      'Detalle visible solo para brigadistas',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: theme.muted,
+                                      ),
                                     ),
                                   ),
                                 ],

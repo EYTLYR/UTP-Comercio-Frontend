@@ -38,6 +38,7 @@ class NearbyMapView extends StatelessWidget {
             Positioned.fill(
               child: CustomPaint(
                 painter: _MapVectorPainter(
+                  textScaler: MediaQuery.textScalerOf(context),
                   theme: theme,
                   emergency: emergency,
                   showRoute: showRoute,
@@ -151,6 +152,7 @@ class NearbyMapView extends StatelessWidget {
 }
 
 class _MapVectorPainter extends CustomPainter {
+  final TextScaler textScaler;
   final NearbyThemeData theme;
   final bool emergency;
   final bool showRoute;
@@ -158,6 +160,7 @@ class _MapVectorPainter extends CustomPainter {
   final IconData? routeDestIcon;
 
   _MapVectorPainter({
+    required this.textScaler,
     required this.theme,
     required this.emergency,
     required this.showRoute,
@@ -377,8 +380,11 @@ class _MapVectorPainter extends CustomPainter {
         color: color,
       ),
     );
-    final painter = TextPainter(text: span, textDirection: TextDirection.ltr)
-      ..layout();
+    final painter = TextPainter(
+      text: span,
+      textDirection: TextDirection.ltr,
+      textScaler: textScaler,
+    )..layout();
 
     final offset = center
         ? Offset(x - (painter.width / 2), y - (painter.height / 2))
@@ -388,6 +394,7 @@ class _MapVectorPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _MapVectorPainter oldDelegate) =>
+      oldDelegate.textScaler != textScaler ||
       oldDelegate.theme != theme ||
       oldDelegate.emergency != emergency ||
       oldDelegate.showRoute != showRoute ||

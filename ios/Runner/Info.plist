@@ -2,6 +2,17 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>NSCameraUsageDescription</key>
+    <string>Nearby necesita la cámara para adjuntar fotos a pedidos y reportes.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Nearby usa tu ubicación para encontrar ayuda cercana y compartir tu posición en una alerta.</string>
+    <key>NSContactsUsageDescription</key>
+    <string>Nearby permite elegir contactos de confianza desde tu agenda.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Nearby permite seleccionar fotos para tus publicaciones.</string>
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>Nearby necesita Bluetooth para encontrar y conectar dispositivos cercanos compatibles.</string>
+
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Nearby usa el micrófono para dictar pedidos y reportes cuando lo solicitas.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

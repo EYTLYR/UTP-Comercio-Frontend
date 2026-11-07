@@ -44,7 +44,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
               Text(
                 'Servicios del barrio',
                 style: TextStyle(
-                  fontSize: 24 * theme.scaleFactor,
+                  fontSize: 24,
                   fontWeight: FontWeight.w900,
                   color: theme.ink,
                   letterSpacing: -0.5,
@@ -154,8 +154,8 @@ class _ServicesScreenState extends State<ServicesScreen> {
               Icon(Icons.verified, color: theme.primaryDark, size: 22),
               const SizedBox(width: 10),
               Expanded(
-                child: RichText(
-                  text: TextSpan(
+                child: Text.rich(
+                  TextSpan(
                     style: TextStyle(
                       fontFamily: 'Nunito',
                       color: theme.primaryDark,
@@ -448,7 +448,7 @@ class ServiceDetailScreen extends StatelessWidget {
               Text(
                 s.name,
                 style: TextStyle(
-                  fontSize: 22 * theme.scaleFactor,
+                  fontSize: 22,
                   fontWeight: FontWeight.w900,
                   color: theme.ink,
                 ),
@@ -659,7 +659,7 @@ class ServiceDetailScreen extends StatelessWidget {
           child: Text(
             'Lo que dicen tus vecinos',
             style: TextStyle(
-              fontSize: 16 * theme.scaleFactor,
+              fontSize: 16,
               fontWeight: FontWeight.w900,
               color: theme.ink,
             ),

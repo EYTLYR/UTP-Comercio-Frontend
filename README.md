@@ -27,11 +27,21 @@ Los parámetros opcionales `--dart-define=APP_ENV=...` y `--dart-define-from-fil
 
 El `.env` se incluye como un asset público en la app: úsalo solo para configuración pública, nunca para contraseñas o claves secretas. Ignorarlo en Git no evita que forme parte de la compilación.
 
+## Accesibilidad y permisos
+
+«Texto grande» aplica un aumento del 40 % a todos los textos, incluidos formularios, etiquetas, navegación, texto enriquecido y nombres del mapa. Se combina con la escala de texto del sistema. El alto contraste cambia fondos, textos y bordes en tema claro y oscuro. Ambas opciones están en el perfil y funcionan en producción.
+
+En el primer inicio aparece una explicación de los accesos de cámara, ubicación, contactos, llamadas, dispositivos cercanos, Bluetooth y galería. «Permitir y continuar» solicita los permisos reales admitidos por la plataforma; «Ahora no» permite continuar sin concederlos. La elección de mostrar la explicación se recuerda localmente con SharedPreferences. Se puede volver a abrir desde «Permisos del dispositivo» en el perfil.
+
+Android selecciona los permisos de galería, Bluetooth y Wi-Fi cercano según la versión del sistema. iOS declara sus motivos de uso en Info.plist y utiliza Swift Package Manager. En web se solicitan cámara y ubicación; contactos, archivos y Bluetooth no tienen un permiso general al iniciar y dependen de los selectores y APIs compatibles del navegador. En iOS y web no existe un permiso general para abrir el marcador de llamadas. La app informa de estas diferencias sin simular permisos concedidos. La validación física de las solicitudes debe hacerse en los dispositivos de destino.
+
+La cuenta regresiva reduce su arco durante cinco segundos y mantiene los botones al pie, con el resto del contenido desplazable. La tarjeta de zona abre el mapa y el avatar conserva el acceso al perfil.
+
 ## Dictado con micrófono
 
 «Dilo con tu voz» → «Activar micrófono» solicita permiso y usa reconocimiento de voz real. Muestra resultados parciales, permite detener, corregir y confirmar con «Usar este texto». No inventa frases ni publica automáticamente. Cerrar la hoja cancela la escucha.
 
-Android, iOS y macOS incluyen las declaraciones de permisos. En Android se utiliza el micrófono sin solicitar acceso adicional a Bluetooth. En web se necesita un navegador compatible, HTTPS o localhost, y permiso para el micrófono. El reconocimiento y su disponibilidad sin conexión dependen del dispositivo/proveedor. Si no está disponible o se deniega el permiso, se puede escribir.
+Android, iOS y macOS incluyen las declaraciones de permisos de micrófono. En Android se utiliza el micrófono sin solicitar acceso adicional a Bluetooth. En web se necesita un navegador compatible, HTTPS o localhost, y permiso para el micrófono. El reconocimiento y su disponibilidad sin conexión dependen del dispositivo/proveedor. Si no está disponible o se deniega el permiso, se puede escribir.
 
 Se utiliza [speech_to_text](https://pub.dev/packages/speech_to_text). En Windows, Flutter puede requerir activar el Modo de desarrollador del sistema para crear los enlaces de sus plugins; su soporte de reconocimiento de voz está marcado como beta por el paquete. La captura física debe validarse en cada dispositivo de destino.
 

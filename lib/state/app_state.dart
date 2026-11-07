@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../models/models.dart';
 import '../services/speech_input.dart';
+import '../services/startup_permissions.dart';
 
 class PublishDraft {
   int step;
@@ -41,6 +42,7 @@ class PublishDraft {
 class AppState extends ChangeNotifier {
   final List<Timer> _timers = [];
   final SpeechInput voice;
+  final StartupPermissions? permissions;
   final Map<String, GlobalKey> tourTargets = {};
   GlobalKey tourTarget(String name) =>
       tourTargets.putIfAbsent(name, () => GlobalKey(debugLabel: name));
@@ -169,7 +171,8 @@ class AppState extends ChangeNotifier {
   int tourIndex = 0;
   bool tourBusy = false;
 
-  AppState({SpeechInput? voice}) : voice = voice ?? DeviceSpeechInput() {
+  AppState({SpeechInput? voice, this.permissions})
+    : voice = voice ?? DeviceSpeechInput() {
     services = kInitialServices
         .map(
           (s) => ServiceItem(

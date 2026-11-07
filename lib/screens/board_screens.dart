@@ -30,7 +30,7 @@ class TableroScreen extends StatelessWidget {
               Text(
                 'Ayuda humanitaria',
                 style: TextStyle(
-                  fontSize: 24 * theme.scaleFactor,
+                  fontSize: 24,
                   fontWeight: FontWeight.w900,
                   color: theme.ink,
                   letterSpacing: -0.5,
@@ -404,8 +404,8 @@ class TableroScreen extends StatelessWidget {
                           Icon(tg.i, size: 18, color: theme.violet),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: RichText(
-                              text: TextSpan(
+                            child: Text.rich(
+                              TextSpan(
                                 style: TextStyle(
                                   fontFamily: 'Nunito',
                                   fontSize: 12.5,
@@ -494,7 +494,11 @@ class TableroScreen extends StatelessWidget {
           ],
 
           const SizedBox(height: 12),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            alignment: WrapAlignment.spaceBetween,
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -510,6 +514,7 @@ class TableroScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       r.status == 'p'
@@ -546,7 +551,7 @@ class TableroScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const Spacer(),
+
               if (r.status == 'p' && !isGoing)
                 ElevatedButton(
                   onPressed: () {
@@ -619,7 +624,7 @@ class TableroScreen extends StatelessWidget {
             Text(
               number,
               style: TextStyle(
-                fontSize: 22 * theme.scaleFactor,
+                fontSize: 22,
                 fontWeight: FontWeight.w900,
                 color: theme.ink,
                 height: 1.1,
@@ -666,7 +671,7 @@ class RecursosScreen extends StatelessWidget {
               Text(
                 'Recursos críticos',
                 style: TextStyle(
-                  fontSize: 24 * theme.scaleFactor,
+                  fontSize: 24,
                   fontWeight: FontWeight.w900,
                   color: theme.ink,
                   letterSpacing: -0.5,
@@ -803,7 +808,7 @@ class RecursosScreen extends StatelessWidget {
               Text(
                 curRes.label,
                 style: TextStyle(
-                  fontSize: 16 * theme.scaleFactor,
+                  fontSize: 16,
                   fontWeight: FontWeight.w900,
                   color: theme.ink,
                 ),
@@ -1042,7 +1047,7 @@ class ApoyoScreen extends StatelessWidget {
               Text(
                 'Grupos de apoyo',
                 style: TextStyle(
-                  fontSize: 24 * theme.scaleFactor,
+                  fontSize: 24,
                   fontWeight: FontWeight.w900,
                   color: theme.ink,
                   letterSpacing: -0.5,
@@ -1256,7 +1261,7 @@ class ApoyoScreen extends StatelessWidget {
           child: Text(
             'Vecinos con oficio disponibles',
             style: TextStyle(
-              fontSize: 16 * theme.scaleFactor,
+              fontSize: 16,
               fontWeight: FontWeight.w900,
               color: theme.ink,
             ),

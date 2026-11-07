@@ -35,7 +35,7 @@ class HomeScreen extends StatelessWidget {
                 style: TextStyle(
                   color: theme.muted,
                   fontWeight: FontWeight.w700,
-                  fontSize: 14.5 * theme.scaleFactor,
+                  fontSize: 14.5,
                 ),
               ),
               const SizedBox(height: 2),
@@ -44,7 +44,7 @@ class HomeScreen extends StatelessWidget {
                 style: TextStyle(
                   color: theme.ink,
                   fontWeight: FontWeight.w900,
-                  fontSize: 24 * theme.scaleFactor,
+                  fontSize: 24,
                   letterSpacing: -0.5,
                 ),
               ),
@@ -422,7 +422,7 @@ class HomeScreen extends StatelessWidget {
                 style: TextStyle(
                   color: theme.muted,
                   fontWeight: FontWeight.w700,
-                  fontSize: 14.5 * theme.scaleFactor,
+                  fontSize: 14.5,
                 ),
               ),
               const SizedBox(height: 2),
@@ -431,7 +431,7 @@ class HomeScreen extends StatelessWidget {
                 style: TextStyle(
                   color: theme.ink,
                   fontWeight: FontWeight.w900,
-                  fontSize: 24 * theme.scaleFactor,
+                  fontSize: 24,
                   letterSpacing: -0.5,
                 ),
               ),
@@ -808,7 +808,7 @@ class HomeScreen extends StatelessWidget {
           Text(
             title,
             style: TextStyle(
-              fontSize: 16 * theme.scaleFactor,
+              fontSize: 16,
               fontWeight: FontWeight.w900,
               color: theme.ink,
               letterSpacing: -0.2,
@@ -822,7 +822,7 @@ class HomeScreen extends StatelessWidget {
                   Text(
                     actionText,
                     style: TextStyle(
-                      fontSize: 13 * theme.scaleFactor,
+                      fontSize: 13,
                       fontWeight: FontWeight.w800,
                       color: theme.primaryDark,
                     ),
@@ -875,19 +875,16 @@ class HomeScreen extends StatelessWidget {
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
                     color: theme.ink,
-                    fontSize: 13.5 * theme.scaleFactor,
+                    fontSize: 13.5,
                     height: 1.2,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: theme.muted,
-                    fontSize: 11 * theme.scaleFactor,
-                  ),
+                  style: TextStyle(color: theme.muted, fontSize: 11),
                 ),
               ],
             ),
@@ -957,13 +954,15 @@ class HomeScreen extends StatelessWidget {
             p.title,
             style: TextStyle(
               fontWeight: FontWeight.w800,
-              fontSize: 14 * theme.scaleFactor,
+              fontSize: 14,
               color: theme.ink,
               height: 1.3,
             ),
           ),
           const SizedBox(height: 8),
-          Row(
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            runSpacing: 4,
             children: [
               CircleAvatar(
                 radius: 12,
@@ -1048,7 +1047,7 @@ class HomeScreen extends StatelessWidget {
             Text(
               number,
               style: TextStyle(
-                fontSize: 22 * theme.scaleFactor,
+                fontSize: 22,
                 fontWeight: FontWeight.w900,
                 color: theme.ink,
                 height: 1.1,

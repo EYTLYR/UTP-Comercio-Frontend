@@ -251,10 +251,11 @@ class NearbyTopBar extends StatelessWidget {
           // Zone badge
           Expanded(
             child: InkWell(
-              onTap: () => state.go('perfil'),
+              key: const ValueKey('zone-map'),
+              onTap: () => state.selectTab('mapa'),
               borderRadius: BorderRadius.circular(999),
               child: Container(
-                height: 42,
+                constraints: const BoxConstraints(minHeight: 42),
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 decoration: BoxDecoration(
                   color: em
@@ -280,7 +281,7 @@ class NearbyTopBar extends StatelessWidget {
                         'Zona 3 · Las Flores',
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 13.5 * theme.scaleFactor,
+                          fontSize: 13.5,
                           fontWeight: FontWeight.w700,
                           color: em ? Colors.white : theme.ink,
                         ),
@@ -402,7 +403,7 @@ class NearbyTopBarBack extends StatelessWidget {
               title,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 19 * theme.scaleFactor,
+                fontSize: 19,
                 fontWeight: FontWeight.w800,
                 color: theme.ink,
               ),
@@ -549,8 +550,8 @@ class NearbyOfflineBanner extends StatelessWidget {
           const Icon(Icons.cloud_off, color: Color(0xFFF6C35B), size: 20),
           const SizedBox(width: 10),
           Expanded(
-            child: RichText(
-              text: TextSpan(
+            child: Text.rich(
+              TextSpan(
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12.5,
@@ -603,80 +604,113 @@ class NearbyBottomNav extends StatelessWidget {
 
     final cur = _currentTab(state.screen);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.surface,
-        border: Border(top: BorderSide(color: theme.line)),
-      ),
-      padding: const EdgeInsets.fromLTRB(4, 6, 4, 18),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: tabs.map((t) {
-          final isSelected = cur == t.id && !t.isFab;
-          return Expanded(
-            child: InkWell(
-              key: state.tourTarget('nav-${t.id}'),
-              onTap: () => state.selectTab(t.id),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (t.isFab)
-                    Container(
-                      width: 58,
-                      height: 58,
-                      margin: const EdgeInsets.only(bottom: 2),
-                      decoration: BoxDecoration(
-                        color: em ? NearbyColors.sos : NearbyColors.primary,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color:
-                                (em ? NearbyColors.sos : NearbyColors.primary)
-                                    .withValues(alpha: 0.5),
-                            blurRadius: 14,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: Icon(t.icon, color: Colors.white, size: 30),
-                    )
-                  else
-                    Container(
-                      width: 56,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? (em ? theme.sosSoft : theme.primarySoft)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Icon(
-                        t.icon,
-                        color: isSelected
-                            ? (em ? theme.sosDark : theme.primaryDark)
-                            : theme.muted,
-                        size: 22,
-                      ),
-                    ),
-                  const SizedBox(height: 3),
-                  Text(
-                    t.label,
-                    style: TextStyle(
-                      fontSize: (theme.lg ? 12.0 : 11.0),
-                      fontWeight: isSelected || t.isFab
-                          ? FontWeight.w800
-                          : FontWeight.w600,
-                      color: isSelected
-                          ? (em ? theme.sosDark : theme.primaryDark)
-                          : theme.muted,
-                    ),
+    final activeColor = em ? theme.sosDark : theme.primaryDark;
+    final fabColor = theme.hc ? theme.btnBg : (em ? theme.sos : theme.primary);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 16, 10, 10),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            top: 18,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: theme.surface,
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: theme.line, width: theme.hc ? 2 : 1),
+                boxShadow: [
+                  BoxShadow(
+                    color: theme.ink.withValues(alpha: 0.1),
+                    blurRadius: 24,
+                    offset: const Offset(0, 6),
                   ),
                 ],
               ),
             ),
-          );
-        }).toList(),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: tabs.map((tab) {
+                final selected = cur == tab.id && !tab.isFab;
+                return Expanded(
+                  child: Semantics(
+                    selected: selected,
+                    button: true,
+                    child: InkWell(
+                      key: state.tourTarget('nav-${tab.id}'),
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () => state.selectTab(tab.id),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 2),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (tab.isFab)
+                              Container(
+                                key: const ValueKey('publish-floating-button'),
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  color: fabColor,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: theme.bg, width: 5),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: fabColor.withValues(alpha: 0.32),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 8),
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  Icons.add_rounded,
+                                  color: theme.hc ? theme.btnInk : Colors.white,
+                                  size: 32,
+                                ),
+                              )
+                            else
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 180),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 13,
+                                  vertical: 7,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: selected
+                                      ? (em ? theme.sosSoft : theme.primarySoft)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Icon(
+                                  tab.icon,
+                                  color: selected ? activeColor : theme.muted,
+                                  size: 23,
+                                ),
+                              ),
+                            const SizedBox(height: 4),
+                            Text(
+                              tab.label,
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: selected || tab.isFab
+                                    ? FontWeight.w800
+                                    : FontWeight.w600,
+                                color: selected ? activeColor : theme.muted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -845,7 +879,7 @@ class NearbySosCard extends StatelessWidget {
                                 ),
                                 Text(
                                   c.label,
-                                  maxLines: 1,
+                                  maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
                                     color: Colors.white70,

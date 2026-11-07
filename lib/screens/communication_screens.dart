@@ -484,12 +484,14 @@ class _CallScreenState extends State<CallScreen> {
                     size: 18,
                   ),
                   SizedBox(width: 6),
-                  Text(
-                    'Tu ubicación se comparte con la central',
-                    style: TextStyle(
-                      color: Color(0xFF9CF0D8),
-                      fontWeight: FontWeight.w800,
-                      fontSize: 13,
+                  Expanded(
+                    child: Text(
+                      'Tu ubicación se comparte con la central',
+                      style: TextStyle(
+                        color: Color(0xFF9CF0D8),
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 ],
@@ -571,34 +573,39 @@ class _CallScreenState extends State<CallScreen> {
     required bool isOn,
     required VoidCallback onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Column(
-        children: [
-          Container(
-            width: 66,
-            height: 66,
-            decoration: BoxDecoration(
-              color: isOn ? Colors.white : Colors.white.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Column(
+          children: [
+            Container(
+              width: 66,
+              height: 66,
+              decoration: BoxDecoration(
+                color: isOn
+                    ? Colors.white
+                    : Colors.white.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: isOn ? NearbyColors.navy : Colors.white,
+                size: 28,
+              ),
             ),
-            child: Icon(
-              icon,
-              color: isOn ? NearbyColors.navy : Colors.white,
-              size: 28,
+            const SizedBox(height: 8),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                fontSize: 13,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-              fontSize: 13,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

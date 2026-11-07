@@ -119,7 +119,7 @@ class NearbyBottomSheetModal extends StatelessWidget {
         Text(
           'IA cruzando el historial del barrio',
           style: TextStyle(
-            fontSize: 20 * theme.scaleFactor,
+            fontSize: 20,
             fontWeight: FontWeight.w900,
             color: theme.ink,
           ),

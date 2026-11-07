@@ -66,7 +66,7 @@ class SosScreen extends StatelessWidget {
               Text(
                 'Emergencia',
                 style: TextStyle(
-                  fontSize: 28 * theme.scaleFactor,
+                  fontSize: 28,
                   fontWeight: FontWeight.w900,
                   color: Colors.white,
                 ),
@@ -245,158 +245,172 @@ class SosCountdownScreen extends StatefulWidget {
   State<SosCountdownScreen> createState() => _SosCountdownScreenState();
 }
 
-class _SosCountdownScreenState extends State<SosCountdownScreen> {
-  int _secondsLeft = 5;
-  Timer? _timer;
-
-  final types = [
-    {'id': 'salud', 'l': 'Salud', 'i': Icons.medical_services},
-    {'id': 'fuego', 'l': 'Incendio', 'i': Icons.local_fire_department},
-    {'id': 'robo', 'l': 'Robo', 'i': Icons.local_police},
-    {'id': 'sismo', 'l': 'Sismo', 'i': Icons.house},
-    {'id': 'violencia', 'l': 'Violencia', 'i': Icons.front_hand},
-    {'id': 'otro', 'l': 'Otro', 'i': Icons.more_horiz},
+class _SosCountdownScreenState extends State<SosCountdownScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _countdown;
+  bool _sent = false;
+  Timer? _deadline;
+  static const types = [
+    ('salud', 'Salud', Icons.medical_services),
+    ('fuego', 'Incendio', Icons.local_fire_department),
+    ('robo', 'Robo', Icons.local_police),
+    ('sismo', 'Sismo', Icons.house),
+    ('violencia', 'Violencia', Icons.front_hand),
+    ('otro', 'Otro', Icons.more_horiz),
   ];
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (_secondsLeft > 1) {
-        setState(() => _secondsLeft--);
-      } else {
-        t.cancel();
-        widget.state.go('sos-sent');
-      }
-    });
+    _countdown =
+        AnimationController(vsync: this, duration: const Duration(seconds: 5))
+          ..addStatusListener((status) {
+            if (status == AnimationStatus.completed) _send();
+          })
+          ..forward();
+    _deadline = Timer(const Duration(seconds: 5), _send);
+  }
+
+  void _send() {
+    if (_sent) return;
+    _sent = true;
+    _deadline?.cancel();
+    _countdown.stop();
+    widget.state.go('sos-sent');
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _deadline?.cancel();
+    _countdown.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: NearbyColors.sos,
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-          child: ListView(
-            children: [
-              const Text(
-                'Enviando alerta en',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 24,
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Countdown Circle
-              Container(
-                width: 170,
-                height: 170,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.14),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.5),
-                    width: 4,
+  Widget build(BuildContext context) => ColoredBox(
+    color: NearbyColors.sos,
+    child: Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+            child: Column(
+              children: [
+                const Text(
+                  'Enviando alerta en',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-                child: Center(
-                  child: Text(
-                    '$_secondsLeft',
-                    style: const TextStyle(
-                      fontSize: 72,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              const Text(
-                '¿Qué está pasando? (opcional)',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              // 6 Emergency Type Chips (3x2 grid)
-              GridView.count(
-                crossAxisCount: 3,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 8,
-                mainAxisExtent: 72,
-                children: types.map((t) {
-                  final id = t['id'] as String;
-                  final isSel = widget.state.sosType == id;
-
-                  return InkWell(
-                    onTap: () {
-                      setState(() => widget.state.sosType = id);
-                    },
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isSel
-                            ? Colors.white
-                            : Colors.white.withValues(alpha: 0.15),
-                        border: Border.all(
-                          color: isSel ? Colors.white : Colors.transparent,
-                          width: 2,
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                const SizedBox(height: 24),
+                AnimatedBuilder(
+                  animation: _countdown,
+                  builder: (context, _) {
+                    final seconds = ((1 - _countdown.value) * 5).ceil().clamp(
+                      0,
+                      5,
+                    );
+                    return SizedBox(
+                      width: 176,
+                      height: 176,
+                      child: Stack(
+                        alignment: Alignment.center,
                         children: [
-                          Icon(
-                            t['i'] as IconData,
-                            color: isSel ? NearbyColors.sosDark : Colors.white,
-                            size: 26,
+                          Positioned.fill(
+                            child: CircularProgressIndicator(
+                              key: const ValueKey('sos-countdown-ring'),
+                              value: 1 - _countdown.value,
+                              strokeWidth: 5,
+                              strokeCap: StrokeCap.round,
+                              color: Colors.white,
+                              backgroundColor: Colors.white24,
+                            ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            t['l'] as String,
-                            style: TextStyle(
-                              color: isSel
-                                  ? NearbyColors.sosDark
-                                  : Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 12,
+                          Semantics(
+                            liveRegion: true,
+                            label: '$seconds segundos',
+                            child: ExcludeSemantics(
+                              child: Text(
+                                '$seconds',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 72,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  );
-                }).toList(),
-              ),
-
-              const SizedBox(height: 24),
-
+                    );
+                  },
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  '¿Qué está pasando? (opcional)',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: types.map((type) {
+                    final selected = widget.state.sosType == type.$1;
+                    return ChoiceChip(
+                      avatar: Icon(
+                        type.$3,
+                        size: 20,
+                        color: selected ? NearbyColors.sosDark : Colors.white,
+                      ),
+                      label: Text(type.$2),
+                      selected: selected,
+                      showCheckmark: false,
+                      onSelected: (_) =>
+                          setState(() => widget.state.sosType = type.$1),
+                      selectedColor: Colors.white,
+                      backgroundColor: const Color(0xFFC22238),
+                      color: WidgetStateProperty.resolveWith(
+                        (states) => states.contains(WidgetState.selected)
+                            ? Colors.white
+                            : const Color(0xFFC22238),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      side: const BorderSide(color: Colors.white54),
+                      labelStyle: TextStyle(
+                        color: selected ? NearbyColors.sosDark : Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Padding(
+          key: const ValueKey('sos-countdown-actions'),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
               ElevatedButton.icon(
-                onPressed: () {
-                  _timer?.cancel();
-                  widget.state.go('sos-sent');
-                },
+                onPressed: _send,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: NearbyColors.sosDark,
                   minimumSize: const Size.fromHeight(52),
+                  padding: const EdgeInsets.all(14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -410,7 +424,8 @@ class _SosCountdownScreenState extends State<SosCountdownScreen> {
               const SizedBox(height: 10),
               OutlinedButton.icon(
                 onPressed: () {
-                  _timer?.cancel();
+                  _deadline?.cancel();
+                  _countdown.stop();
                   widget.state.go('home', reset: true);
                   widget.state.toast(
                     'Alerta cancelada. No se envió nada.',
@@ -421,6 +436,7 @@ class _SosCountdownScreenState extends State<SosCountdownScreen> {
                   foregroundColor: Colors.white,
                   side: const BorderSide(color: Colors.white70, width: 2),
                   minimumSize: const Size.fromHeight(50),
+                  padding: const EdgeInsets.all(14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -428,15 +444,16 @@ class _SosCountdownScreenState extends State<SosCountdownScreen> {
                 icon: const Icon(Icons.close, size: 20),
                 label: const Text(
                   'Cancelar, fue un error',
+                  textAlign: TextAlign.center,
                   style: TextStyle(fontWeight: FontWeight.w800),
                 ),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
+      ],
+    ),
+  );
 }
 
 // --- SOS Sent Screen ---
@@ -528,7 +545,13 @@ class SosSentScreen extends StatelessWidget {
         // Body Content
         Expanded(
           child: Container(
-            color: theme.bg,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: theme.bg,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(28),
+              ),
+            ),
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
               children: [
@@ -557,7 +580,7 @@ class SosSentScreen extends StatelessWidget {
                                 color: theme.primary,
                               ),
                             ),
-                            const Divider(height: 1),
+                            const SizedBox(height: 8),
                             _statusRow(
                               icon: Icons.graphic_eq,
                               color: theme.violet,
@@ -569,7 +592,7 @@ class SosSentScreen extends StatelessWidget {
                                 color: theme.primary,
                               ),
                             ),
-                            const Divider(height: 1),
+                            const SizedBox(height: 8),
                             _statusRow(
                               icon: Icons.sync,
                               color: theme.accent,
@@ -594,7 +617,7 @@ class SosSentScreen extends StatelessWidget {
                                 color: theme.primary,
                               ),
                             ),
-                            const Divider(height: 1),
+                            const SizedBox(height: 8),
                             _statusRow(
                               icon: Icons.share_location,
                               color: theme.info,
@@ -606,7 +629,7 @@ class SosSentScreen extends StatelessWidget {
                                 color: theme.primary,
                               ),
                             ),
-                            const Divider(height: 1),
+                            const SizedBox(height: 8),
                             _statusRow(
                               icon: Icons.medical_services,
                               color: theme.violet,
@@ -652,7 +675,7 @@ class SosSentScreen extends StatelessWidget {
                             color: theme.primary,
                           ),
                         ),
-                        const Divider(height: 1),
+                        const SizedBox(height: 8),
                         _statusRow(
                           icon: Icons.medical_services,
                           color: NearbyColors.sos,
@@ -821,8 +844,12 @@ class SosSentScreen extends StatelessWidget {
     required String subtitle,
     required Widget trailing,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.surface2,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Row(
         children: [
           Container(
@@ -1058,7 +1085,7 @@ class AlertaRecibidaScreen extends StatelessWidget {
                 'Rosa Flores necesita ayuda',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 25 * theme.scaleFactor,
+                  fontSize: 25,
                   fontWeight: FontWeight.w900,
                   color: Colors.white,
                 ),

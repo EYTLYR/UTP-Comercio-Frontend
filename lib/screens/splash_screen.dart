@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../state/app_state.dart';
 import '../theme/nearby_theme.dart';
 import '../widgets/nearby_logo.dart';
@@ -7,11 +8,7 @@ class SplashScreen extends StatelessWidget {
   final AppState state;
   final NearbyThemeData theme;
 
-  const SplashScreen({
-    super.key,
-    required this.state,
-    required this.theme,
-  });
+  const SplashScreen({super.key, required this.state, required this.theme});
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +29,7 @@ class SplashScreen extends StatelessWidget {
             'Tu barrio, más cerca. Servicios de confianza, ayuda entre vecinos y apoyo en emergencias.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 15.5 * theme.scaleFactor,
+              fontSize: 15.5,
               color: theme.muted,
               height: 1.4,
               fontWeight: FontWeight.w600,
@@ -60,16 +57,15 @@ class SplashScreen extends StatelessWidget {
               backgroundColor: theme.btnBg,
               foregroundColor: theme.btnInk,
               minimumSize: const Size.fromHeight(54),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               elevation: 2,
             ),
             icon: Icon(Icons.smartphone, color: theme.primary, size: 22),
             label: Text(
               'Ingresar con mi celular',
-              style: TextStyle(
-                fontSize: 16 * theme.scaleFactor,
-                fontWeight: FontWeight.w800,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
             ),
           ),
           const SizedBox(height: 10),
@@ -110,7 +106,7 @@ class SplashScreen extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontSize: 12.5 * theme.scaleFactor,
+              fontSize: 12.5,
               fontWeight: FontWeight.w800,
               color: theme.ink,
             ),

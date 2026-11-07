@@ -91,7 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
           Text(
             'Ingresa con tu celular',
             style: TextStyle(
-              fontSize: 24 * theme.scaleFactor,
+              fontSize: 24,
               fontWeight: FontWeight.w900,
               color: theme.ink,
             ),
@@ -335,7 +335,7 @@ class _OtpScreenState extends State<OtpScreen> {
           Text(
             'Escribe el código',
             style: TextStyle(
-              fontSize: 24 * theme.scaleFactor,
+              fontSize: 24,
               fontWeight: FontWeight.w900,
               color: theme.ink,
             ),
@@ -543,7 +543,7 @@ class _RegistroScreenState extends State<RegistroScreen> {
               Text(
                 'Cuéntanos de ti',
                 style: TextStyle(
-                  fontSize: 24 * theme.scaleFactor,
+                  fontSize: 24,
                   fontWeight: FontWeight.w900,
                   color: theme.ink,
                 ),
@@ -857,7 +857,7 @@ class _ContactosScreenState extends State<ContactosScreen> {
               Text(
                 '¿A quién avisamos si usas el SOS?',
                 style: TextStyle(
-                  fontSize: 24 * theme.scaleFactor,
+                  fontSize: 24,
                   fontWeight: FontWeight.w900,
                   color: theme.ink,
                 ),
@@ -1084,7 +1084,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
               Text(
                 'Para cuidarte mejor',
                 style: TextStyle(
-                  fontSize: 24 * theme.scaleFactor,
+                  fontSize: 24,
                   fontWeight: FontWeight.w900,
                   color: theme.ink,
                 ),
@@ -1294,7 +1294,7 @@ class ListoScreen extends StatelessWidget {
             '¡Te damos la bienvenida, ${state.firstName}!',
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 24 * theme.scaleFactor,
+              fontSize: 24,
               fontWeight: FontWeight.w900,
               color: theme.ink,
             ),

@@ -117,7 +117,9 @@ class _PublishScreenState extends State<PublishScreen> {
                     backgroundColor: state.emergency
                         ? NearbyColors.sos
                         : theme.btnBg,
-                    foregroundColor: Colors.white,
+                    foregroundColor: state.emergency
+                        ? Colors.white
+                        : theme.btnInk,
                     minimumSize: const Size.fromHeight(52),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -157,7 +159,7 @@ class _PublishScreenState extends State<PublishScreen> {
         Text(
           '¿Qué quieres ${state.emergency ? "reportar" : "publicar"}?',
           style: TextStyle(
-            fontSize: 24 * theme.scaleFactor,
+            fontSize: 24,
             fontWeight: FontWeight.w900,
             color: theme.ink,
             letterSpacing: -0.5,
@@ -276,7 +278,7 @@ class _PublishScreenState extends State<PublishScreen> {
                             style: TextStyle(
                               fontWeight: FontWeight.w900,
                               color: theme.ink,
-                              fontSize: 15 * theme.scaleFactor,
+                              fontSize: 15,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -371,7 +373,7 @@ class _PublishScreenState extends State<PublishScreen> {
         Text(
           curType.q,
           style: TextStyle(
-            fontSize: 22 * theme.scaleFactor,
+            fontSize: 22,
             fontWeight: FontWeight.w900,
             color: theme.ink,
             letterSpacing: -0.5,
@@ -399,8 +401,8 @@ class _PublishScreenState extends State<PublishScreen> {
                 Icon(Icons.auto_awesome, color: theme.violet, size: 20),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: RichText(
-                    text: TextSpan(
+                  child: Text.rich(
+                    TextSpan(
                       style: TextStyle(
                         fontFamily: 'Nunito',
                         fontSize: 13,
@@ -623,8 +625,8 @@ class _PublishScreenState extends State<PublishScreen> {
             Icon(Icons.my_location, color: theme.info, size: 20),
             const SizedBox(width: 8),
             Expanded(
-              child: RichText(
-                text: TextSpan(
+              child: Text.rich(
+                TextSpan(
                   style: TextStyle(
                     fontFamily: 'Nunito',
                     fontSize: 12.5,
@@ -713,7 +715,7 @@ class _PublishScreenState extends State<PublishScreen> {
               : (p.type == 'vulnerable' ? 'Reporte enviado' : '¡Publicado!'),
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 24 * theme.scaleFactor,
+            fontSize: 24,
             fontWeight: FontWeight.w900,
             color: theme.ink,
           ),
@@ -751,7 +753,7 @@ class _PublishScreenState extends State<PublishScreen> {
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: state.emergency ? NearbyColors.sos : theme.btnBg,
-            foregroundColor: Colors.white,
+            foregroundColor: state.emergency ? Colors.white : theme.btnInk,
             minimumSize: const Size.fromHeight(52),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),

@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:utp_comercio_frontend/main.dart';
 import 'package:utp_comercio_frontend/state/app_state.dart';
+import 'package:utp_comercio_frontend/services/startup_permissions.dart';
 import 'package:utp_comercio_frontend/theme/nearby_theme.dart';
 import 'package:utp_comercio_frontend/widgets/common_widgets.dart';
 
@@ -123,13 +124,21 @@ void main() {
       final key = GlobalKey();
       for (final screen in [
         'home',
+        'home-large',
+        'home-contrast',
+        'sos-countdown',
         'servicios',
         'sos-sent',
         'red',
         'tutorial',
         'voice',
+        'permissions',
       ]) {
-        if (screen == 'tutorial') {
+        state.lg = screen == 'home-large';
+        state.hc = screen == 'home-contrast';
+        if (screen == 'home-large' || screen == 'home-contrast') {
+          state.go('home');
+        } else if (screen == 'tutorial') {
           state.startTour('main');
           state.tourIndex = 1;
         } else if (screen == 'voice') {
@@ -139,9 +148,17 @@ void main() {
           state.go(screen);
         }
         await tester.pumpWidget(
-          RepaintBoundary(key: key, child: harness(state)),
+          RepaintBoundary(
+            key: key,
+            child: screen == 'permissions'
+                ? NearbyApp(permissions: StartupPermissions()..visible = true)
+                : harness(state),
+          ),
         );
         await tester.pump(const Duration(milliseconds: 100));
+        if (screen == 'sos-countdown') {
+          await tester.pump(const Duration(seconds: 2));
+        }
         await tester.pump();
         await tester.pump();
         final boundary =

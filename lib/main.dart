@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'config/app_environment.dart';
+import 'services/startup_permissions.dart';
+import 'widgets/permission_intro.dart';
 import 'screens/ai_screens.dart';
 import 'screens/auth_screens.dart';
 import 'screens/board_screens.dart';
@@ -23,11 +25,14 @@ import 'widgets/simulation_panel.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppEnvironment.load();
-  runApp(const NearbyApp());
+  final permissions = StartupPermissions();
+  await permissions.initialize();
+  runApp(NearbyApp(permissions: permissions));
 }
 
 class NearbyApp extends StatefulWidget {
-  const NearbyApp({super.key});
+  final StartupPermissions? permissions;
+  const NearbyApp({super.key, this.permissions});
 
   @override
   State<NearbyApp> createState() => _NearbyAppState();
@@ -39,11 +44,12 @@ class _NearbyAppState extends State<NearbyApp> {
   @override
   void initState() {
     super.initState();
-    _state = AppState();
+    _state = AppState(permissions: widget.permissions);
   }
 
   @override
   void dispose() {
+    widget.permissions?.dispose();
     _state.dispose();
     super.dispose();
   }
@@ -51,7 +57,10 @@ class _NearbyAppState extends State<NearbyApp> {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: _state,
+      animation: Listenable.merge([
+        _state,
+        if (widget.permissions != null) widget.permissions!,
+      ]),
       builder: (context, _) {
         final theme = NearbyThemeData.build(
           dark: _state.dark,
@@ -63,16 +72,24 @@ class _NearbyAppState extends State<NearbyApp> {
         return MaterialApp(
           title: 'Nearby',
           debugShowCheckedModeBanner: false,
-          theme: ThemeData(
-            useMaterial3: true,
-            fontFamily: 'Nunito',
-            scaffoldBackgroundColor: theme.bg,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: theme.primary,
-              brightness: _state.dark ? Brightness.dark : Brightness.light,
+          theme: theme.materialTheme,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: NearbyTextScaler(
+                MediaQuery.textScalerOf(context),
+                theme.scaleFactor,
+              ),
+              highContrast: _state.hc || MediaQuery.highContrastOf(context),
             ),
+            child: child!,
           ),
-          home: NearbyMasterShell(state: _state, theme: theme),
+          home: Stack(
+            children: [
+              NearbyMasterShell(state: _state, theme: theme),
+              if (widget.permissions?.visible == true)
+                PermissionIntro(permissions: widget.permissions!),
+            ],
+          ),
         );
       },
     );
@@ -95,46 +112,58 @@ class NearbyMasterShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop:
-          state.screen == 'home' &&
-          state.sheet == null &&
-          state.tourName == null,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        if (state.sheet != null) {
-          state.closeSheet();
-        } else if (state.tourName != null) {
-          state.endTour();
-        } else if (state.screen != 'home') {
-          state.back();
-        }
-      },
-      child: Scaffold(
-        backgroundColor: theme.bg,
-        endDrawer: AppEnvironment.showDevelopmentTools
-            ? Drawer(
-                width: 320,
-                backgroundColor: theme.surface,
-                child: SimulationPanel(
-                  state: state,
-                  theme: theme,
-                  isDrawer: true,
-                ),
-              )
-            : null,
-        body: SafeArea(
-          child: Stack(
-            children: [
-              Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 600),
-                  child: _buildAppContent(context),
-                ),
+    final media = MediaQuery.of(context);
+    return MediaQuery(
+      data: media.copyWith(
+        textScaler: media.textScaler is NearbyTextScaler
+            ? media.textScaler
+            : NearbyTextScaler(media.textScaler, theme.scaleFactor),
+        highContrast: state.hc || media.highContrast,
+      ),
+      child: Theme(
+        data: theme.materialTheme,
+        child: PopScope(
+          canPop:
+              state.screen == 'home' &&
+              state.sheet == null &&
+              state.tourName == null,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            if (state.sheet != null) {
+              state.closeSheet();
+            } else if (state.tourName != null) {
+              state.endTour();
+            } else if (state.screen != 'home') {
+              state.back();
+            }
+          },
+          child: Scaffold(
+            backgroundColor: theme.bg,
+            endDrawer: AppEnvironment.showDevelopmentTools
+                ? Drawer(
+                    width: 320,
+                    backgroundColor: theme.surface,
+                    child: SimulationPanel(
+                      state: state,
+                      theme: theme,
+                      isDrawer: true,
+                    ),
+                  )
+                : null,
+            body: SafeArea(
+              child: Stack(
+                children: [
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 600),
+                      child: _buildAppContent(context),
+                    ),
+                  ),
+                  if (AppEnvironment.showDevelopmentTools)
+                    const _DevelopmentToolsButton(),
+                ],
               ),
-              if (AppEnvironment.showDevelopmentTools)
-                const _DevelopmentToolsButton(),
-            ],
+            ),
           ),
         ),
       ),
@@ -178,7 +207,8 @@ class NearbyMasterShell extends StatelessWidget {
               ),
 
               // Bottom Navigation (if applicable)
-              if (meta.nav) NearbyBottomNav(state: state, theme: theme),
+              if (meta.nav && MediaQuery.viewInsetsOf(context).bottom == 0)
+                NearbyBottomNav(state: state, theme: theme),
             ],
           ),
 

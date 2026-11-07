@@ -130,11 +130,7 @@ class NearbyWordmark extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        NearbyLogo(
-          width: width * 0.62,
-          inkColor: inkColor,
-          gapColor: gapColor,
-        ),
+        NearbyLogo(width: width * 0.62, inkColor: inkColor, gapColor: gapColor),
         const SizedBox(height: 14),
         Text(
           'Nearby',
