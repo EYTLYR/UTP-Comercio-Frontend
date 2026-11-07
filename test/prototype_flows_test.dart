@@ -125,6 +125,7 @@ void main() {
       for (final screen in [
         'home',
         'home-large',
+        'home-scrolled',
         'home-contrast',
         'sos-countdown',
         'servicios',
@@ -136,7 +137,9 @@ void main() {
       ]) {
         state.lg = screen == 'home-large';
         state.hc = screen == 'home-contrast';
-        if (screen == 'home-large' || screen == 'home-contrast') {
+        if (screen == 'home-large' ||
+            screen == 'home-contrast' ||
+            screen == 'home-scrolled') {
           state.go('home');
         } else if (screen == 'tutorial') {
           state.startTour('main');
@@ -156,6 +159,16 @@ void main() {
           ),
         );
         await tester.pump(const Duration(milliseconds: 100));
+        if (screen == 'home-scrolled') {
+          final scroll = find
+              .descendant(
+                of: find.byKey(const ValueKey('navigation-content-fade')),
+                matching: find.byType(Scrollable),
+              )
+              .first;
+          tester.state<ScrollableState>(scroll).position.jumpTo(230);
+          await tester.pump();
+        }
         if (screen == 'sos-countdown') {
           await tester.pump(const Duration(seconds: 2));
         }

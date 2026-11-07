@@ -608,109 +608,88 @@ class NearbyBottomNav extends StatelessWidget {
     final fabColor = theme.hc ? theme.btnBg : (em ? theme.sos : theme.primary);
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 16, 10, 10),
-      child: Stack(
-        children: [
-          Positioned.fill(
-            top: 18,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: theme.surface,
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: theme.line, width: theme.hc ? 2 : 1),
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.ink.withValues(alpha: 0.1),
-                    blurRadius: 24,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: tabs.map((tab) {
-                final selected = cur == tab.id && !tab.isFab;
-                return Expanded(
-                  child: Semantics(
-                    selected: selected,
-                    button: true,
-                    child: InkWell(
-                      key: state.tourTarget('nav-${tab.id}'),
-                      borderRadius: BorderRadius.circular(20),
-                      onTap: () => state.selectTab(tab.id),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 2),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (tab.isFab)
-                              Container(
-                                key: const ValueKey('publish-floating-button'),
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  color: fabColor,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: theme.bg, width: 5),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: fabColor.withValues(alpha: 0.32),
-                                      blurRadius: 16,
-                                      offset: const Offset(0, 8),
-                                    ),
-                                  ],
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: tabs.map((tab) {
+            final selected = cur == tab.id && !tab.isFab;
+            return Expanded(
+              child: Semantics(
+                selected: selected,
+                button: true,
+                child: InkWell(
+                  key: state.tourTarget('nav-${tab.id}'),
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => state.selectTab(tab.id),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (tab.isFab)
+                          Container(
+                            key: const ValueKey('publish-floating-button'),
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: fabColor,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: theme.bg, width: 5),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: fabColor.withValues(alpha: 0.32),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 8),
                                 ),
-                                child: Icon(
-                                  Icons.add_rounded,
-                                  color: theme.hc ? theme.btnInk : Colors.white,
-                                  size: 32,
-                                ),
-                              )
-                            else
-                              AnimatedContainer(
-                                duration: const Duration(milliseconds: 180),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 13,
-                                  vertical: 7,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: selected
-                                      ? (em ? theme.sosSoft : theme.primarySoft)
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Icon(
-                                  tab.icon,
-                                  color: selected ? activeColor : theme.muted,
-                                  size: 23,
-                                ),
-                              ),
-                            const SizedBox(height: 4),
-                            Text(
-                              tab.label,
-                              textAlign: TextAlign.center,
-                              maxLines: 2,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: selected || tab.isFab
-                                    ? FontWeight.w800
-                                    : FontWeight.w600,
-                                color: selected ? activeColor : theme.muted,
-                              ),
+                              ],
                             ),
-                          ],
+                            child: Icon(
+                              Icons.add_rounded,
+                              color: theme.hc ? theme.btnInk : Colors.white,
+                              size: 32,
+                            ),
+                          )
+                        else
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 13,
+                              vertical: 7,
+                            ),
+                            decoration: BoxDecoration(
+                              color: selected
+                                  ? (em ? theme.sosSoft : theme.primarySoft)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Icon(
+                              tab.icon,
+                              color: selected ? activeColor : theme.muted,
+                              size: 23,
+                            ),
+                          ),
+                        const SizedBox(height: 4),
+                        Text(
+                          tab.label,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: selected || tab.isFab
+                                ? FontWeight.w800
+                                : FontWeight.w600,
+                            color: selected ? activeColor : theme.muted,
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
-                );
-              }).toList(),
-            ),
-          ),
-        ],
+                ),
+              ),
+            );
+          }).toList(),
+        ),
       ),
     );
   }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/navigation_chrome.dart';
+
 import '../models/models.dart';
 import '../state/app_state.dart';
 import '../theme/nearby_theme.dart';
@@ -252,6 +254,7 @@ class PerfilScreen extends StatelessWidget {
         .toList();
 
     return SingleChildScrollView(
+      padding: NavigationInsets.of(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

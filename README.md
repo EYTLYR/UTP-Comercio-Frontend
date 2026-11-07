@@ -27,6 +27,10 @@ Los parámetros opcionales `--dart-define=APP_ENV=...` y `--dart-define-from-fil
 
 El `.env` se incluye como un asset público en la app: úsalo solo para configuración pública, nunca para contraseñas o claves secretas. Ignorarlo en Git no evita que forme parte de la compilación.
 
+## Navegación y contenido
+
+Las barras principales permanecen fijas y el contenido se desplaza por detrás. Los degradados superior e inferior desvanecen el contenido al entrar bajo los controles, sin un panel blanco flotante. El espacio de desplazamiento se calcula con la altura real de las barras para conservar legibles el primer y el último elemento, también con texto grande y en modo oscuro.
+
 ## Accesibilidad y permisos
 
 «Texto grande» aplica un aumento del 40 % a todos los textos, incluidos formularios, etiquetas, navegación, texto enriquecido y nombres del mapa. Se combina con la escala de texto del sistema. El alto contraste cambia fondos, textos y bordes en tema claro y oscuro. Ambas opciones están en el perfil y funcionan en producción.

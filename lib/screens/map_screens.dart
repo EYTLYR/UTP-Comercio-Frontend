@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/navigation_chrome.dart';
+
 import '../models/models.dart';
 import '../state/app_state.dart';
 import '../theme/nearby_theme.dart';
@@ -58,7 +60,7 @@ class MapScreen extends StatelessWidget {
 
         // Filter chips on top
         Positioned(
-          top: 10,
+          top: NavigationInsets.of(context).top + 10,
           left: 0,
           right: 0,
           child: SizedBox(
@@ -117,7 +119,7 @@ class MapScreen extends StatelessWidget {
         Positioned(
           left: 14,
           right: 14,
-          bottom: 14,
+          bottom: NavigationInsets.of(context).bottom + 14,
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(

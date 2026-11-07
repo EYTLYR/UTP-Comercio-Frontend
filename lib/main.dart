@@ -19,6 +19,7 @@ import 'state/app_state.dart';
 import 'theme/nearby_theme.dart';
 import 'widgets/bottom_sheets.dart';
 import 'widgets/common_widgets.dart';
+import 'widgets/navigation_chrome.dart';
 import 'widgets/interactive_tour.dart';
 import 'widgets/simulation_panel.dart';
 
@@ -182,35 +183,40 @@ class NearbyMasterShell extends StatelessWidget {
       color: screenBg,
       child: Stack(
         children: [
-          Column(
-            children: [
-              // Screen Top Bar (if applicable)
-              if (meta.bar == 'main')
-                NearbyTopBar(state: state, theme: theme)
-              else if (meta.bar == 'back')
-                NearbyTopBarBack(
-                  theme: theme,
-                  state: state,
-                  title: _getScreenTitle(state.screen, state),
+          if (const {
+            'home',
+            'servicios',
+            'svc',
+            'muro',
+            'mapa',
+            'tablero',
+            'recursos',
+            'apoyo',
+            'perfil',
+            'red',
+          }.contains(state.screen))
+            NavigationChrome(
+              background: screenBg,
+              topBackground: state.emergency && meta.bar == 'main'
+                  ? NearbyColors.navy
+                  : screenBg,
+              top: _topChrome(meta, emUI),
+              bottom: meta.nav && MediaQuery.viewInsetsOf(context).bottom == 0
+                  ? NearbyBottomNav(state: state, theme: theme)
+                  : null,
+              child: _buildScreenContent(state.screen),
+            )
+          else
+            Column(
+              children: [
+                _topChrome(meta, emUI),
+                Expanded(
+                  child: ClipRect(child: _buildScreenContent(state.screen)),
                 ),
-
-              // Emergency Banner
-              if (emUI) NearbyEmergencyBanner(state: state),
-
-              // Offline Banner
-              if (meta.bar != null && state.offline)
-                NearbyOfflineBanner(state: state),
-
-              // Main Screen View
-              Expanded(
-                child: ClipRect(child: _buildScreenContent(state.screen)),
-              ),
-
-              // Bottom Navigation (if applicable)
-              if (meta.nav && MediaQuery.viewInsetsOf(context).bottom == 0)
-                NearbyBottomNav(state: state, theme: theme),
-            ],
-          ),
+                if (meta.nav && MediaQuery.viewInsetsOf(context).bottom == 0)
+                  NearbyBottomNav(state: state, theme: theme),
+              ],
+            ),
 
           if (state.sheet != null)
             NearbyBottomSheetModal(state: state, theme: theme),
@@ -227,6 +233,22 @@ class NearbyMasterShell extends StatelessWidget {
       ),
     );
   }
+
+  Widget _topChrome(ScreenMeta meta, bool emUI) => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      if (meta.bar == 'main')
+        NearbyTopBar(state: state, theme: theme)
+      else if (meta.bar == 'back')
+        NearbyTopBarBack(
+          theme: theme,
+          state: state,
+          title: _getScreenTitle(state.screen, state),
+        ),
+      if (emUI) NearbyEmergencyBanner(state: state),
+      if (meta.bar != null && state.offline) NearbyOfflineBanner(state: state),
+    ],
+  );
 
   Widget _buildScreenContent(String screen) {
     switch (screen) {

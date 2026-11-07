@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/navigation_chrome.dart';
+
 import '../models/models.dart';
 import '../state/app_state.dart';
 import '../theme/nearby_theme.dart';
@@ -22,7 +24,7 @@ class HomeScreen extends StatelessWidget {
   // --- Normal Home ---
   Widget _buildNormalHome(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.only(bottom: 24),
+      padding: NavigationInsets.of(context) + const EdgeInsets.only(bottom: 24),
       children: [
         // Greeting
         Padding(
@@ -409,7 +411,7 @@ class HomeScreen extends StatelessWidget {
     final pendingCount = state.reports.where((r) => r.status != 'a').length;
 
     return ListView(
-      padding: const EdgeInsets.only(bottom: 24),
+      padding: NavigationInsets.of(context) + const EdgeInsets.only(bottom: 24),
       children: [
         // Greeting
         Padding(

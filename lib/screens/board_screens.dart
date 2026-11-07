@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/navigation_chrome.dart';
+
 import '../models/models.dart';
 import '../state/app_state.dart';
 import '../theme/nearby_theme.dart';
@@ -20,7 +22,7 @@ class TableroScreen extends StatelessWidget {
     final pendCount = state.reports.where((r) => r.status != 'a').length;
 
     return ListView(
-      padding: const EdgeInsets.only(bottom: 24),
+      padding: NavigationInsets.of(context) + const EdgeInsets.only(bottom: 24),
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
@@ -661,7 +663,7 @@ class RecursosScreen extends StatelessWidget {
     final offers = state.resOffers.where((o) => o.res == curRes.id).toList();
 
     return ListView(
-      padding: const EdgeInsets.only(bottom: 24),
+      padding: NavigationInsets.of(context) + const EdgeInsets.only(bottom: 24),
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
@@ -1037,7 +1039,7 @@ class ApoyoScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.only(bottom: 24),
+      padding: NavigationInsets.of(context) + const EdgeInsets.only(bottom: 24),
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),

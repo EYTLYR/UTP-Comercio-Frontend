@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/navigation_chrome.dart';
+
 import '../models/models.dart';
 import '../state/app_state.dart';
 import '../theme/nearby_theme.dart';
@@ -19,7 +21,7 @@ class WallScreen extends StatelessWidget {
     }).toList();
 
     return ListView(
-      padding: const EdgeInsets.only(bottom: 24),
+      padding: NavigationInsets.of(context) + const EdgeInsets.only(bottom: 24),
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
