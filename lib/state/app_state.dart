@@ -144,7 +144,7 @@ class AppState extends ChangeNotifier {
   String phoneDraft = '';
   String regName = '';
   String? regLoc; // null, 'loading', 'ok'
-  String regAddress = 'Jr. Las Flores 245, SJL';
+  String regAddress = 'Detectando ubicación…';
   Map<String, bool> perms = {
     'loc': false,
     'notif': false,

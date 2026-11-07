@@ -193,6 +193,13 @@ extension NearbyBackend on AppState {
     regLng = pos.lng;
     if (pos.real) {
       String? resolvedAddress;
+      String? resolvedZone;
+
+      if (pos.city != null && pos.city!.isNotEmpty) {
+        resolvedZone = pos.city;
+        resolvedAddress = pos.region != null ? '${pos.city}, ${pos.region}' : pos.city;
+      }
+
       try {
         final uri = Uri.parse(
           'https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.lat}&lon=${pos.lng}&zoom=18&addressdetails=1',
@@ -207,18 +214,22 @@ extension NearbyBackend on AppState {
           if (addr != null) {
             final road = addr['road'] ?? addr['pedestrian'] ?? addr['suburb'] ?? '';
             final num = addr['house_number'] ?? '';
-            final district = addr['city_district'] ?? addr['suburb'] ?? addr['city'] ?? addr['town'] ?? '';
+            final district = addr['city_district'] ?? addr['suburb'] ?? addr['city'] ?? addr['town'] ?? pos.city ?? '';
             if (road.isNotEmpty && district.isNotEmpty) {
               resolvedAddress = '$road $num, $district'.replaceAll('  ', ' ').trim();
-              zoneName = district;
+              resolvedZone = district;
             } else if (district.isNotEmpty) {
-              zoneName = district;
+              resolvedZone = district;
+              resolvedAddress = district;
             }
           }
         }
       } catch (_) {}
 
-      regAddress = resolvedAddress ?? 'Ubicación GPS (${pos.lat.toStringAsFixed(4)}, ${pos.lng.toStringAsFixed(4)})';
+      if (resolvedZone != null && resolvedZone.isNotEmpty) {
+        zoneName = resolvedZone;
+      }
+      regAddress = resolvedAddress ?? 'Ubicación actual (${pos.lat.toStringAsFixed(4)}, ${pos.lng.toStringAsFixed(4)})';
     } else {
       regAddress = 'Jr. Las Flores 245, SJL';
     }

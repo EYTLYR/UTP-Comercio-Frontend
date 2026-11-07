@@ -512,11 +512,9 @@ class _RegistroScreenState extends State<RegistroScreen> {
     _nameController = TextEditingController(text: widget.state.regName);
     // Tomar automáticamente la ubicación y zona real del celular
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.state.regLoc != 'ok' || widget.state.regLat == null) {
-        widget.state.locateForRegistration().then((_) {
-          if (mounted) setState(() {});
-        });
-      }
+      widget.state.locateForRegistration().then((_) {
+        if (mounted) setState(() {});
+      });
     });
   }
 
@@ -647,6 +645,47 @@ class _RegistroScreenState extends State<RegistroScreen> {
                     children: [
                       ActionChip(
                         avatar: const Icon(
+                          Icons.my_location,
+                          size: 16,
+                          color: Color(0xFF1E8E3E),
+                        ),
+                        label: const Text(
+                          'Detectar ubicación real',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                        ),
+                        onPressed: () async {
+                          final pos = await state.location.current();
+                          setModalState(() {
+                            tempLat = pos.lat;
+                            tempLng = pos.lng;
+                            if (pos.city != null && pos.city!.isNotEmpty) {
+                              addrController.text = pos.region != null ? '${pos.city}, ${pos.region}' : pos.city!;
+                            } else {
+                              addrController.text = 'Ubicación actual (${pos.lat.toStringAsFixed(4)}, ${pos.lng.toStringAsFixed(4)})';
+                            }
+                          });
+                        },
+                      ),
+                      ActionChip(
+                        avatar: const Icon(
+                          Icons.place,
+                          size: 16,
+                          color: Color(0xFF1A73E8),
+                        ),
+                        label: const Text(
+                          'Chiclayo (Lambayeque)',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        onPressed: () {
+                          setModalState(() {
+                            tempLat = -6.7701;
+                            tempLng = -79.8550;
+                            addrController.text = 'Chiclayo, Lambayeque';
+                          });
+                        },
+                      ),
+                      ActionChip(
+                        avatar: const Icon(
                           Icons.place,
                           size: 16,
                           color: Color(0xFF1A73E8),
@@ -678,27 +717,6 @@ class _RegistroScreenState extends State<RegistroScreen> {
                             tempLat = -11.9892;
                             tempLng = -77.0062;
                             addrController.text = 'UTP Sede San Juan de Lurigancho';
-                          });
-                        },
-                      ),
-                      ActionChip(
-                        avatar: const Icon(
-                          Icons.my_location,
-                          size: 16,
-                          color: Color(0xFF1E8E3E),
-                        ),
-                        label: const Text(
-                          'Mi GPS actual',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                        onPressed: () async {
-                          final pos = await state.location.current();
-                          setModalState(() {
-                            tempLat = pos.lat;
-                            tempLng = pos.lng;
-                            addrController.text = pos.real
-                                ? 'Ubicación actual (${pos.lat.toStringAsFixed(4)}, ${pos.lng.toStringAsFixed(4)})'
-                                : 'Jr. Las Flores 245, SJL';
                           });
                         },
                       ),
