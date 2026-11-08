@@ -54,9 +54,31 @@ class _MensajesScreenState extends State<MensajesScreen> {
 
   static ({String kind, String label, IconData icon, Color color, Color bg})
   _categorize(Map<String, dynamic> c) {
-    final contextText = (c['contextText'] as String? ?? '').trim();
+    String contextText = (c['contextText'] as String? ?? '').trim();
     final serviceTitle = (c['serviceTitle'] as String? ?? '').trim();
     final postType = (c['postType'] as String? ?? '').trim();
+    final lastMsg = (c['lastMessage'] as String? ?? '').trim();
+
+    // Si contextText no vino del backend, intentar rescatarlo del último mensaje
+    if (contextText.isEmpty && serviceTitle.isEmpty) {
+      final quoteMatch = RegExp(
+        r"(?:para:|interesa:)\s*[«“'\x22]([^»”'\x22]+)[»”'\x22]",
+        caseSensitive: false,
+      ).firstMatch(lastMsg);
+      if (quoteMatch != null && quoteMatch.group(1) != null) {
+        contextText = quoteMatch.group(1)!.trim();
+      } else if (lastMsg.toLowerCase().startsWith('aceptaste la ayuda de')) {
+        final whoMatch = RegExp(
+          r"aceptaste la ayuda de ([^:]+)",
+          caseSensitive: false,
+        ).firstMatch(lastMsg);
+        contextText = whoMatch != null ? 'Ayuda: ${whoMatch.group(1)!.trim()}' : 'Ayuda vecinal';
+      } else if (lastMsg.toLowerCase().startsWith('le ofreciste ayuda')) {
+        contextText = 'Oferta de ayuda';
+      } else if (lastMsg.toLowerCase().contains('emergencia') || lastMsg.toLowerCase().contains('sos')) {
+        contextText = 'Emergencia SOS';
+      }
+    }
 
     if (contextText.contains('Emergencia SOS') || contextText.contains('SOS')) {
       final clean = contextText.replaceFirst(
@@ -102,32 +124,25 @@ class _MensajesScreenState extends State<MensajesScreen> {
         contextText.toLowerCase().contains('publicación') ||
         contextText.toLowerCase().contains('publicacion') ||
         contextText.toLowerCase().contains('favor') ||
-        contextText.toLowerCase().contains('ayuda')) {
+        contextText.toLowerCase().contains('ayuda') ||
+        contextText.toLowerCase().contains('material') ||
+        contextText.isNotEmpty) {
       String clean = contextText.replaceFirst(
-        RegExp(r'^publicaci[oó]n:\s*', caseSensitive: false),
+        RegExp(r'^(publicaci[oó]n|favor):\s*', caseSensitive: false),
         '',
       );
-      if (clean.isEmpty) clean = 'Favor del muro';
+      if (clean.isEmpty) clean = 'Favor vecinal';
       return (
         kind: 'posts',
-        label: clean,
+        label: clean.startsWith('Favor:') ? clean : 'Favor: $clean',
         icon: Icons.volunteer_activism_outlined,
         color: const Color(0xFF945B00),
         bg: const Color(0xFFFFF7E6),
       );
     }
-    if (contextText.isNotEmpty) {
-      return (
-        kind: 'other',
-        label: contextText,
-        icon: Icons.chat_bubble_outline,
-        color: const Color(0xFF4A5568),
-        bg: const Color(0xFFF1F5F9),
-      );
-    }
     return (
       kind: 'direct',
-      label: 'Mensaje directo',
+      label: 'Conversación vecinal',
       icon: Icons.chat_outlined,
       color: const Color(0xFF64748B),
       bg: const Color(0xFFF1F5F9),

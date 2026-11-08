@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:ui' as ui_dart;
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../models/models.dart';
 import '../state/app_state.dart';
@@ -495,17 +497,78 @@ class NearbyBottomSheetModal extends StatelessWidget {
   }
 
   Widget _buildPhotoSheet(BuildContext context) {
-    final icons = [
-      Icons.construction,
-      Icons.handyman,
-      Icons.inventory_2,
-      Icons.house,
-      Icons.pets,
-      Icons.local_florist,
+    final presets = [
+      (icon: Icons.construction, label: 'Herramientas', color: const Color(0xFF1E5BB0)),
+      (icon: Icons.inventory_2, label: 'Donación', color: const Color(0xFF007A5E)),
+      (icon: Icons.house, label: 'Hogar', color: const Color(0xFFE65100)),
+      (icon: Icons.pets, label: 'Mascota', color: const Color(0xFF6B21A8)),
+      (icon: Icons.local_florist, label: 'Jardín', color: const Color(0xFF2E7D32)),
+      (icon: Icons.volunteer_activism, label: 'Ayuda', color: const Color(0xFFC62828)),
     ];
+
+    Future<void> selectPreset(IconData icon, String label, Color color) async {
+      try {
+        final recorder = ui_dart.PictureRecorder();
+        final canvas = Canvas(recorder, const Rect.fromLTWH(0, 0, 256, 256));
+        final rrect = RRect.fromRectAndRadius(
+          const Rect.fromLTWH(0, 0, 256, 256),
+          const Radius.circular(36),
+        );
+        final bgPaint = Paint()..color = color.withValues(alpha: 0.12);
+        canvas.drawRRect(rrect, bgPaint);
+
+        final borderPaint = Paint()
+          ..color = color.withValues(alpha: 0.35)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3;
+        canvas.drawRRect(rrect, borderPaint);
+
+        final textPainter = TextPainter(
+          text: TextSpan(
+            text: String.fromCharCode(icon.codePoint),
+            style: TextStyle(
+              fontSize: 120,
+              fontFamily: icon.fontFamily,
+              package: icon.fontPackage,
+              color: color,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        textPainter.paint(
+          canvas,
+          Offset((256 - textPainter.width) / 2, (256 - textPainter.height) / 2),
+        );
+
+        final picture = recorder.endRecording();
+        final img = await picture.toImage(256, 256);
+        final byteData = await img.toByteData(format: ui_dart.ImageByteFormat.png);
+        if (byteData == null) return;
+        final bytes = byteData.buffer.asUint8List();
+
+        state.pub.photoBytes = bytes;
+        state.pub.photoName = 'icono_${label.toLowerCase()}.png';
+        state.pub.photoPath = null;
+        state.pub.photo = true;
+        state.closeSheet();
+        state.refresh();
+        state.toast('Ilustración de $label seleccionada', icon: 'check_circle');
+      } catch (e) {
+        debugPrint('[PhotoSheet] Error rendering preset: $e');
+        state.toast('Error al seleccionar la ilustración', icon: 'error');
+      }
+    }
 
     Future<void> pick(ImageSource source) async {
       try {
+        if (source == ImageSource.camera) {
+          final status = await Permission.camera.request();
+          if (status.isPermanentlyDenied) {
+            state.toast('Habilita el permiso de cámara en ajustes', icon: 'settings');
+            unawaited(openAppSettings());
+            return;
+          }
+        }
         final picker = ImagePicker();
         final file = await picker.pickImage(
           source: source,
@@ -522,9 +585,10 @@ class NearbyBottomSheetModal extends StatelessWidget {
         state.closeSheet();
         state.refresh();
         state.toast('Foto adjuntada correctamente', icon: 'check_circle');
-      } catch (_) {
+      } catch (e) {
+        debugPrint('[PhotoSheet] pick error: $e');
         state.toast(
-          'No pudimos abrir la cámara o la galería. Revisa los permisos.',
+          'No se pudo abrir la cámara o galería. Revisa los permisos.',
           icon: 'error',
         );
       }
@@ -565,7 +629,7 @@ class NearbyBottomSheetModal extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         Text(
-          'Recientes',
+          'O elige una ilustración rápida',
           style: TextStyle(
             fontWeight: FontWeight.w700,
             color: ui.ink,
@@ -575,21 +639,40 @@ class NearbyBottomSheetModal extends StatelessWidget {
         const SizedBox(height: 10),
         LayoutBuilder(
           builder: (context, constraints) => GridView.count(
-            // 3 por fila en móvil; una sola fila de 6 en hojas anchas.
             crossAxisCount: constraints.maxWidth >= 440 ? 6 : 3,
             shrinkWrap: true,
             padding: EdgeInsets.zero,
             physics: const NeverScrollableScrollPhysics(),
             crossAxisSpacing: 8,
             mainAxisSpacing: 8,
-            children: icons.map((ic) {
+            childAspectRatio: 0.95,
+            children: presets.map((item) {
               return Material(
                 color: ui.ivory,
                 borderRadius: BorderRadius.circular(12),
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(
-                  onTap: () => pick(ImageSource.gallery),
-                  child: Center(child: Icon(ic, color: ui.ink, size: 28)),
+                  onTap: () => selectPreset(item.icon, item.label, item.color),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(item.icon, color: item.color, size: 28),
+                        const SizedBox(height: 4),
+                        Text(
+                          item.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: ui.ink,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               );
             }).toList(),

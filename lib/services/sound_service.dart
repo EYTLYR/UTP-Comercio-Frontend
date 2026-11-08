@@ -65,14 +65,24 @@ class SoundService {
     } catch (_) {}
   }
 
+  int _alarmGeneration = 0;
+
   /// Sirena de alerta de emergencia SOS de alta prioridad.
   Future<void> playSosAlarm() async {
     if (isSilentMode) return;
+    final gen = ++_alarmGeneration;
+    _sosAlarming = true;
     try {
-      if (_sosAlarming) return;
-      _sosAlarming = true;
       await _alarmPlayer.setReleaseMode(ReleaseMode.loop);
+      if (_alarmGeneration != gen || !_sosAlarming || isSilentMode) {
+        await _alarmPlayer.stop();
+        return;
+      }
       await _alarmPlayer.play(AssetSource('sounds/sos_alarm.wav'));
+      if (_alarmGeneration != gen || !_sosAlarming || isSilentMode) {
+        await _alarmPlayer.stop();
+        await _alarmPlayer.seek(Duration.zero);
+      }
     } catch (e) {
       debugPrint('[SoundService] playSosAlarm error: $e');
     }
@@ -81,8 +91,10 @@ class SoundService {
   /// Detiene la alarma de emergencia SOS.
   Future<void> stopSosAlarm() async {
     _sosAlarming = false;
+    _alarmGeneration++;
     try {
       await _alarmPlayer.stop();
+      await _alarmPlayer.seek(Duration.zero);
     } catch (_) {}
   }
 

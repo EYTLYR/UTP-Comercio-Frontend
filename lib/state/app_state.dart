@@ -651,6 +651,10 @@ class AppState extends ChangeNotifier {
     if (screen == 'llamada' && name != 'llamada' && internetCall.active) {
       unawaited(internetCall.end());
     }
+    if (const {'sos', 'sos-countdown', 'sos-sent', 'alerta-recibida'}.contains(screen) &&
+        !const {'sos', 'sos-countdown', 'sos-sent', 'alerta-recibida'}.contains(name)) {
+      unawaited(SoundService.instance.stopSosAlarm());
+    }
     _toastTimer?.cancel();
     toastMessage = null;
     toastIcon = null;
@@ -739,8 +743,12 @@ class AppState extends ChangeNotifier {
     sheet = null;
     mapFilter = 'all';
     mapSel = null;
-    if (!emergency && isSilentMode) {
-      unawaited(setSilentMode(false));
+    if (!emergency) {
+      unawaited(SoundService.instance.stopSosAlarm());
+      unawaited(SoundService.instance.stopAll());
+      if (isSilentMode) {
+        unawaited(setSilentMode(false));
+      }
     }
     if (!emergency && ['tablero', 'recursos', 'apoyo'].contains(screen)) {
       hist.clear();

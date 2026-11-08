@@ -470,6 +470,8 @@ class _SosCountdownScreenState extends State<SosCountdownScreen>
     _soundTicker?.cancel();
     _deadline?.cancel();
     _countdown.stop();
+    unawaited(SoundService.instance.stopSosAlarm());
+    unawaited(SoundService.instance.stopAll());
     if (widget.state.isSilentMode) {
       unawaited(widget.state.setSilentMode(false));
     }
@@ -485,6 +487,10 @@ class _SosCountdownScreenState extends State<SosCountdownScreen>
     _soundTicker?.cancel();
     _deadline?.cancel();
     _countdown.dispose();
+    if (!_sent) {
+      unawaited(SoundService.instance.stopSosAlarm());
+      unawaited(SoundService.instance.stopAll());
+    }
     super.dispose();
   }
 
@@ -1152,9 +1158,49 @@ class SosSentScreen extends StatelessWidget {
                       _CallGrid(state: state, theme: theme),
 
                       const SizedBox(height: 20),
+                      if (!state.isSilentMode) ...[
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            if (SoundService.instance.isSosAlarming) {
+                              unawaited(SoundService.instance.stopSosAlarm());
+                              state.toast('Sirena silenciada', icon: 'volume_off');
+                            } else {
+                              unawaited(SoundService.instance.playSosAlarm());
+                              state.toast('Sirena activada', icon: 'volume_up');
+                            }
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: SoundService.instance.isSosAlarming ? NearbyColors.sos : ui.ink,
+                            side: BorderSide(
+                              color: SoundService.instance.isSosAlarming ? NearbyColors.sos : ui.line,
+                              width: 1.5,
+                            ),
+                            minimumSize: const Size.fromHeight(48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            textStyle: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          icon: Icon(
+                            SoundService.instance.isSosAlarming ? Icons.volume_off : Icons.volume_up,
+                            size: 20,
+                          ),
+                          label: Text(
+                            SoundService.instance.isSosAlarming
+                                ? 'Silenciar sirena SOS'
+                                : 'Activar sonido de sirena',
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
                       if (!state.emergency) ...[
                         OutlinedButton.icon(
                           onPressed: () {
+                            unawaited(SoundService.instance.stopSosAlarm());
                             state.activateLocalEmergency();
                             state.go('home', reset: true);
                             state.toast(
@@ -1189,6 +1235,8 @@ class SosSentScreen extends StatelessWidget {
                           )) {
                             return;
                           }
+                          await SoundService.instance.stopSosAlarm();
+                          unawaited(SoundService.instance.stopAll());
                           await state.sosSafe();
                           state.go('home', reset: true);
                           state.toast(

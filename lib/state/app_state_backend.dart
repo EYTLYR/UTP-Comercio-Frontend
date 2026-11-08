@@ -1586,18 +1586,22 @@ extension NearbyBackend on AppState {
 
   /// "Estoy a salvo · cerrar alerta".
   Future<void> sosSafe() async {
+    await SoundService.instance.stopSosAlarm();
+    unawaited(SoundService.instance.stopAll());
     if (isSilentMode) {
       unawaited(setSilentMode(false));
     }
     final id = sosResult?['id'] as String?;
+    sosResult = null;
+    sosDetail = null;
+    notifyListeners();
     if (id == null || !connected) return;
     try {
       await api.post('sos/$id/safe');
-      sosResult = null;
-      sosDetail = null;
     } on ApiException catch (e) {
       toast(e.message, icon: 'error');
     }
+    notifyListeners();
   }
 
   /// Check-in "Estoy bien" / "Necesito ayuda".
@@ -2164,8 +2168,18 @@ extension NearbyBackend on AppState {
   void openConversation(Map<String, dynamic> c) {
     final name = (c['otherUserName'] as String?) ?? 'Vecino';
     c['unread'] = 0;
-    final contextText =
+    String? contextText =
         (c['contextText'] as String?) ?? (c['serviceTitle'] as String?);
+    if (contextText == null || contextText.isEmpty) {
+      final lastMsg = (c['lastMessage'] as String?) ?? '';
+      final quoteMatch = RegExp(
+        r"(?:para:|interesa:)\s*[«“'\x22]([^»”'\x22]+)[»”'\x22]",
+        caseSensitive: false,
+      ).firstMatch(lastMsg);
+      if (quoteMatch != null && quoteMatch.group(1) != null) {
+        contextText = quoteMatch.group(1)!.trim();
+      }
+    }
     openChat(
       name,
       conversationId: c['id'] as String?,
