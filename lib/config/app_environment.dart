@@ -12,8 +12,8 @@ abstract final class AppEnvironment {
     if (_apiUrl != null && _apiUrl!.isNotEmpty) return _apiUrl!;
     if (kReleaseMode) return '';
     return !kIsWeb && defaultTargetPlatform == TargetPlatform.android
-        ? 'http://10.0.2.2:8080'
-        : 'http://localhost:8080';
+        ? 'https://nearby-api.eytlyr.com'
+        : 'https://nearby-api.eytlyr.com';
   }
 
   static String get name => _definedName.isNotEmpty
