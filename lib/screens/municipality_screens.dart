@@ -783,7 +783,7 @@ class _MunicipalidadScreenState extends State<MunicipalidadScreen> {
                 context: context,
                 isScrollControlled: true,
                 useSafeArea: true,
-                builder: (_) => _CreateZoneSheet(state: state),
+                builder: (_) => CreateZoneSheet(state: state),
               ),
               icon: const Icon(Icons.add_location_alt_outlined),
               label: const Text('Crear zona'),
@@ -1054,16 +1054,17 @@ class _MunicipalidadScreenState extends State<MunicipalidadScreen> {
   }
 }
 
-/// Nueva zona: nombre, centro en el mapa y radio. La Municipalidad la crea en su distrito.
-class _CreateZoneSheet extends StatefulWidget {
+/// Nueva zona: nombre, centro en el mapa y radio. La Municipalidad la crea en su distrito; un vecino registra
+/// su barrio, la casa de su familia o su trabajo (el distrito sale del mapa).
+class CreateZoneSheet extends StatefulWidget {
   final AppState state;
-  const _CreateZoneSheet({required this.state});
+  const CreateZoneSheet({super.key, required this.state});
 
   @override
-  State<_CreateZoneSheet> createState() => _CreateZoneSheetState();
+  State<CreateZoneSheet> createState() => CreateZoneSheetState();
 }
 
-class _CreateZoneSheetState extends State<_CreateZoneSheet> {
+class CreateZoneSheetState extends State<CreateZoneSheet> {
   final _name = TextEditingController();
   final _district = TextEditingController();
   late LatLng _center = _initialCenter();
@@ -1111,7 +1112,7 @@ class _CreateZoneSheetState extends State<_CreateZoneSheet> {
     );
     if (!mounted) return;
     setState(() => _saving = false);
-    if (ok) Navigator.pop(context);
+    if (ok) Navigator.pop(context, true);
   }
 
   @override
@@ -1136,7 +1137,10 @@ class _CreateZoneSheetState extends State<_CreateZoneSheet> {
             widget.state.isMunicipality
                 ? 'Se crea en ${widget.state.municipality?['district'] ?? 'tu distrito'}. '
                       'Los vecinos que vivan dentro del círculo quedan en esta zona.'
-                : 'Los vecinos que vivan dentro del círculo quedan en esta zona.',
+                : widget.state.isPlatformAdmin
+                ? 'Los vecinos que vivan dentro del círculo quedan en esta zona.'
+                : 'Registra tu barrio, la casa de tu familia o tu trabajo para ver lo que pasa ahí. '
+                      'Los vecinos que vivan dentro del círculo quedan en esta zona.',
             style: TextStyle(
               fontSize: 13,
               color: Theme.of(context).colorScheme.onSurfaceVariant,

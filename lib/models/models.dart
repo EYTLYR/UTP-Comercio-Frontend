@@ -69,6 +69,15 @@ class PostItem {
   final String dist;
   final String time;
 
+  /// Es mía: no muestro «Yo te ayudo», sino cuántos vecinos respondieron.
+  final bool mine;
+  final int responses;
+
+  /// Categoría tal como la nombra el backend, el texto que escribió y su zona.
+  final String catLabel;
+  final String text;
+  final String zone;
+
   PostItem({
     required this.id,
     required this.type,
@@ -77,6 +86,11 @@ class PostItem {
     required this.user,
     required this.dist,
     required this.time,
+    this.mine = false,
+    this.responses = 0,
+    this.catLabel = '',
+    this.text = '',
+    this.zone = '',
   });
 }
 

@@ -238,18 +238,36 @@ class NearbyBottomSheetModal extends StatelessWidget {
                 'Activado por',
                 yo
                     ? 'Ti, desde tu app'
-                    : (state.connected
-                          ? 'La Municipalidad de tu zona'
-                          : 'Defensa Civil / Municipalidad'),
+                    : !state.connected
+                    ? 'Defensa Civil / Municipalidad'
+                    : switch (state.zoneModeSource) {
+                        'AUTO_SOS' => 'Automático: varios SOS en tu zona',
+                        'USER' => 'Un vecino de tu zona',
+                        _ => 'La Municipalidad de tu zona',
+                      },
               ),
               const Divider(height: 16),
-              // Sin hora ni motivo reales: solo en la demo
-              if (!state.connected) ...[
+              _kvRow(
+                Icons.schedule,
+                'Desde',
+                !state.connected
+                    ? '10:42 · ${yo ? "Alerta personal" : "Sismo en Lima"}'
+                    : _since(state.emergencySince),
+              ),
+              const Divider(height: 16),
+              if (!yo || !state.connected) ...[
                 _kvRow(
-                  Icons.schedule,
-                  'Desde',
-                  '10:42 · ${yo ? "Alerta personal" : "Sismo en Lima"}',
+                  Icons.info_outline,
+                  'Motivo',
+                  !state.connected
+                      ? (yo ? 'Alerta personal' : 'Sismo en Lima')
+                      : (state.zoneModeReason?.isNotEmpty == true
+                            ? state.zoneModeReason!
+                            : 'Sin motivo indicado'),
                 ),
+                const Divider(height: 16),
+              ] else ...[
+                _kvRow(Icons.info_outline, 'Motivo', 'Alerta personal'),
                 const Divider(height: 16),
               ],
               _kvRow(Icons.location_on, 'Zona', state.zoneName),
@@ -700,6 +718,18 @@ class NearbyBottomSheetModal extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  /// «Hoy 10:42» o «07/11 10:42».
+  static String _since(DateTime? t) {
+    if (t == null) return 'Hace un momento';
+    final now = DateTime.now();
+    final hm =
+        '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+    if (t.year == now.year && t.month == now.month && t.day == now.day) {
+      return 'Hoy $hm';
+    }
+    return '${t.day.toString().padLeft(2, '0')}/${t.month.toString().padLeft(2, '0')} $hm';
   }
 
   Widget _kvRow(IconData icon, String label, String value) {

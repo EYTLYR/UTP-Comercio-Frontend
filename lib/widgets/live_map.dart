@@ -275,12 +275,14 @@ class _LiveMapState extends State<LiveMap> {
                     .map(
                       (p) => Marker(
                         point: LatLng(p.latitude!, p.longitude!),
-                        width: 44,
-                        height: 44,
-                        child: IconButton.filled(
-                          tooltip: p.title,
-                          onPressed: () => setState(() => _selected = p),
-                          icon: Icon(p.icon, size: 22),
+                        width: 150,
+                        height: 66,
+                        // El círculo queda sobre el punto y la etiqueta debajo.
+                        alignment: const Alignment(0, 0.55),
+                        child: _PinMarker(
+                          pin: p,
+                          selected: _selected?.id == p.id,
+                          onTap: () => setState(() => _selected = p),
                         ),
                       ),
                     )
@@ -476,4 +478,81 @@ class _LiveMapState extends State<LiveMap> {
       ),
     ],
   );
+}
+
+/// Color de cada tipo de pin: quién necesita (ámbar), quién ofrece (turquesa), oficios (azul), emergencia (rojo)…
+Color pinColor(String kind) => switch (kind) {
+  'need' => const Color(0xFFE0891B),
+  'offer' => const Color(0xFF00A88F),
+  'svc' => const Color(0xFF0B2D6B),
+  'vuln' => const Color(0xFFD7263D),
+  'safe' => const Color(0xFF2E7D32),
+  'res' => const Color(0xFF1565C0),
+  'group' => const Color(0xFF6A4FB3),
+  'risk' => const Color(0xFFEF6C00),
+  'mitig' => const Color(0xFF00897B),
+  _ => const Color(0xFF0B2D6B),
+};
+
+/// Pin con su ícono de color y una etiqueta corta (quién y qué), para entender el mapa sin tocarlo.
+class _PinMarker extends StatelessWidget {
+  final MapPin pin;
+  final bool selected;
+  final VoidCallback onTap;
+  const _PinMarker({
+    required this.pin,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = pinColor(pin.kind);
+    return Semantics(
+      button: true,
+      label: '${pin.title}. ${pin.sub}',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              width: selected ? 40 : 34,
+              height: selected ? 40 : 34,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2.5),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x40000000), blurRadius: 6),
+                ],
+              ),
+              child: Icon(pin.icon, color: Colors.white, size: 18),
+            ),
+            const SizedBox(height: 2),
+            Container(
+              constraints: const BoxConstraints(maxWidth: 146),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.95),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: color.withValues(alpha: 0.5)),
+              ),
+              child: Text(
+                pin.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

@@ -719,10 +719,12 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(width: 8),
               _buildStatCard('$pendingCount', 'Por atender'),
               const SizedBox(width: 8),
-              // Sin conteo real de "a salvo": mostramos los atendidos
+              // Vecinos que dijeron «Estoy bien» desde que empezó la emergencia
               _buildStatCard(
-                '${state.reports.where((r) => r.status == 'a').length}',
-                'Atendidos',
+                state.connected
+                    ? '${state.zoneDashboard['safeCheckIns'] ?? 0}'
+                    : '64',
+                'A salvo',
               ),
             ],
           ),

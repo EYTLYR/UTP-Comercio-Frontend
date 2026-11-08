@@ -142,6 +142,17 @@ class AppState extends ChangeNotifier {
   /// Panel de Municipalidad: solicitudes de brigadista pendientes.
   List<Map<String, dynamic>> adminRequests = [];
 
+  /// Quién activó el modo de mi zona (MUNICIPALITY, AUTO_SOS o USER), por qué y desde cuándo.
+  String? zoneModeSource;
+  String? zoneModeReason;
+  DateTime? zoneModeAt;
+
+  /// Desde cuándo veo el modo emergencia (el de la zona o el que activé yo).
+  DateTime? emergencySince;
+
+  /// Tablero de la zona: reportsTotal, pending, onTheWay, attended, safeCheckIns, activeSos.
+  Map<String, dynamic> zoneDashboard = const {};
+
   /// Vecino verificado por un delegado (campo verified de /me).
   bool verified = false;
 
@@ -667,6 +678,7 @@ class AppState extends ChangeNotifier {
     if (emergency) return;
     emergency = true;
     emSource = zoneEm ? 'zona' : 'yo';
+    emergencySince ??= DateTime.now();
     sheet = null;
     notifyListeners();
     toast('Modo emergencia activado', icon: 'crisis_alert');
@@ -939,6 +951,7 @@ class AppState extends ChangeNotifier {
           user: userName,
           dist: 'aquí',
           time: 'ahora',
+          mine: true,
         ),
       );
     } else if (type == 'vulnerable') {

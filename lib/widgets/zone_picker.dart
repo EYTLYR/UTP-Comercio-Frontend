@@ -1,3 +1,4 @@
+import '../screens/municipality_screens.dart';
 import 'package:flutter/material.dart';
 
 import '../models/models.dart';
@@ -112,6 +113,25 @@ class _ZonePickerState extends State<ZonePicker> {
                     prefixIcon: const Icon(Icons.search),
                   ),
                 ),
+                if (state.connected)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () async {
+                        final created = await showModalBottomSheet<bool>(
+                          context: context,
+                          isScrollControlled: true,
+                          useSafeArea: true,
+                          builder: (_) => CreateZoneSheet(state: state),
+                        );
+                        if (created == true && mounted) {
+                          setState(() => _request = state.fetchZones());
+                        }
+                      },
+                      icon: const Icon(Icons.add_location_alt_outlined),
+                      label: const Text('Registrar una zona nueva'),
+                    ),
+                  ),
                 const SizedBox(height: 8),
                 FutureBuilder<List<BrowseZone>>(
                   future: _request,

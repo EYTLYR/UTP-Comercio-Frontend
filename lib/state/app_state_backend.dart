@@ -211,6 +211,11 @@ extension NearbyBackend on AppState {
     }
     zoneName = (zone?['name'] as String?) ?? 'Sin zona guardada';
     final zoneMode = zone?['mode'] as String?;
+    zoneModeSource = zone?['modeSource'] as String?;
+    zoneModeReason = zone?['modeReason'] as String?;
+    zoneModeAt = DateTime.tryParse(
+      (zone?['modeActivatedAt'] as String?) ?? '',
+    )?.toLocal();
     final mode = (u['effectiveMode'] as String?) ?? 'NORMAL';
     final wasEmergency = emergency;
     final wasPrevention = prevention;
@@ -226,6 +231,15 @@ extension NearbyBackend on AppState {
     emergency = mode == 'EMERGENCY';
     zoneEm = zoneMode == 'EMERGENCY';
     emSource = emergency && !zoneEm ? 'yo' : 'zona';
+    if (!emergency) {
+      emergencySince = null;
+      zoneDashboard = const {};
+    } else if (zoneEm) {
+      emergencySince = zoneModeAt ?? emergencySince ?? DateTime.now();
+    } else {
+      emergencySince ??= DateTime.now();
+    }
+    if (connected && emergency && !wasEmergency) unawaited(loadZoneDashboard());
     if (connected && emergency && !wasEmergency && screen != 'splash') {
       toast(
         zoneEm
@@ -790,7 +804,7 @@ extension NearbyBackend on AppState {
   void _startPolling() {
     if (_disposed) return;
     _stopPolling();
-    _pollTimer = Timer.periodic(const Duration(seconds: 20), (_) => _poll());
+    _pollTimer = Timer.periodic(const Duration(seconds: 15), (_) => _poll());
     _chatTimer = Timer.periodic(const Duration(seconds: 4), (_) {
       if (screen == 'chat') _pollChat();
       if (connected && !offline) _incomingVoiceCall();
@@ -821,7 +835,8 @@ extension NearbyBackend on AppState {
     if (!connected || offline || tourName != null) return;
     await _loadMe();
     await _checkNearbySos();
-    if (emergency) await _loadReports();
+    await _refreshLive();
+    if (emergency) await loadZoneDashboard();
     await loadConversations(notify: true);
     lastSyncAt = DateTime.now();
     refresh();
@@ -1363,6 +1378,7 @@ extension NearbyBackend on AppState {
         'check-ins',
         body: {'status': status},
       ) as Map<String, dynamic>;
+      unawaited(loadZoneDashboard());
       return (r['contactsNotified'] as num?)?.toInt();
     } on ApiException catch (e) {
       toast(e.message, icon: 'error');
@@ -1849,6 +1865,41 @@ extension NearbyBackend on AppState {
 
   // ============================================================ mensajes y perfil
 
+  /// Lo que publican los demás vecinos: muro y mapa siempre; oficios, tablero, recursos y grupos según
+  /// la pantalla o el modo. Avisa cuando alguien cercano pide u ofrece ayuda.
+  Future<void> _refreshLive() async {
+    final before = posts.map((p) => p.id).toSet();
+    await Future.wait([
+      _loadPosts(),
+      _loadPins(),
+      if (screen == 'servicios' || screen == 'home') _loadServices(),
+      if (emergency || screen == 'tablero') _loadReports(),
+      if (emergency || screen == 'recursos') _loadResources(),
+      if (emergency || screen == 'apoyo') _loadGroups(),
+      if (prevention || screen == 'prevencion') loadRiskReports(),
+    ]);
+    final fresh = posts
+        .where((p) => !p.mine && !before.contains(p.id))
+        .toList();
+    if (before.isNotEmpty && fresh.isNotEmpty && screen != 'muro') {
+      final p = fresh.first;
+      toast(
+        p.type == 'need'
+            ? '${p.user} pide ayuda cerca de ti'
+            : '${p.user} ofrece ayuda cerca de ti',
+        icon: 'volunteer_activism',
+      );
+    }
+  }
+
+  /// Tablero de mi zona: cuántos vecinos dijeron «Estoy bien» desde que empezó la emergencia, etc.
+  Future<void> loadZoneDashboard() => _quiet(() async {
+    if (!connected || zoneId == null) return;
+    zoneDashboard =
+        await api.get('zones/$zoneId/dashboard') as Map<String, dynamic>;
+    refresh();
+  });
+
   Future<void> loadMyStats() => _quiet(() async {
     if (!connected) return;
     myStats = await api.get('me/stats') as Map<String, dynamic>;
@@ -1932,18 +1983,23 @@ extension NearbyBackend on AppState {
     String? district,
   }) async {
     try {
+      final staff = isPlatformAdmin || isMunicipality;
+      // Un vecino no escribe el distrito: sale del mapa (OpenStreetMap).
+      final place = staff ? null : await _placeParts(lat, lng);
+      final d = (district != null && district.trim().isNotEmpty)
+          ? district.trim()
+          : place?.district;
       await api.post(
-        'municipality/zones',
+        staff ? 'municipality/zones' : 'zones',
         body: {
           'name': name.trim(),
           'lat': lat,
           'lng': lng,
           'radiusM': radiusM,
-          if (district != null && district.trim().isNotEmpty)
-            'district': district.trim(),
+          'district': ?d,
         },
       );
-      await loadManagedZones();
+      if (staff) await loadManagedZones();
       toast('Zona «${name.trim()}» creada', icon: 'check_circle');
       return true;
     } on ApiException catch (e) {

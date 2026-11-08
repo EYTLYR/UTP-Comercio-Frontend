@@ -267,6 +267,11 @@ class Api2App {
     user: _s(j['authorName'], 'Vecino'),
     dist: j['mine'] == true ? 'tú' : dist(j['distanceM']),
     time: ago(j['createdAt']),
+    mine: j['mine'] == true,
+    responses: (j['responsesCount'] as num?)?.toInt() ?? 0,
+    catLabel: _s(j['categoryLabel']),
+    text: _s(j['text']),
+    zone: _s(j['authorZoneName']),
   );
 
   static ReportItem report(Map<String, dynamic> j) => ReportItem(

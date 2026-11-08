@@ -87,7 +87,7 @@ class WallScreen extends StatelessWidget {
                                         fontWeight: FontWeight.w900,
                                       ),
                                     ),
-                                    TextSpan(text: 'en ${state.zoneName}'),
+                                    const TextSpan(text: 'cerca de ti'),
                                   ],
                                 ),
                               ),
@@ -97,13 +97,13 @@ class WallScreen extends StatelessWidget {
                                   final mine = state.posts
                                       .where(
                                         (p) =>
-                                            p.dist == 'tú' ||
-                                            p.user == state.userName,
+                                            p.mine || p.dist == 'tú',
                                       )
                                       .length;
-                                  return mine == 0
+                                  if (mine > 0) return 'Tú publicaste $mine';
+                                  return state.posts.isEmpty
                                       ? 'Publica el primero y suma a la cadena'
-                                      : 'Tú publicaste $mine';
+                                      : 'Pide u ofrece ayuda y suma a la cadena';
                                 }(),
                                 style: TextStyle(
                                   color: theme.muted,
@@ -274,6 +274,21 @@ class WallScreen extends StatelessWidget {
   Widget _buildPostCard(PostItem p) {
     final isDone = state.helped[p.id] == true;
     final catObj = kPostCats.where((c) => c.id == p.cat).firstOrNull;
+    final mine = p.mine || p.dist == 'tú' || p.dist == 'aquí';
+    final catName = (p.catLabel.isNotEmpty ? p.catLabel : catObj?.label ?? '')
+        .toLowerCase();
+    final firstName = p.user.split(' ').first;
+    // Qué pide u ofrece, dicho con su nombre: «Tarrillo necesita ayuda con materiales».
+    final headline = mine
+        ? (p.type == 'need'
+              ? 'Pediste ayuda con $catName'
+              : 'Ofreciste ayuda con $catName')
+        : (p.type == 'need'
+              ? '$firstName necesita ayuda con $catName'
+              : '$firstName ofrece ayuda con $catName');
+    final detail = p.text.isNotEmpty ? p.text : p.title;
+    final showDetail =
+        detail.isNotEmpty && detail.toLowerCase() != catName.toLowerCase();
 
     return RepaintBoundary(
       child: Container(
@@ -333,7 +348,7 @@ class WallScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              p.title,
+              headline,
               style: TextStyle(
                 fontWeight: FontWeight.w800,
                 fontSize: 14.5,
@@ -341,6 +356,28 @@ class WallScreen extends StatelessWidget {
                 height: 1.3,
               ),
             ),
+            if (showDetail) ...[
+              const SizedBox(height: 6),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: theme.surface2,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '«$detail»',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    color: theme.ink,
+                    height: 1.35,
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 8),
             Wrap(
               crossAxisAlignment: WrapCrossAlignment.center,
@@ -350,7 +387,12 @@ class WallScreen extends StatelessWidget {
                   radius: 12,
                   backgroundColor: theme.violetSoft,
                   child: Text(
-                    p.user.split(' ').map((w) => w[0]).take(2).join(),
+                    p.user
+                        .split(' ')
+                        .where((w) => w.isNotEmpty)
+                        .map((w) => w[0].toUpperCase())
+                        .take(2)
+                        .join(),
                     style: TextStyle(
                       fontSize: 10,
                       color: theme.violet,
@@ -360,7 +402,7 @@ class WallScreen extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  p.user,
+                  mine ? 'Tú' : p.user,
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 12,
@@ -377,12 +419,53 @@ class WallScreen extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${p.dist} · ${p.time}',
+                  [
+                    if (!mine) 'a ${p.dist.replaceFirst('a ', '')}',
+                    p.time,
+                    if (!mine && p.zone.isNotEmpty) p.zone,
+                  ].join(' · '),
                   style: TextStyle(color: theme.muted, fontSize: 11.5),
                 ),
               ],
             ),
             const SizedBox(height: 12),
+            // En lo que publiqué yo no hay botón para ayudarme: veo quién respondió.
+            if (mine)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: theme.infoSoft,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.campaign_outlined, color: theme.info, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        p.responses == 0
+                            ? 'Tu publicación · aún nadie respondió. Te avisamos por Mensajes.'
+                            : 'Tu publicación · ${p.responses} '
+                                  '${p.responses == 1 ? 'vecino respondió' : 'vecinos respondieron'}',
+                        style: TextStyle(
+                          color: theme.info,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                    ),
+                    if (p.responses > 0)
+                      TextButton(
+                        onPressed: () => state.go('mensajes'),
+                        child: const Text('Ver'),
+                      ),
+                  ],
+                ),
+              )
+            else
             ElevatedButton.icon(
               onPressed: () => state.helpPost(p.id),
               style: ElevatedButton.styleFrom(
