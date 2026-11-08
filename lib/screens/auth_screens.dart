@@ -322,8 +322,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     ? () async {
                         setState(() => _busy = true);
                         try {
-                          if (await state.requestOtp() && mounted)
+                          if (await state.requestOtp() && mounted) {
                             state.go('otp');
+                          }
                         } finally {
                           if (mounted) setState(() => _busy = false);
                         }

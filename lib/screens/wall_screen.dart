@@ -420,7 +420,7 @@ class WallScreen extends StatelessWidget {
                 ),
                 Text(
                   [
-                    if (!mine) 'a ${p.dist.replaceFirst('a ', '')}',
+                    if (!mine) _formatDistance(p.dist),
                     p.time,
                     if (!mine && p.zone.isNotEmpty) p.zone,
                   ].join(' · '),
@@ -496,5 +496,20 @@ class WallScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  static String _formatDistance(String dist) {
+    final clean = dist.trim();
+    if (clean.toLowerCase().contains('menos de 500m') || clean == 'aquí') {
+      return 'A menos de 500m';
+    }
+    final match = RegExp(r'(\d+)\s*m$').firstMatch(clean);
+    if (match != null) {
+      final meters = int.tryParse(match.group(1)!);
+      if (meters != null && meters < 500) {
+        return 'A menos de 500m';
+      }
+    }
+    return clean.toLowerCase().startsWith('a ') ? clean : 'a $clean';
   }
 }

@@ -57,7 +57,7 @@ void main() {
     await tester.runAsync(() async {
       final content = await rootBundle.loadString('.env');
       expect(content, contains('APP_ENV='));
-      await app.main();
+      app.main();
     });
     await tester.pump();
     expect(find.byType(app.NearbyApp), findsOneWidget);

@@ -224,7 +224,8 @@ class Api2App {
 
   static String dist(Object? meters) {
     final m = meters is num ? meters.round() : null;
-    if (m == null || m <= 0) return 'aquí';
+    if (m == null || m <= 0) return 'A menos de 500m';
+    if (m < 500) return 'A menos de 500m';
     if (m >= 1000) return 'a ${(m / 1000).toStringAsFixed(1)} km';
     return 'a $m m';
   }
