@@ -78,6 +78,12 @@ class PostItem {
   final String text;
   final String zone;
 
+  /// Estado de mi respuesta si ya me ofrecí ('PENDING', 'IN_PROGRESS', 'REJECTED')
+  final String? myResponseStatus;
+
+  /// Solicitudes recibidas si el post es mío
+  final List<PostResponseItem> incomingResponses;
+
   PostItem({
     required this.id,
     required this.type,
@@ -91,6 +97,30 @@ class PostItem {
     this.catLabel = '',
     this.text = '',
     this.zone = '',
+    this.myResponseStatus,
+    this.incomingResponses = const [],
+  });
+}
+
+class PostResponseItem {
+  final String id;
+  final String postId;
+  final String responderId;
+  final String responderName;
+  final String responderInitials;
+  final String status; // 'PENDING', 'IN_PROGRESS', 'REJECTED', 'COMPLETED'
+  final String? conversationId;
+  final DateTime? createdAt;
+
+  PostResponseItem({
+    required this.id,
+    required this.postId,
+    required this.responderId,
+    required this.responderName,
+    this.responderInitials = '',
+    required this.status,
+    this.conversationId,
+    this.createdAt,
   });
 }
 

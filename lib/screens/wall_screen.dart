@@ -429,71 +429,285 @@ class WallScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            // En lo que publiqué yo no hay botón para ayudarme: veo quién respondió.
-            if (mine)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: theme.infoSoft,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.campaign_outlined, color: theme.info, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        p.responses == 0
-                            ? 'Tu publicación · aún nadie respondió. Te avisamos por Mensajes.'
-                            : 'Tu publicación · ${p.responses} '
-                                  '${p.responses == 1 ? 'vecino respondió' : 'vecinos respondieron'}',
-                        style: TextStyle(
-                          color: theme.info,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12.5,
+            // En lo que publiqué yo: veo quién respondió y puedo aceptar/rechazar.
+            if (mine) ...[
+              if (p.incomingResponses.isEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.infoSoft,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.campaign_outlined, color: theme.info, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Tu publicación · aún nadie respondió. Te avisaremos cuando un vecino se ofrezca.',
+                          style: TextStyle(
+                            color: theme.info,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12.5,
+                          ),
                         ),
                       ),
-                    ),
-                    if (p.responses > 0)
-                      TextButton(
-                        onPressed: () => state.go('mensajes'),
-                        child: const Text('Ver'),
+                    ],
+                  ),
+                )
+              else
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          Icon(Icons.people_alt_outlined, size: 16, color: theme.primaryDark),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Solicitudes recibidas (${p.incomingResponses.length})',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12.5,
+                              color: theme.ink,
+                            ),
+                          ),
+                        ],
                       ),
+                    ),
+                    ...p.incomingResponses.map((r) => _buildIncomingResponseRow(p, r)),
                   ],
                 ),
-              )
-            else
-            ElevatedButton.icon(
-              onPressed: () => state.helpPost(p.id),
+            ] else ...[
+              _buildResponderButton(p, isDone),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIncomingResponseRow(PostItem p, PostResponseItem r) {
+    final isPending = r.status == 'PENDING';
+    final isInProgress = r.status == 'IN_PROGRESS';
+    final isRejected = r.status == 'REJECTED';
+
+    final initials = r.responderInitials.isNotEmpty
+        ? r.responderInitials
+        : (r.responderName.isNotEmpty ? r.responderName[0].toUpperCase() : '?');
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: theme.surface2,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isInProgress ? theme.primary.withValues(alpha: 0.3) : theme.line,
+        ),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 14,
+            backgroundColor: isInProgress ? theme.primarySoft : theme.violetSoft,
+            child: Text(
+              initials,
+              style: TextStyle(
+                fontSize: 10,
+                color: isInProgress ? theme.primaryDark : theme.violet,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  r.responderName,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12.5,
+                    color: theme.ink,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  isPending
+                      ? 'Desea ayudar · Pendiente'
+                      : isInProgress
+                          ? 'Aceptado · En progreso'
+                          : isRejected
+                              ? 'Rechazado'
+                              : r.status,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isInProgress
+                        ? theme.primaryDark
+                        : isRejected
+                            ? theme.accentInk
+                            : theme.muted,
+                    fontWeight: isInProgress ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (isPending) ...[
+            TextButton(
+              onPressed: () => state.rejectPostResponse(p.id, r.id),
+              style: TextButton.styleFrom(
+                foregroundColor: theme.muted,
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              ),
+              child: const Text('Rechazar', style: TextStyle(fontSize: 12)),
+            ),
+            const SizedBox(width: 4),
+            ElevatedButton(
+              onPressed: () => state.acceptPostResponse(p.id, r.id),
               style: ElevatedButton.styleFrom(
-                backgroundColor: isDone ? theme.primarySoft : theme.primarySoft,
+                backgroundColor: theme.primarySoft,
                 foregroundColor: theme.primaryDark,
                 elevation: 0,
-                minimumSize: const Size.fromHeight(48),
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              icon: Icon(
-                isDone
-                    ? Icons.check_circle
-                    : (p.type == 'need'
-                          ? Icons.volunteer_activism
-                          : Icons.front_hand),
-                size: 18,
+              child: const Text(
+                'Aceptar',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
               ),
-              label: Text(
-                isDone
-                    ? 'Le avisamos a ${p.user.split(" ").first}'
-                    : (p.type == 'need' ? 'Yo te ayudo' : 'Me interesa'),
-                style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ] else if (isInProgress) ...[
+            OutlinedButton.icon(
+              onPressed: () {
+                state.openChat(
+                  r.responderName,
+                  conversationId: r.conversationId,
+                );
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: theme.primaryDark,
+                side: BorderSide(color: theme.primaryDark.withValues(alpha: 0.3)),
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              icon: const Icon(Icons.chat_bubble_outline, size: 14),
+              label: const Text(
+                'Chat',
+                style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResponderButton(PostItem p, bool isDone) {
+    final status = p.myResponseStatus;
+    final isPending = (status == 'PENDING') || isDone;
+    final isInProgress = status == 'IN_PROGRESS';
+    final isRejected = status == 'REJECTED';
+
+    if (isInProgress) {
+      return ElevatedButton.icon(
+        onPressed: () => state.go('mensajes'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: theme.primarySoft,
+          foregroundColor: theme.primaryDark,
+          elevation: 0,
+          minimumSize: const Size.fromHeight(48),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
         ),
+        icon: const Icon(Icons.chat_bubble_outline, size: 18),
+        label: const Text(
+          '¡Solicitud aceptada! Ir al chat',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
+      );
+    }
+
+    if (isPending) {
+      return ElevatedButton.icon(
+        onPressed: () {
+          state.toast(
+            'Tu solicitud ya fue enviada. Esperando aprobación de ${p.user.split(" ").first}.',
+          );
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: theme.surface2,
+          foregroundColor: theme.muted,
+          elevation: 0,
+          minimumSize: const Size.fromHeight(48),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(color: theme.line),
+          ),
+        ),
+        icon: const Icon(Icons.hourglass_top_rounded, size: 18),
+        label: const Text(
+          'Solicitud enviada',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
+      );
+    }
+
+    if (isRejected) {
+      return Container(
+        height: 48,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: theme.surface2,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: theme.line),
+        ),
+        child: Text(
+          'Solicitud no aceptada',
+          style: TextStyle(
+            color: theme.muted,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    }
+
+    return ElevatedButton.icon(
+      onPressed: () => state.helpPost(p.id),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: theme.primarySoft,
+        foregroundColor: theme.primaryDark,
+        elevation: 0,
+        minimumSize: const Size.fromHeight(48),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+      ),
+      icon: Icon(
+        p.type == 'need'
+            ? Icons.volunteer_activism
+            : Icons.front_hand,
+        size: 18,
+      ),
+      label: Text(
+        p.type == 'need' ? 'Yo te ayudo' : 'Me interesa',
+        style: const TextStyle(fontWeight: FontWeight.w800),
       ),
     );
   }

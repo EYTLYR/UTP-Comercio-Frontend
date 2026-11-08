@@ -273,7 +273,25 @@ class Api2App {
     catLabel: _s(j['categoryLabel']),
     text: _s(j['text']),
     zone: _s(j['authorZoneName']),
+    myResponseStatus: j['myResponseStatus'] as String?,
+    incomingResponses: (j['incomingResponses'] as List? ?? [])
+        .map((r) => postResponse(r as Map<String, dynamic>))
+        .toList(),
   );
+
+  static PostResponseItem postResponse(Map<String, dynamic> j) =>
+      PostResponseItem(
+        id: j['id'] as String,
+        postId: j['postId'] as String? ?? '',
+        responderId: j['responderId'] as String? ?? '',
+        responderName: _s(j['responderName'], 'Vecino'),
+        responderInitials: _s(j['responderInitials'], 'V'),
+        status: _s(j['status'], 'PENDING'),
+        conversationId: j['conversationId'] as String?,
+        createdAt: j['createdAt'] != null
+            ? DateTime.tryParse(j['createdAt'].toString())
+            : null,
+      );
 
   static ReportItem report(Map<String, dynamic> j) => ReportItem(
     id: j['id'] as String,

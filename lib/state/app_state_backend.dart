@@ -887,9 +887,39 @@ extension NearbyBackend on AppState {
 
   Future<void> _respondPost(PostItem post) async {
     try {
-      final ref =
-          await api.post('posts/${post.id}/responses') as Map<String, dynamic>;
-      openChat(post.user, conversationId: ref['conversationId'] as String?);
+      await api.post('posts/${post.id}/responses');
+      helped[post.id] = true;
+      toast('Solicitud enviada al autor', icon: 'check_circle');
+      await _loadPosts();
+    } on ApiException catch (e) {
+      toast(e.message, icon: 'error');
+    }
+  }
+
+  Future<void> _acceptPostResponse(String postId, String responseId) async {
+    try {
+      final ref = await api.post('posts/$postId/responses/$responseId/accept')
+          as Map<String, dynamic>;
+      toast('Solicitud aceptada. Se abrió el chat.', icon: 'check_circle');
+      final convId = ref['conversationId'] as String?;
+      await _loadPosts();
+      if (convId != null) {
+        final post = posts.where((p) => p.id == postId).firstOrNull;
+        final resp = post?.incomingResponses
+            .where((r) => r.id == responseId)
+            .firstOrNull;
+        openChat(resp?.responderName ?? 'Vecino', conversationId: convId);
+      }
+    } on ApiException catch (e) {
+      toast(e.message, icon: 'error');
+    }
+  }
+
+  Future<void> _rejectPostResponse(String postId, String responseId) async {
+    try {
+      await api.post('posts/$postId/responses/$responseId/reject');
+      toast('Solicitud rechazada');
+      await _loadPosts();
     } on ApiException catch (e) {
       toast(e.message, icon: 'error');
     }

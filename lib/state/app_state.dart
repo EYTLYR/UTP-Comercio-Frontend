@@ -758,21 +758,31 @@ class AppState extends ChangeNotifier {
 
   // --- Help post ---
   void helpPost(String postId) {
-    final post = posts.firstWhere((p) => p.id == postId);
-    final first = !(helped[postId] ?? false);
+    final post = posts.where((p) => p.id == postId).firstOrNull;
+    if (post == null) return;
     helped[postId] = true;
+    refresh();
     if (connected) {
       _respondPost(post);
       return;
     }
-    openChat(
-      post.user,
-      sysMsg: first
-          ? (post.type == 'need'
-                ? 'Le ofreciste ayuda: «${post.title}»'
-                : 'Te interesa: «${post.title}»')
-          : null,
-    );
+    toast('Solicitud guardada sin conexión');
+  }
+
+  void acceptPostResponse(String postId, String responseId) {
+    if (connected) {
+      _acceptPostResponse(postId, responseId);
+    } else {
+      toast('Conéctate a internet para responder solicitudes');
+    }
+  }
+
+  void rejectPostResponse(String postId, String responseId) {
+    if (connected) {
+      _rejectPostResponse(postId, responseId);
+    } else {
+      toast('Conéctate a internet para responder solicitudes');
+    }
   }
 
   // --- Chat ---
