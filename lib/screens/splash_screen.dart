@@ -20,11 +20,11 @@ class SplashScreen extends StatelessWidget {
           const Spacer(),
           // Wordmark with logo
           NearbyWordmark(
-            width: 240,
+            width: 210,
             inkColor: theme.logoInk,
             gapColor: theme.bg,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           Text(
             'Tu barrio, más cerca. Servicios de confianza, ayuda entre vecinos y apoyo en emergencias.',
             textAlign: TextAlign.center,

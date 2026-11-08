@@ -56,9 +56,10 @@ El modo oscuro usa azul marino profundo con turquesa `#00BFA6` como acento.
 - **Navegación inferior:**
   - La pestaña activa lleva un fondo turquesa suave y el ícono en turquesa profundo.
   - El botón «+» es turquesa con el ícono azul marino.
-- **Isotipo** (`NearbyLogo`):
-  - Mano abierta (azul marino) que sostiene un corazón (turquesa), dibujada en vector.
-  - Si existe el archivo oficial (SVG o PNG), basta con reemplazar el `CustomPainter` en `lib/widgets/nearby_logo.dart`. La API (`width`, `inkColor`, `gapColor`, `greenColor`) no cambia.
+- **Logo oficial:**
+  - Los archivos de marca están en `docs/brand/` (isotipo, logotipo vertical y horizontal, a color y con fondo transparente).
+  - En la app, `assets/brand/` guarda cada logo en dos capas: *tinta* (mano y texto) y *corazón*. `NearbyLogo` (isotipo) y `NearbyWordmark` (logotipo vertical, en el inicio) las tiñen según el tema: azul marino sobre fondos claros, blanco sobre azul marino o en modo oscuro, y el corazón siempre turquesa.
+  - Los íconos de Android, iOS y web, y el favicon, salen del isotipo oficial sobre fondo blanco.
 
 ## Cómo se aplican las leyes de la Gestalt
 

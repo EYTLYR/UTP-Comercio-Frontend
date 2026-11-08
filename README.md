@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/brand/logo_horizontal.png" alt="Nearby · Siempre cerca para ayudar" width="420"></p>
+
 # Nearby · Flutter
 
 Interfaz y navegación basadas en `../prototipo.html`. La app se adapta a móvil, web y escritorio sin marco de teléfono ni panel fijo de simulación.

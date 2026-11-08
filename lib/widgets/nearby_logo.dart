@@ -2,15 +2,71 @@ import 'package:flutter/material.dart';
 
 import '../theme/nearby_theme.dart';
 
-/// Isotipo de Nearby: una mano abierta que sostiene un corazón.
+/// Logo oficial de Nearby a partir de los archivos de marca (`assets/brand/`).
 ///
-/// La mano va en azul marino ([inkColor]) y el corazón en turquesa ([greenColor]);
-/// [gapColor] es el contorno que separa ambas figuras (el color del fondo donde se pinta).
-/// Dibujado en vector para que se vea nítido en cualquier tamaño.
-class NearbyLogo extends StatelessWidget {
+/// Cada logo está separado en dos capas con fondo transparente: la *tinta* (mano y texto, azul
+/// marino) y el *corazón* (turquesa). Se tiñen al pintarse, así el mismo logo oficial se ve en
+/// el tema claro, en el oscuro y en la barra azul marino del modo emergencia (tinta en blanco).
+class _BrandLayers extends StatelessWidget {
+  final String name;
   final double width;
+  final double aspect;
+  final Color ink;
+  final Color heart;
+  final String label;
+
+  const _BrandLayers({
+    required this.name,
+    required this.width,
+    required this.aspect,
+    required this.ink,
+    required this.heart,
+    required this.label,
+  });
+
+  Widget _layer(String part, Color color) => Image.asset(
+    'assets/brand/${name}_$part.png',
+    width: width,
+    height: width * aspect,
+    fit: BoxFit.contain,
+    color: color,
+    colorBlendMode: BlendMode.srcIn,
+    filterQuality: FilterQuality.medium,
+    excludeFromSemantics: true,
+    // Si la imagen no carga (por ejemplo en una prueba sin assets), deja el espacio vacío.
+    errorBuilder: (_, _, _) => SizedBox(width: width, height: width * aspect),
+  );
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: label,
+    image: true,
+    child: SizedBox(
+      width: width,
+      height: width * aspect,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [_layer('tinta', ink), _layer('corazon', heart)],
+      ),
+    ),
+  );
+}
+
+/// Isotipo oficial: mano abierta que sostiene un corazón.
+class NearbyLogo extends StatelessWidget {
+  /// Alto / ancho del isotipo oficial recortado.
+  static const double aspect = 1.2;
+
+  final double width;
+
+  /// Color de la mano (azul marino por defecto; blanco sobre fondos oscuros).
   final Color? inkColor;
+
+  /// Ya no se usa: el espacio entre la mano y el corazón es transparente. Se conserva para
+  /// no cambiar las llamadas existentes.
   final Color? gapColor;
+
+  /// Color del corazón (turquesa por defecto).
   final Color? greenColor;
 
   const NearbyLogo({
@@ -22,124 +78,26 @@ class NearbyLogo extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final height = width * 0.84;
-    return Semantics(
-      label: 'Nearby',
-      image: true,
-      child: SizedBox(
-        width: width,
-        height: height,
-        child: CustomPaint(
-          painter: _NearbyLogoPainter(
-            inkColor: inkColor ?? NearbyColors.brandNavy,
-            gapColor: gapColor ?? Colors.white,
-            greenColor: greenColor ?? NearbyColors.brandTurquoise,
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => _BrandLayers(
+    name: 'isotipo',
+    // Se dibuja con el alto de antes (ancho × 0.84) para no mover lo que lo rodea.
+    width: width * 0.84 / aspect,
+    aspect: aspect,
+    ink: inkColor ?? NearbyColors.brandNavy,
+    heart: greenColor ?? NearbyColors.brandTurquoise,
+    label: 'Nearby',
+  );
 }
 
-class _NearbyLogoPainter extends CustomPainter {
-  final Color inkColor;
-  final Color gapColor;
-  final Color greenColor;
-
-  _NearbyLogoPainter({
-    required this.inkColor,
-    required this.gapColor,
-    required this.greenColor,
-  });
-
-  /// Corazón que descansa sobre la palma (lienzo de 100 × 84).
-  static Path _heart() => Path()
-    ..moveTo(47, 54)
-    ..cubicTo(27, 43, 20, 30, 27, 20)
-    ..cubicTo(33, 12, 42, 13, 47, 21)
-    ..cubicTo(52, 13, 61, 12, 67, 20)
-    ..cubicTo(74, 30, 67, 43, 47, 54)
-    ..close();
-
-  /// Dedos extendidos (inicio, punta, grosor), de arriba hacia abajo.
-  static const _fingers = [
-    (Offset(58, 60), Offset(88, 47), 10.0),
-    (Offset(60, 67), Offset(93, 58), 10.0),
-    (Offset(58, 74), Offset(90, 69), 9.0),
-  ];
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final scale = size.width / 100.0;
-    canvas.save();
-    canvas.scale(scale);
-    canvas.clipRect(const Rect.fromLTWH(0, 0, 100, 84));
-
-    final ink = Paint()
-      ..color = inkColor
-      ..isAntiAlias = true;
-    Paint stroke(Color c, double w) => Paint()
-      ..color = c
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = w
-      ..strokeCap = StrokeCap.round
-      ..isAntiAlias = true;
-
-    // Mano abierta, palma hacia arriba: muñeca, palma, pulgar y dedos.
-    canvas.drawLine(
-      const Offset(28, 74),
-      const Offset(22, 92),
-      stroke(inkColor, 18),
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        const Rect.fromLTWH(16, 56, 52, 22),
-        const Radius.circular(11),
-      ),
-      ink,
-    );
-    canvas.drawLine(
-      const Offset(26, 64),
-      const Offset(14, 50),
-      stroke(inkColor, 12),
-    );
-    for (final (start, tip, width) in _fingers) {
-      // Un trazo del color del fondo, un poco más ancho, separa cada dedo del anterior.
-      canvas.drawLine(start, tip, stroke(gapColor, width + 3));
-      canvas.drawLine(start, tip, stroke(inkColor, width));
-    }
-
-    final heart = _heart();
-    // Contorno del color del fondo: separa el corazón de la mano (figura y fondo).
-    canvas.drawPath(
-      heart,
-      Paint()
-        ..color = gapColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 6
-        ..strokeJoin = StrokeJoin.round,
-    );
-    canvas.drawPath(
-      heart,
-      Paint()
-        ..color = greenColor
-        ..isAntiAlias = true,
-    );
-
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant _NearbyLogoPainter oldDelegate) =>
-      oldDelegate.inkColor != inkColor ||
-      oldDelegate.gapColor != gapColor ||
-      oldDelegate.greenColor != greenColor;
-}
-
+/// Logotipo oficial vertical: isotipo, «Nearby» y el lema «Siempre cerca para ayudar».
 class NearbyWordmark extends StatelessWidget {
+  /// Alto / ancho del logotipo vertical recortado.
+  static const double aspect = 1.142;
+
   final double width;
   final Color? inkColor;
+
+  /// Ya no se usa (ver [NearbyLogo.gapColor]).
   final Color? gapColor;
 
   const NearbyWordmark({
@@ -150,25 +108,12 @@ class NearbyWordmark extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        NearbyLogo(width: width * 0.62, inkColor: inkColor, gapColor: gapColor),
-        const SizedBox(height: 14),
-        Text(
-          'Nearby',
-          style: TextStyle(
-            fontFamily: NearbyThemeData.fontFamily,
-            fontSize: width * 0.21,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.8,
-            color: inkColor ?? NearbyColors.brandNavy,
-            height: 1.0,
-          ),
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => _BrandLayers(
+    name: 'logo_vertical',
+    width: width,
+    aspect: aspect,
+    ink: inkColor ?? NearbyColors.brandNavy,
+    heart: NearbyColors.brandTurquoise,
+    label: 'Nearby, siempre cerca para ayudar',
+  );
 }
