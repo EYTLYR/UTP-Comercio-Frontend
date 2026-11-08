@@ -463,21 +463,56 @@ class _PrevencionScreenState extends State<PrevencionScreen> {
           children: [
             UiLabeled(
               ui: ui,
-              label: 'Tipo de riesgo',
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
+              label: 'Tipo de riesgo (selección manual sin esperar IA)',
+              child: DropdownButtonFormField<String>(
+                initialValue: _category,
+                hint: Text(
+                  'Elige la categoría manualmente',
+                  style: TextStyle(color: ui.muted, fontSize: 13.5),
+                ),
+                dropdownColor: NearbyColors.surface,
+                icon: Icon(Icons.arrow_drop_down, color: ui.ink),
+                decoration: uiField(
+                  ui,
+                  hint: 'Selecciona una categoría',
+                ),
+                items: [
                   for (final (id, label, icon) in _riskCategories)
-                    UiChoice(
-                      ui: ui,
-                      icon: icon,
-                      label: label,
-                      selected: _category == id,
-                      onTap: () => setState(() => _category = id),
+                    DropdownMenuItem<String>(
+                      value: id,
+                      child: Row(
+                        children: [
+                          Icon(icon, size: 18, color: ui.ink),
+                          const SizedBox(width: 8),
+                          Text(
+                            label,
+                            style: TextStyle(
+                              color: ui.ink,
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                 ],
+                onChanged: (val) => setState(() => _category = val),
               ),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final (id, label, icon) in _riskCategories)
+                  UiChoice(
+                    ui: ui,
+                    icon: icon,
+                    label: label,
+                    selected: _category == id,
+                    onTap: () => setState(() => _category = id),
+                  ),
+              ],
             ),
             const SizedBox(height: 20),
             UiLabeled(

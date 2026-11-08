@@ -10,10 +10,10 @@ abstract final class AppEnvironment {
     const defined = String.fromEnvironment('API_BASE_URL');
     if (defined.isNotEmpty) return defined;
     if (_apiUrl != null && _apiUrl!.isNotEmpty) return _apiUrl!;
-    if (kReleaseMode) return '';
+    if (kReleaseMode) return 'https://nearby-api.eytlyr.com';
     return !kIsWeb && defaultTargetPlatform == TargetPlatform.android
-        ? 'https://nearby-api.eytlyr.com'
-        : 'https://nearby-api.eytlyr.com';
+        ? 'http://10.0.2.2:8080'
+        : 'http://localhost:8080';
   }
 
   static String get name => _definedName.isNotEmpty
