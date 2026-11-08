@@ -29,6 +29,10 @@ class PublishDraft {
   String? cat;
   String text;
   bool photo;
+  List<int>? photoBytes;
+  String? photoName;
+  String? photoPath;
+  String? photoUrl;
   Map<String, dynamic>? ai;
 
   PublishDraft({
@@ -37,6 +41,10 @@ class PublishDraft {
     this.cat,
     this.text = '',
     this.photo = false,
+    this.photoBytes,
+    this.photoName,
+    this.photoPath,
+    this.photoUrl,
     this.ai,
   });
 
@@ -52,6 +60,10 @@ class PublishDraft {
     this.cat = cat;
     this.text = text;
     this.photo = photo;
+    photoBytes = null;
+    photoName = null;
+    photoPath = null;
+    photoUrl = null;
     ai = null;
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../models/models.dart';
@@ -586,43 +588,76 @@ class _PublishScreenState extends State<PublishScreen> {
         // Foto adjunta
         if (p.photo) ...[
           const SizedBox(height: 10),
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.fromLTRB(10, 6, 6, 6),
-                decoration: BoxDecoration(
-                  color: ui.ivory,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.image_outlined, color: ui.ink, size: 16),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Foto adjunta',
-                      style: TextStyle(
-                        color: ui.ink,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                      ),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: ui.ivory,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: ui.line),
+            ),
+            child: Row(
+              children: [
+                if (p.photoBytes != null)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.memory(
+                      Uint8List.fromList(p.photoBytes!),
+                      width: 54,
+                      height: 54,
+                      fit: BoxFit.cover,
                     ),
-                    const SizedBox(width: 6),
-                    InkWell(
-                      onTap: () {
-                        p.photo = false;
-                        state.refresh();
-                      },
-                      borderRadius: BorderRadius.circular(6),
-                      child: Padding(
-                        padding: const EdgeInsets.all(2),
-                        child: Icon(Icons.close, color: ui.ink, size: 16),
-                      ),
+                  )
+                else
+                  Container(
+                    width: 54,
+                    height: 54,
+                    decoration: BoxDecoration(
+                      color: ui.blueSoft,
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  ],
+                    child: Icon(Icons.image, color: ui.ink, size: 28),
+                  ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        p.photoName ?? 'Foto adjunta',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: ui.ink,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Se publicará junto a tu solicitud',
+                        style: TextStyle(color: ui.muted, fontSize: 11.5),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                IconButton(
+                  tooltip: 'Cambiar foto',
+                  icon: Icon(Icons.edit_outlined, size: 18, color: ui.ink),
+                  onPressed: () => state.openSheet('photo'),
+                ),
+                IconButton(
+                  tooltip: 'Quitar foto',
+                  icon: Icon(Icons.close, size: 18, color: NearbyColors.sos),
+                  onPressed: () {
+                    p.photo = false;
+                    p.photoBytes = null;
+                    p.photoName = null;
+                    p.photoPath = null;
+                    state.refresh();
+                  },
+                ),
+              ],
+            ),
           ),
         ],
 

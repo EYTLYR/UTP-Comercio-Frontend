@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../models/models.dart';
 import '../state/app_state.dart';
@@ -502,10 +503,31 @@ class NearbyBottomSheetModal extends StatelessWidget {
       Icons.pets,
       Icons.local_florist,
     ];
-    void attach() {
-      state.pub.photo = true;
-      state.closeSheet();
-      state.toast('Foto adjunta', icon: 'image');
+
+    Future<void> pick(ImageSource source) async {
+      try {
+        final picker = ImagePicker();
+        final file = await picker.pickImage(
+          source: source,
+          maxWidth: 1024,
+          maxHeight: 1024,
+          imageQuality: 80,
+        );
+        if (file == null) return;
+        final bytes = await file.readAsBytes();
+        state.pub.photoBytes = bytes;
+        state.pub.photoName = file.name;
+        state.pub.photoPath = file.path;
+        state.pub.photo = true;
+        state.closeSheet();
+        state.refresh();
+        state.toast('Foto adjuntada correctamente', icon: 'check_circle');
+      } catch (_) {
+        state.toast(
+          'No pudimos abrir la cámara o la galería. Revisa los permisos.',
+          icon: 'error',
+        );
+      }
     }
 
     return Column(
@@ -524,7 +546,7 @@ class NearbyBottomSheetModal extends StatelessWidget {
           children: [
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: attach,
+                onPressed: () => pick(ImageSource.camera),
                 style: _sheetPrimary(ui),
                 icon: const Icon(Icons.photo_camera_outlined, size: 18),
                 label: const Text('Tomar foto'),
@@ -533,7 +555,7 @@ class NearbyBottomSheetModal extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: attach,
+                onPressed: () => pick(ImageSource.gallery),
                 style: _sheetSecondary(ui),
                 icon: const Icon(Icons.photo_library_outlined, size: 18),
                 label: const Text('Galería'),
@@ -566,7 +588,7 @@ class NearbyBottomSheetModal extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(
-                  onTap: attach,
+                  onTap: () => pick(ImageSource.gallery),
                   child: Center(child: Icon(ic, color: ui.ink, size: 28)),
                 ),
               );

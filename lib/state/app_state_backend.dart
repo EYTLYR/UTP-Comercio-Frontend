@@ -1136,12 +1136,32 @@ extension NearbyBackend on AppState {
             final expiresAt = DateTime.now()
                 .add(Duration(hours: ttlHours))
                 .millisecondsSinceEpoch;
+            String? uploadedPhotoUrl;
+            if (pub.photoBytes != null && !offline && connected) {
+              try {
+                final uploadRes = await api.upload(
+                  'POST',
+                  'files',
+                  parts: () => [
+                    _photoPart(
+                      'photo',
+                      pub.photoBytes!,
+                      pub.photoName ?? 'foto.jpg',
+                    ),
+                  ],
+                ) as Map<String, dynamic>;
+                uploadedPhotoUrl = uploadRes['url'] as String?;
+              } catch (_) {
+                /* Si falla la subida de foto se continúa con la publicación */
+              }
+            }
             final payload = {
               'clientId': clientId,
               'type': type == 'need' ? 'NEED' : 'OFFER',
               'category':
                   Api2App.reverse(Api2App.postCat, catId) ?? 'TEMPORARY_HELP',
               if (text.isNotEmpty) 'text': text,
+              'photoUrl': ?uploadedPhotoUrl,
               'lat': ?effLat,
               'lng': ?effLng,
               'expiresAt': expiresAt,
