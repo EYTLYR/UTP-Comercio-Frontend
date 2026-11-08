@@ -1,0 +1,46 @@
+[
+  {
+    "kind": "hook", "eyebrow": "EL PROBLEMA", "title": "La ayuda puede estar\na una cuadra.", "body": "Encontrarla a tiempo\nno debería ser tan difícil.", "tags": ["Cercanía", "Confianza", "Coordinación"],
+    "voice": "En una emergencia, la ayuda puede estar a una cuadra. El problema es no saber cómo encontrarla cuando más la necesitas."
+  },
+  {
+    "kind": "dual", "eyebrow": "LA SOLUCIÓN", "title": "Tu barrio,\nconectado.", "body": "Una red para ayudarnos hoy\ny estar preparados mañana.", "mobile": "home", "web": "home", "tags": ["Móvil + web"],
+    "voice": "Presentamos Nearby: una red que conecta vecinos, servicios y apoyo cercano. Disponible en móvil y web, para ayudarnos hoy y estar preparados mañana."
+  },
+  {
+    "kind": "mobile", "eyebrow": "01 · SERVICIOS DE CONFIANZA", "title": "Encuentra talento.\nActiva tu barrio.", "body": "Busca por oficio y revisa\nel Visto Bueno Vecinal.", "mobile": "servicios", "tags": ["Buscar", "Comparar", "Contactar"],
+    "voice": "¿Necesitas un gasfitero, un electricista o una clase? Busca el oficio y revisa las recomendaciones de tus vecinos. La confianza también se construye cerca."
+  },
+  {
+    "kind": "mobile", "eyebrow": "02 · COLABORACIÓN COTIDIANA", "title": "Pide un favor.\nOfrece una mano.", "body": "Necesidades y ofrecimientos\nen un mismo muro vecinal.", "mobile": "muro", "tags": ["Publicar", "Responder", "Ayudar"],
+    "voice": "En el muro puedes pedir un favor u ofrecer ayuda. Una herramienta, un traslado o un poco de tiempo pueden resolver una necesidad real de tu comunidad."
+  },
+  {
+    "kind": "sos", "eyebrow": "03 · CUANDO CADA SEGUNDO CUENTA", "title": "Mantén SOS.\nActiva tu red.", "body": "Dos segundos de presión.\nCuenta regresiva para confirmar.", "mobile": "sos-countdown", "tags": ["Mantener 2 s", "Confirmar", "Alertar"],
+    "voice": "Ante una emergencia, mantén presionado SOS durante dos segundos. Una cuenta regresiva te permite cancelar si fue un error, antes de enviar la alerta con tu ubicación."
+  },
+  {
+    "kind": "mobile", "eyebrow": "04 · DE LA ALERTA A LA RESPUESTA", "title": "Pedir ayuda\nes solo el inicio.", "body": "Conecta con vecinos, contactos\ny brigadistas de tu zona.", "mobile": "sos-sent", "tags": ["Ubicación", "Contactos", "Respuesta"],
+    "voice": "La alerta llega a tu red de apoyo: vecinos cercanos, contactos de confianza y brigadistas. Desde la aplicación puedes seguir la respuesta y saber quién viene en camino."
+  },
+  {
+    "kind": "web", "eyebrow": "05 · COORDINACIÓN EN EMERGENCIA", "title": "Una zona.\nUna respuesta\ncoordinada.", "body": "Reportes, prioridades y recursos\npara organizar el apoyo.", "web": "tablero", "tags": ["Brigadistas", "Municipalidad"],
+    "voice": "Cuando la zona entra en emergencia, el tablero humanitario reúne reportes y estados de atención. Vecinos, brigadistas y municipalidad pueden organizar el apoyo con una visión compartida."
+  },
+  {
+    "kind": "web", "eyebrow": "06 · EXPERIENCIA WEB", "title": "Más espacio.\nLa misma red.", "body": "Navegación lateral y contenido\nadaptado al escritorio.", "web": "home", "tags": ["Diseño adaptable", "Acceso desde navegador"],
+    "voice": "En la web, la experiencia se adapta al escritorio con navegación lateral y más espacio para consultar la información. La misma comunidad, desde la pantalla que tengas a mano."
+  },
+  {
+    "kind": "mobile", "eyebrow": "07 · DISEÑADO PARA INCLUIR", "title": "Que nadie\nse quede fuera.", "body": "Texto grande, alto contraste\ny preferencias de accesibilidad.", "mobile": "perfil", "tags": ["Lectura cómoda", "Controles claros"],
+    "voice": "El diseño también debe incluir. Nearby ofrece texto grande y alto contraste, con controles claros para que más personas puedan participar en la red de apoyo de su barrio."
+  },
+  {
+    "kind": "value", "eyebrow": "EL DIFERENCIAL", "title": "La red se construye\nantes de necesitarla.", "body": "Uso cotidiano. Confianza vecinal.\nUna comunidad mejor preparada.", "tags": ["Valor diario", "Confianza local", "Preparación"],
+    "voice": "Nuestro diferencial es simple: una comunidad que ya colabora en el día a día está mejor preparada para responder. Nearby convierte la cercanía en una red de apoyo organizada."
+  },
+  {
+    "kind": "cta", "eyebrow": "DEL PROTOTIPO AL IMPACTO", "title": "Hagamos de un barrio\nel próximo piloto.", "body": "Vecinos + brigadistas + municipalidad.\nProbemos, aprendamos y midamos juntos.", "tags": ["IMPULSEMOS EL PILOTO"],
+    "voice": "Hoy buscamos el impulso para llevar Nearby a un piloto con vecinos, brigadistas y una municipalidad. Jurado: apuesten por una solución que conecta la ayuda con quienes la necesitan. Nearby. Siempre cerca para ayudar."
+  }
+]
