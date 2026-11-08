@@ -1519,11 +1519,19 @@ extension NearbyBackend on AppState {
 
   static const _sosTypes = {
     'salud': 'HEALTH',
+    'health': 'HEALTH',
     'fuego': 'FIRE',
+    'fire': 'FIRE',
     'robo': 'ROBBERY',
+    'robbery': 'ROBBERY',
     'sismo': 'EARTHQUAKE',
+    'earthquake': 'EARTHQUAKE',
     'violencia': 'VIOLENCE',
+    'violence': 'VIOLENCE',
+    'violencia_domestica': 'VIOLENCE',
+    'domestic_violence': 'VIOLENCE',
     'otro': 'OTHER',
+    'other': 'OTHER',
   };
 
   /// Envía el SOS (al terminar la cuenta regresiva) con protección contra toques duplicados.
@@ -1578,6 +1586,9 @@ extension NearbyBackend on AppState {
 
   /// "Estoy a salvo · cerrar alerta".
   Future<void> sosSafe() async {
+    if (isSilentMode) {
+      unawaited(setSilentMode(false));
+    }
     final id = sosResult?['id'] as String?;
     if (id == null || !connected) return;
     try {

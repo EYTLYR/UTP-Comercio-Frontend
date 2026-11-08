@@ -276,7 +276,9 @@ class NearbyMasterShell extends StatelessWidget {
     final emUI = state.emergency && meta.bar != null && !meta.noEm;
 
     Color screenBg = _pageBackground;
-    if (meta.full == 'red') screenBg = NearbyColors.sos;
+    if (meta.full == 'red') {
+      screenBg = state.isSilentMode ? Colors.black : NearbyColors.sos;
+    }
     if (meta.full == 'navyfull') screenBg = NearbyColors.navy;
 
     return AnimatedContainer(

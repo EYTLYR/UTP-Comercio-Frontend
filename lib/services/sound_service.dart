@@ -14,11 +14,15 @@ class SoundService {
   bool _callRinging = false;
   bool _sosAlarming = false;
 
+  /// Si es true, silencia por completo cualquier sonido para proteger la vida del usuario en Modo Sigiloso.
+  bool isSilentMode = false;
+
   bool get isCallRinging => _callRinging;
   bool get isSosAlarming => _sosAlarming;
 
   /// Tono de llamada saliente ("tuu... tuu..."): suena mientras espera que contesten.
   Future<void> playCallDialing() async {
+    if (isSilentMode) return;
     try {
       await stopCallSounds();
       _callRinging = true;
@@ -31,6 +35,7 @@ class SoundService {
 
   /// Timbre de llamada entrante ("ringtone"): suena cuando otro vecino nos está llamando.
   Future<void> playCallRingtone() async {
+    if (isSilentMode) return;
     try {
       await stopCallSounds();
       _callRinging = true;
@@ -43,6 +48,7 @@ class SoundService {
 
   /// Tono al colgar o cortar la llamada ("beep-beep-beep").
   Future<void> playCallEnded() async {
+    if (isSilentMode) return;
     try {
       await stopCallSounds();
       await _sfxPlayer.play(AssetSource('sounds/call_ended.wav'));
@@ -61,6 +67,7 @@ class SoundService {
 
   /// Sirena de alerta de emergencia SOS de alta prioridad.
   Future<void> playSosAlarm() async {
+    if (isSilentMode) return;
     try {
       if (_sosAlarming) return;
       _sosAlarming = true;
@@ -81,6 +88,7 @@ class SoundService {
 
   /// Pulso de advertencia en cuenta regresiva SOS (3, 2, 1...).
   Future<void> playSosCountdown() async {
+    if (isSilentMode) return;
     try {
       await _sfxPlayer.play(AssetSource('sounds/sos_countdown.wav'));
     } catch (e) {
@@ -90,6 +98,7 @@ class SoundService {
 
   /// Notificación corta tipo pop al enviar o recibir mensajes.
   Future<void> playMessagePop() async {
+    if (isSilentMode) return;
     try {
       await _sfxPlayer.play(AssetSource('sounds/message_pop.wav'));
     } catch (e) {

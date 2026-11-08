@@ -23,6 +23,11 @@ class InternetCall extends ChangeNotifier {
   bool _disposed = false, _polling = false, _remoteAnswered = false;
   final Set<String> _closed = {};
   int _generation = 0, _networkErrors = 0;
+
+  /// Interceptor de llamadas entrantes: si retorna true (ej. Modo Sigiloso activo),
+  /// la llamada se auto-rechaza silenciosamente en el servidor sin emitir ringtone.
+  bool Function()? incomingCallInterceptor;
+
   bool get active => const [
     'preparing',
     'ringing',
@@ -57,7 +62,23 @@ class InternetCall extends ChangeNotifier {
         (row) => !_closed.contains((row as Map)['id']),
       );
       if (_disposed || active || available.isEmpty) return false;
-      details = Map<String, dynamic>.from(available.first as Map);
+      final incoming = Map<String, dynamic>.from(available.first as Map);
+      final id = incoming['id'] as String?;
+
+      // Interceptor: si hay un SOS activo con isSilentMode = true,
+      // rechaza automáticamente la llamada entrante (Auto-Reject)
+      // para que el teléfono no suene, permitiendo comunicación únicamente por el chat silencioso.
+      if (incomingCallInterceptor != null && incomingCallInterceptor!()) {
+        if (id != null) {
+          _closed.add(id);
+          try {
+            await api.post('calls/$id/end');
+          } catch (_) {}
+        }
+        return false;
+      }
+
+      details = incoming;
       phase = 'incoming';
       error = null;
       _duration.reset();

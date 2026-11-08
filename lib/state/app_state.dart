@@ -6,6 +6,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:screen_brightness/screen_brightness.dart';
 
 import '../api/api_client.dart';
 import '../api/api_config.dart';
@@ -70,7 +71,8 @@ class PublishDraft {
 
 class AppState extends ChangeNotifier {
   final deviceActions = DeviceActions();
-  late final internetCall = InternetCall(api: api);
+  late final internetCall = InternetCall(api: api)
+    ..incomingCallInterceptor = () => isSilentMode;
   bool callLaunching = false;
   String? otpDevCode;
   int otpResendSeconds = 30;
@@ -78,6 +80,31 @@ class AppState extends ChangeNotifier {
   bool _disposed = false;
   int toastId = 0;
   static const toastDuration = Duration(milliseconds: 2800);
+
+  /// Modo Sigiloso (Silent SOS): para emergencias de Robo o Violencia Doméstica.
+  /// Silencia pitidos y alarmas, baja el brillo al mínimo, oscurece la UI simulando teléfono apagado
+  /// y rechaza llamadas VoIP entrantes para no delatar a la víctima.
+  bool isSilentMode = false;
+
+  Future<void> setSilentMode(bool silent) async {
+    isSilentMode = silent;
+    SoundService.instance.isSilentMode = silent;
+    if (silent) {
+      unawaited(SoundService.instance.stopAll());
+      if (internetCall.active) {
+        unawaited(internetCall.end(message: 'Llamada rechazada por Modo Sigiloso'));
+      }
+      try {
+        await ScreenBrightness.instance.setApplicationScreenBrightness(0.0);
+      } catch (_) {}
+    } else {
+      try {
+        await ScreenBrightness.instance.resetApplicationScreenBrightness();
+      } catch (_) {}
+    }
+    notifyListeners();
+  }
+
   void dismissToast() {
     _toastTimer?.cancel();
     toastMessage = null;
@@ -122,6 +149,9 @@ class AppState extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    if (isSilentMode) {
+      unawaited(ScreenBrightness.instance.resetApplicationScreenBrightness());
+    }
     unawaited(SoundService.instance.stopAll());
     _connSub?.cancel();
     _pollTimer?.cancel();
@@ -709,6 +739,9 @@ class AppState extends ChangeNotifier {
     sheet = null;
     mapFilter = 'all';
     mapSel = null;
+    if (!emergency && isSilentMode) {
+      unawaited(setSilentMode(false));
+    }
     if (!emergency && ['tablero', 'recursos', 'apoyo'].contains(screen)) {
       hist.clear();
       screen = 'home';

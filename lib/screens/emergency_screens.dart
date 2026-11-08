@@ -389,6 +389,7 @@ class _SosCountdownScreenState extends State<SosCountdownScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _countdown;
   bool _sent = false;
+  bool _blackoutTotal = false;
   Timer? _deadline;
   Timer? _soundTicker;
   static const types = [
@@ -400,13 +401,29 @@ class _SosCountdownScreenState extends State<SosCountdownScreen>
     ('otro', 'Otro', Icons.more_horiz),
   ];
 
+  bool _isSilentCategory(String category) {
+    final upper = category.toUpperCase();
+    return upper == 'ROBO' ||
+        upper == 'ROBBERY' ||
+        upper == 'VIOLENCIA' ||
+        upper == 'VIOLENCE' ||
+        upper == 'DOMESTIC_VIOLENCE';
+  }
+
   @override
   void initState() {
     super.initState();
-    unawaited(SoundService.instance.playSosCountdown());
-    _soundTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+    final initialType = widget.state.sosType;
+    if (initialType != null && _isSilentCategory(initialType)) {
+      unawaited(widget.state.setSilentMode(true));
+    } else if (!widget.state.isSilentMode) {
       unawaited(SoundService.instance.playSosCountdown());
-    });
+      _soundTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (!widget.state.isSilentMode) {
+          unawaited(SoundService.instance.playSosCountdown());
+        }
+      });
+    }
     _countdown =
         AnimationController(vsync: this, duration: const Duration(seconds: 5))
           ..addStatusListener((status) {
@@ -416,15 +433,51 @@ class _SosCountdownScreenState extends State<SosCountdownScreen>
     _deadline = Timer(const Duration(seconds: 5), _send);
   }
 
+  void _selectCategory(String typeKey) {
+    widget.state.sosType = typeKey;
+    final isSilent = _isSilentCategory(typeKey);
+    if (isSilent) {
+      _soundTicker?.cancel();
+      unawaited(widget.state.setSilentMode(true));
+    } else if (widget.state.isSilentMode) {
+      unawaited(widget.state.setSilentMode(false));
+      if (!_sent) {
+        _soundTicker?.cancel();
+        _soundTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+          if (!widget.state.isSilentMode) {
+            unawaited(SoundService.instance.playSosCountdown());
+          }
+        });
+      }
+    }
+    setState(() {});
+  }
+
   void _send() {
     if (_sent) return;
     _sent = true;
     _soundTicker?.cancel();
     _deadline?.cancel();
     _countdown.stop();
-    unawaited(SoundService.instance.playSosAlarm());
+    if (!widget.state.isSilentMode) {
+      unawaited(SoundService.instance.playSosAlarm());
+    }
     widget.state.go('sos-sent');
     widget.state.sendSos();
+  }
+
+  void _cancel() {
+    _soundTicker?.cancel();
+    _deadline?.cancel();
+    _countdown.stop();
+    if (widget.state.isSilentMode) {
+      unawaited(widget.state.setSilentMode(false));
+    }
+    widget.state.go('home', reset: true);
+    widget.state.toast(
+      'Alerta cancelada. No se envió nada.',
+      icon: 'cancel',
+    );
   }
 
   @override
@@ -435,13 +488,150 @@ class _SosCountdownScreenState extends State<SosCountdownScreen>
     super.dispose();
   }
 
+  Widget _buildSilentScreen(BuildContext context, double g) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onDoubleTap: () {
+        setState(() => _blackoutTotal = !_blackoutTotal);
+      },
+      child: ColoredBox(
+        color: Colors.black,
+        child: SafeArea(
+          child: _blackoutTotal
+              ? const SizedBox.expand()
+              : Padding(
+                  padding: EdgeInsets.fromLTRB(g, 16, g, 24),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: const [
+                              Icon(Icons.shield, color: Colors.white24, size: 14),
+                              SizedBox(width: 6),
+                              Text(
+                                'MODO SIGILOSO ACTIVO',
+                                style: TextStyle(
+                                  color: Colors.white24,
+                                  fontSize: 11,
+                                  letterSpacing: 1.0,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            TimeOfDay.now().format(context),
+                            style: const TextStyle(
+                              color: Colors.white24,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      const Icon(
+                        Icons.visibility_off_outlined,
+                        color: Colors.white24,
+                        size: 48,
+                      ),
+                      const SizedBox(height: 14),
+                      const Text(
+                        'Pantalla apagada simulada',
+                        style: TextStyle(
+                          color: Colors.white38,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      AnimatedBuilder(
+                        animation: _countdown,
+                        builder: (context, _) {
+                          final left = (5 * (1 - _countdown.value)).ceil();
+                          return Text(
+                            'Enviando auxilio silencioso en ${left}s...',
+                            style: const TextStyle(
+                              color: Colors.white30,
+                              fontSize: 14,
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.04),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.white12),
+                        ),
+                        child: const Text(
+                          'Sonido silenciado · Brillo al mínimo\nLlamadas VoIP entrantes se auto-rechazan',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white30,
+                            fontSize: 12,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      ElevatedButton.icon(
+                        onPressed: _send,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white12,
+                          foregroundColor: Colors.white70,
+                          minimumSize: const Size.fromHeight(48),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            side: const BorderSide(color: Colors.white24),
+                          ),
+                        ),
+                        icon: const Icon(Icons.send, size: 18, color: Colors.white70),
+                        label: const Text('Enviar ya en silencio'),
+                      ),
+                      const SizedBox(height: 10),
+                      TextButton(
+                        onPressed: _cancel,
+                        child: const Text(
+                          'Cancelar alerta',
+                          style: TextStyle(
+                            color: Colors.white38,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Doble toque para alternar pantalla 100% apagada',
+                        style: TextStyle(
+                          color: Colors.white12,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+
   @override
-  Widget build(BuildContext context) => ColoredBox(
-    color: NearbyColors.sos,
-    child: LayoutBuilder(
-      builder: (context, bounds) {
-        final g = _gutter(bounds.maxWidth);
-        return Column(
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, bounds) {
+      final g = _gutter(bounds.maxWidth);
+      if (widget.state.isSilentMode) {
+        return _buildSilentScreen(context, g);
+      }
+      return ColoredBox(
+        color: NearbyColors.sos,
+        child: Column(
           children: [
             Expanded(
               child: SingleChildScrollView(
@@ -462,12 +652,7 @@ class _SosCountdownScreenState extends State<SosCountdownScreen>
                       const SizedBox(height: 16),
                       SosCountdownButton(
                         countdown: _countdown,
-                        onCancel: () {
-                          _soundTicker?.cancel();
-                          _deadline?.cancel();
-                          _countdown.stop();
-                          widget.state.back();
-                        },
+                        onCancel: _cancel,
                         onComplete: _send,
                       ),
                       const SizedBox(height: 24),
@@ -502,9 +687,7 @@ class _SosCountdownScreenState extends State<SosCountdownScreen>
                                   button: true,
                                   selected: selected,
                                   child: InkWell(
-                                    onTap: () => setState(
-                                      () => widget.state.sosType = type.$1,
-                                    ),
+                                    onTap: () => _selectCategory(type.$1),
                                     borderRadius: BorderRadius.circular(12),
                                     child: AnimatedContainer(
                                       duration: const Duration(
@@ -575,15 +758,7 @@ class _SosCountdownScreenState extends State<SosCountdownScreen>
                     ),
                     const SizedBox(height: 10),
                     OutlinedButton.icon(
-                      onPressed: () {
-                        _deadline?.cancel();
-                        _countdown.stop();
-                        widget.state.go('home', reset: true);
-                        widget.state.toast(
-                          'Alerta cancelada. No se envió nada.',
-                          icon: 'cancel',
-                        );
-                      },
+                      onPressed: _cancel,
                       style: _onRedOutline(),
                       icon: const Icon(Icons.close, size: 20),
                       label: const Text(
@@ -596,9 +771,9 @@ class _SosCountdownScreenState extends State<SosCountdownScreen>
               ),
             ),
           ],
-        );
-      },
-    ),
+        ),
+      );
+    },
   );
 }
 
@@ -797,10 +972,12 @@ class SosSentScreen extends StatelessWidget {
           key: const ValueKey('sos-sent-scroll'),
           padding: EdgeInsets.zero,
           children: [
-            // Cabecera roja
+            // Cabecera roja o sigilosa
             Container(
               key: const ValueKey('sos-sent-header'),
-              color: NearbyColors.sos,
+              color: state.isSilentMode
+                  ? const Color(0xFF0F172A)
+                  : NearbyColors.sos,
               padding: EdgeInsets.fromLTRB(g, 12, g, 32),
               child: _readable(
                 Column(
@@ -822,20 +999,28 @@ class SosSentScreen extends StatelessWidget {
                     Container(
                       width: 60,
                       height: 60,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
+                      decoration: BoxDecoration(
+                        color: state.isSilentMode
+                            ? Colors.white12
+                            : Colors.white,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.check,
-                        color: NearbyColors.sos,
+                      child: Icon(
+                        state.isSilentMode
+                            ? Icons.security
+                            : Icons.check,
+                        color: state.isSilentMode
+                            ? Colors.amber
+                            : NearbyColors.sos,
                         size: 36,
                       ),
                     ),
                     const SizedBox(height: 14),
-                    const Text(
-                      'Alerta enviada',
-                      style: TextStyle(
+                    Text(
+                      state.isSilentMode
+                          ? 'Alerta sigilosa enviada'
+                          : 'Alerta enviada',
+                      style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
@@ -844,9 +1029,11 @@ class SosSentScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      state.connected
-                          ? 'Tipo: $typeLabel · tu ubicación actual'
-                          : 'Tipo: $typeLabel · ${state.publishWhere}',
+                      state.isSilentMode
+                          ? 'Tipo: $typeLabel · Llamadas VoIP y sonidos bloqueados'
+                          : (state.connected
+                              ? 'Tipo: $typeLabel · tu ubicación actual'
+                              : 'Tipo: $typeLabel · ${state.publishWhere}'),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 14,
@@ -874,6 +1061,71 @@ class SosSentScreen extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      if (state.isSilentMode) ...[
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1E293B),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.amber.withValues(alpha: 0.5),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: const [
+                                  Icon(
+                                    Icons.volume_off,
+                                    color: Colors.amber,
+                                    size: 20,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Modo Sigiloso Activo',
+                                    style: TextStyle(
+                                      color: Colors.amber,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              const Text(
+                                'Tu alerta fue enviada en silencio y el brillo está al mínimo. Para protegerte, las llamadas VoIP entrantes se rechazan automáticamente para que tu teléfono no suene.',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 13,
+                                  height: 1.4,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              ElevatedButton.icon(
+                                onPressed: () => state.go('mensajes'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF0284C7),
+                                  foregroundColor: Colors.white,
+                                  minimumSize: const Size.fromHeight(44),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                icon: const Icon(
+                                  Icons.chat_bubble_outline,
+                                  size: 18,
+                                ),
+                                label: const Text(
+                                  'Abrir Chat Silencioso',
+                                  style: TextStyle(fontWeight: FontWeight.w700),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       _listCard(statusRows),
                       const SizedBox(height: 12),
 
@@ -937,7 +1189,7 @@ class SosSentScreen extends StatelessWidget {
                           )) {
                             return;
                           }
-                          state.sosSafe();
+                          await state.sosSafe();
                           state.go('home', reset: true);
                           state.toast(
                             'Avisamos a todos que estás a salvo',
