@@ -107,9 +107,10 @@ class _SosHoldButtonState extends State<SosHoldButton>
       child: AnimatedScale(
         scale: _isHolding ? 0.94 : 1.0,
         duration: const Duration(milliseconds: 150),
-        child: AnimatedBuilder(
-          animation: Listenable.merge([_controller, _pulse]),
-          builder: (context, child) {
+        child: RepaintBoundary(
+          child: AnimatedBuilder(
+            animation: Listenable.merge([_controller, _pulse]),
+            builder: (context, child) {
             return Stack(
               clipBehavior: Clip.none,
               children: [
@@ -201,6 +202,7 @@ class _SosHoldButtonState extends State<SosHoldButton>
           },
         ),
       ),
+    ),
     );
   }
 }

@@ -100,7 +100,8 @@ class _LiveMapState extends State<LiveMap> {
     children: [
       NavigationContentFade.wrap(
         context,
-        FlutterMap(
+        RepaintBoundary(
+          child: FlutterMap(
           mapController: _map,
           options: MapOptions(
             onTap: (_, _) {
@@ -176,6 +177,7 @@ class _LiveMapState extends State<LiveMap> {
           ],
         ),
       ),
+    ),
       Positioned(
         key: const ValueKey('map-location-control'),
         right: 4,

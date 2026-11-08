@@ -1,7 +1,4 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:url_launcher/url_launcher.dart';
 
 import '../widgets/common_widgets.dart';
 import '../widgets/navigation_chrome.dart';
@@ -924,15 +921,11 @@ class PerfilScreen extends StatelessWidget {
 class _ProfileStat extends StatelessWidget {
   final String val;
   final String label;
-  final VoidCallback? onTap;
-  const _ProfileStat({required this.val, required this.label, this.onTap});
+  const _ProfileStat({required this.val, required this.label});
 
   @override
   Widget build(BuildContext context) {
-    return PressableScale(
-      onTap: onTap,
-      scale: 0.96,
-      child: Container(
+    return Container(
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
@@ -975,10 +968,9 @@ class _ProfileStat extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
+      );
+    }
   }
-}
 
 class _SectionHeader extends StatelessWidget {
   final String title;

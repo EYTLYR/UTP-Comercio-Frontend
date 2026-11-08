@@ -77,50 +77,52 @@ class _SosCountdownButtonState extends State<SosCountdownButton>
             children: [
               // Concentric fluid ripple waves
               if (!disabledAnimations)
-                AnimatedBuilder(
-                  animation: _waveController,
-                  builder: (context, _) {
-                    final t = _waveController.value;
-                    return Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        // Wave 1 (Outer)
-                        Transform.scale(
-                          scale: 0.9 + (t * 0.35),
-                          child: Container(
-                            width: 200,
-                            height: 200,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.white.withValues(
-                                  alpha: (1.0 - t) * 0.35,
+                RepaintBoundary(
+                  child: AnimatedBuilder(
+                    animation: _waveController,
+                    builder: (context, _) {
+                      final t = _waveController.value;
+                      return Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // Wave 1 (Outer)
+                          Transform.scale(
+                            scale: 0.9 + (t * 0.35),
+                            child: Container(
+                              width: 200,
+                              height: 200,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white.withValues(
+                                    alpha: (1.0 - t) * 0.35,
+                                  ),
+                                  width: 2.5,
                                 ),
-                                width: 2.5,
                               ),
                             ),
                           ),
-                        ),
-                        // Wave 2 (Inner delayed)
-                        Transform.scale(
-                          scale: 0.85 + (((t + 0.5) % 1.0) * 0.3),
-                          child: Container(
-                            width: 180,
-                            height: 180,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.white.withValues(
-                                  alpha: (1.0 - ((t + 0.5) % 1.0)) * 0.45,
+                          // Wave 2 (Inner delayed)
+                          Transform.scale(
+                            scale: 0.85 + (((t + 0.5) % 1.0) * 0.3),
+                            child: Container(
+                              width: 180,
+                              height: 180,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white.withValues(
+                                    alpha: (1.0 - ((t + 0.5) % 1.0)) * 0.45,
+                                  ),
+                                  width: 2.0,
                                 ),
-                                width: 2.0,
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    );
-                  },
+                        ],
+                      );
+                    },
+                  ),
                 ),
 
               // Solid Circular Core

@@ -466,7 +466,11 @@ class _CachedTileImage extends ImageProvider<_CachedTileImage> {
     final buffer = await ui.ImmutableBuffer.fromUint8List(
       bytes ?? TileProvider.transparentImage,
     );
-    return decode(buffer);
+    return decode(
+      buffer,
+      getTargetSize: (int intrinsicWidth, int intrinsicHeight) =>
+          const ui.TargetImageSize(width: 256, height: 256),
+    );
   }
 
   @override

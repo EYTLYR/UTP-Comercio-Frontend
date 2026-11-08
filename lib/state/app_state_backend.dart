@@ -1116,8 +1116,12 @@ extension NearbyBackend on AppState {
           if (rejected > 0) {
             toast('$rejected envío(s) no se pudieron sincronizar', icon: 'error');
           }
+          if (_outbox.isNotEmpty) {
+            _scheduleOutboxRetry();
+          }
         } on ApiException catch (_) {
-          // Sin 2xx (sin red o servidor caído): todo sigue en SQLite y en la cola.
+          // Sin 2xx (sin red o servidor caído): todo sigue en SQLite y en la cola con backoff.
+          _scheduleOutboxRetry();
         }
       }
       final calls = List<Future<void> Function()>.from(_pendingCalls);
@@ -1133,6 +1137,21 @@ extension NearbyBackend on AppState {
     }
   }
 
+  /// Reintenta la cola con Exponential Backoff y Jitter para proteger la red.
+  void _scheduleOutboxRetry() {
+    _outboxRetryTimer?.cancel();
+    if (_disposed || offline || !connected || _outbox.isEmpty) return;
+    final maxRetry = _outbox.map((e) => e.retryCount).fold<int>(0, math.max);
+    final backoffSec = math.min(60, 1 << math.min(maxRetry, 6));
+    final jitterMs = math.Random().nextInt(500);
+    final delay = Duration(seconds: backoffSec, milliseconds: jitterMs);
+    _outboxRetryTimer = Timer(delay, () {
+      if (!_disposed && !offline && connected && _outbox.isNotEmpty) {
+        unawaited(_flushOutbox());
+      }
+    });
+  }
+
   // ================================================================ SOS
 
   static const _sosTypes = {
@@ -1144,38 +1163,44 @@ extension NearbyBackend on AppState {
     'otro': 'OTHER',
   };
 
-  /// Envía el SOS (al terminar la cuenta regresiva).
+  /// Envía el SOS (al terminar la cuenta regresiva) con protección contra toques duplicados.
   Future<void> sendSos() async {
-    sosResult = null;
-    sosDetail = null;
-    if (!connected) return;
-    final pos = await location.current();
-    final payload = {
-      'clientId': newClientId(),
-      'lat': pos.lat,
-      'lng': pos.lng,
-      if (sosType != null) 'type': _sosTypes[sosType] ?? 'OTHER',
-    };
-    if (offline) {
-      await _enqueue('SOS', payload);
-      return;
-    }
+    if (_isSendingSos) return;
+    _isSendingSos = true;
     try {
-      final r = await api.post('sos', body: payload) as Map<String, dynamic>;
-      sosResult = r;
-      lastCode = r['smsCode'] as String? ?? lastCode;
-      if (r['zoneEmergencyActivated'] == true) await _loadMe();
-      refresh();
-    } on ApiException catch (e) {
-      if (e.isNetwork) {
+      sosResult = null;
+      sosDetail = null;
+      if (!connected) return;
+      final pos = await location.current();
+      final payload = {
+        'clientId': newClientId(),
+        'lat': pos.lat,
+        'lng': pos.lng,
+        if (sosType != null) 'type': _sosTypes[sosType] ?? 'OTHER',
+      };
+      if (offline) {
         await _enqueue('SOS', payload);
-        toast(
-          'Sin internet: tu alerta se envía apenas vuelva la señal',
-          icon: 'cloud_off',
-        );
-      } else {
-        toast(e.message, icon: 'error');
+        return;
       }
+      try {
+        final r = await api.post('sos', body: payload) as Map<String, dynamic>;
+        sosResult = r;
+        lastCode = r['smsCode'] as String? ?? lastCode;
+        if (r['zoneEmergencyActivated'] == true) await _loadMe();
+        refresh();
+      } on ApiException catch (e) {
+        if (e.isNetwork) {
+          await _enqueue('SOS', payload);
+          toast(
+            'Sin internet: tu alerta se envía apenas vuelva la señal',
+            icon: 'cloud_off',
+          );
+        } else {
+          toast(e.message, icon: 'error');
+        }
+      }
+    } finally {
+      _isSendingSos = false;
     }
   }
 

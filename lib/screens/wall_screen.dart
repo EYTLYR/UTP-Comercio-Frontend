@@ -20,184 +20,207 @@ class WallScreen extends StatelessWidget {
       return matchesSeg && matchesCat;
     }).toList();
 
-    return ListView(
-      padding: NavigationInsets.of(context) + const EdgeInsets.only(bottom: 24),
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Muro solidario',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  color: theme.ink,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Cadena de favores: resolvemos necesidades sin dinero.',
-                style: TextStyle(color: theme.muted, fontSize: 14),
-              ),
-            ],
-          ),
-        ),
-
-        // Cadena de favores progress banner
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: theme.accentSoft,
-              borderRadius: BorderRadius.circular(20),
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.only(
+              top: NavigationInsets.of(context).top,
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.handshake, color: NearbyColors.accentInk, size: 36),
-                const SizedBox(width: 14),
-                Expanded(
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text.rich(
-                        TextSpan(
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            color: theme.ink,
-                            fontSize: 14,
-                          ),
-                          children: const [
-                            TextSpan(
-                              text: '127 favores ',
-                              style: TextStyle(fontWeight: FontWeight.w900),
-                            ),
-                            TextSpan(text: 'esta semana en Las Flores'),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: 0.71,
-                          minHeight: 8,
-                          backgroundColor: NearbyColors.accentInk.withValues(
-                            alpha: 0.15,
-                          ),
-                          valueColor: const AlwaysStoppedAnimation(
-                            NearbyColors.accent,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
                       Text(
-                        'Meta del mes: 180 · Tú hiciste 12',
-                        style: TextStyle(color: theme.muted, fontSize: 12),
+                        'Muro solidario',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          color: theme.ink,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Cadena de favores: resolvemos necesidades sin dinero.',
+                        style: TextStyle(color: theme.muted, fontSize: 14),
                       ),
                     ],
                   ),
                 ),
+
+                // Cadena de favores progress banner
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: theme.accentSoft,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.handshake, color: NearbyColors.accentInk, size: 36),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text.rich(
+                                TextSpan(
+                                  style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    color: theme.ink,
+                                    fontSize: 14,
+                                  ),
+                                  children: const [
+                                    TextSpan(
+                                      text: '127 favores ',
+                                      style: TextStyle(fontWeight: FontWeight.w900),
+                                    ),
+                                    TextSpan(text: 'esta semana en Las Flores'),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: LinearProgressIndicator(
+                                  value: 0.71,
+                                  minHeight: 8,
+                                  backgroundColor: NearbyColors.accentInk.withValues(
+                                    alpha: 0.15,
+                                  ),
+                                  valueColor: const AlwaysStoppedAnimation(
+                                    NearbyColors.accent,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Meta del mes: 180 · Tú hiciste 12',
+                                style: TextStyle(color: theme.muted, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Segmented controller (Todo / Necesitan / Ofrecen)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: theme.surface2,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      children: [
+                        _segButton('all', 'Todo'),
+                        _segButton('need', 'Necesitan'),
+                        _segButton('offer', 'Ofrecen'),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Category chips
+                SizedBox(
+                  height: 44,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: kPostCats.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 8),
+                    itemBuilder: (context, i) {
+                      final c = kPostCats[i];
+                      final isSel = state.muroCat == c.id;
+                      return FilterChip(
+                        label: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              c.icon,
+                              size: 16,
+                              color: isSel ? theme.btnInk : theme.muted,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(c.short ?? c.label),
+                          ],
+                        ),
+                        selected: isSel,
+                        onSelected: (_) {
+                          state.muroCat = isSel ? null : c.id;
+                          state.refresh();
+                        },
+                        backgroundColor: theme.surface,
+                        selectedColor: theme.btnBg,
+                        labelStyle: TextStyle(
+                          fontFamily: 'Poppins',
+                          color: isSel ? theme.btnInk : theme.ink,
+                          fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                          side: BorderSide(color: isSel ? theme.btnBg : theme.line),
+                        ),
+                        showCheckmark: false,
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 14),
               ],
             ),
           ),
         ),
-        const SizedBox(height: 12),
 
-        // Segmented controller (Todo / Necesitan / Ofrecen)
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: theme.surface2,
-              borderRadius: BorderRadius.circular(14),
+        // Posts list (Virtualizado)
+        if (filtered.isEmpty)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: theme.surface,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: theme.line),
+                  boxShadow: theme.cardShadow,
+                ),
+                child: Center(
+                  child: Text(
+                    'No hay publicaciones en esta categoría todavía.',
+                    style: TextStyle(color: theme.muted, fontSize: 13.5),
+                  ),
+                ),
+              ),
             ),
-            child: Row(
-              children: [
-                _segButton('all', 'Todo'),
-                _segButton('need', 'Necesitan'),
-                _segButton('offer', 'Ofrecen'),
-              ],
+          )
+        else
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              16,
+              0,
+              16,
+              NavigationInsets.of(context).bottom + 24,
+            ),
+            sliver: SliverList.builder(
+              itemCount: filtered.length,
+              itemBuilder: (context, index) => _buildPostCard(filtered[index]),
             ),
           ),
-        ),
-        const SizedBox(height: 12),
-
-        // Category chips
-        SizedBox(
-          height: 44,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            scrollDirection: Axis.horizontal,
-            itemCount: kPostCats.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 8),
-            itemBuilder: (context, i) {
-              final c = kPostCats[i];
-              final isSel = state.muroCat == c.id;
-              return FilterChip(
-                label: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      c.icon,
-                      size: 16,
-                      color: isSel ? theme.btnInk : theme.muted,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(c.short ?? c.label),
-                  ],
-                ),
-                selected: isSel,
-                onSelected: (_) {
-                  state.muroCat = isSel ? null : c.id;
-                  state.refresh();
-                },
-                backgroundColor: theme.surface,
-                selectedColor: theme.btnBg,
-                labelStyle: TextStyle(
-                  fontFamily: 'Poppins',
-                  color: isSel ? theme.btnInk : theme.ink,
-                  fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
-                  fontSize: 13,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(999),
-                  side: BorderSide(color: isSel ? theme.btnBg : theme.line),
-                ),
-                showCheckmark: false,
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 14),
-
-        // Posts list
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: filtered.isEmpty
-              ? Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: theme.surface,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: theme.line),
-                    boxShadow: theme.cardShadow,
-                  ),
-                  child: Center(
-                    child: Text(
-                      'No hay publicaciones en esta categoría todavía.',
-                      style: TextStyle(color: theme.muted, fontSize: 13.5),
-                    ),
-                  ),
-                )
-              : Column(
-                  children: filtered.map((p) => _buildPostCard(p)).toList(),
-                ),
-        ),
       ],
     );
   }
@@ -245,7 +268,8 @@ class WallScreen extends StatelessWidget {
     final isDone = state.helped[p.id] == true;
     final catObj = kPostCats.where((c) => c.id == p.cat).firstOrNull;
 
-    return Container(
+    return RepaintBoundary(
+      child: Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -377,6 +401,7 @@ class WallScreen extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

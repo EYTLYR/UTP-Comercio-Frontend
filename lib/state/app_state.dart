@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
@@ -109,6 +110,7 @@ class AppState extends ChangeNotifier {
     _connSub?.cancel();
     _pollTimer?.cancel();
     _chatTimer?.cancel();
+    _outboxRetryTimer?.cancel();
     voice.dispose();
     internetCall.removeListener(refresh);
     internetCall.dispose();
@@ -214,6 +216,8 @@ class AppState extends ChangeNotifier {
   final Map<String, String?> _lastMsgAt = {};
   Timer? _pollTimer;
   Timer? _chatTimer;
+  Timer? _outboxRetryTimer;
+  bool _isSendingSos = false;
 
   /// Brigada, delegado o Municipalidad. Sin sesión (demo) se muestra todo.
   bool get isBrigade =>
@@ -270,7 +274,7 @@ class AppState extends ChangeNotifier {
     }
     if (_disposed) return;
     if (connected) {
-      await this._loadMedicalCard();
+      await _loadMedicalCard();
     } else {
       medical = MedicalCard.demo();
     }

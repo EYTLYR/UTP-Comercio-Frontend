@@ -35,214 +35,234 @@ class _ServicesScreenState extends State<ServicesScreen> {
       return matchesCat && matchesSearch;
     }).toList();
 
-    return ListView(
-      padding: NavigationInsets.of(context) + const EdgeInsets.only(bottom: 24),
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Servicios del barrio',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  color: theme.ink,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Oficios y profesiones de tu zona, recomendados por tus vecinos.',
-                style: TextStyle(color: theme.muted, fontSize: 14),
-              ),
-            ],
-          ),
-        ),
-
-        // Search bar
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Container(
-            height: 52,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              color: theme.surface,
-              border: Border.all(color: theme.line),
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: theme.cardShadow,
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.only(
+              top: NavigationInsets.of(context).top,
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.search, color: theme.muted, size: 22),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    onChanged: (val) => setState(() => _search = val),
-                    decoration: const InputDecoration(
-                      hintText: '¿Qué necesitas? Ej. gasfitero',
-                      border: InputBorder.none,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Servicios del barrio',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          color: theme.ink,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Oficios y profesiones de tu zona, recomendados por tus vecinos.',
+                        style: TextStyle(color: theme.muted, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Search bar
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    height: 52,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: theme.surface,
+                      border: Border.all(color: theme.line),
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: theme.cardShadow,
                     ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.search, color: theme.muted, size: 22),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            onChanged: (val) => setState(() => _search = val),
+                            decoration: const InputDecoration(
+                              hintText: '¿Qué necesitas? Ej. gasfitero',
+                              border: InputBorder.none,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Category chips
+                SizedBox(
+                  height: 44,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: kServCats.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 8),
+                    itemBuilder: (context, i) {
+                      final c = kServCats[i];
+                      final isSel = state.servCat == c.id;
+                      return FilterChip(
+                        key: c.id == 'gasfiteria'
+                            ? state.tourTarget('service-category')
+                            : null,
+                        label: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              c.icon,
+                              size: 16,
+                              color: isSel ? theme.btnInk : theme.muted,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(c.label),
+                          ],
+                        ),
+                        selected: isSel,
+                        onSelected: (_) {
+                          state.servCat = c.id;
+                          state.refresh();
+                          if (c.id == 'gasfiteria') state.checkTourEvent('servcat');
+                        },
+                        backgroundColor: theme.surface,
+                        selectedColor: theme.btnBg,
+                        labelStyle: TextStyle(
+                          fontFamily: 'Poppins',
+                          color: isSel ? theme.btnInk : theme.ink,
+                          fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                          side: BorderSide(color: isSel ? theme.btnBg : theme.line),
+                        ),
+                        showCheckmark: false,
+                      );
+                    },
+                  ),
+                ),
+
+                // VB Explanation box
+                Container(
+                  margin: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.primarySoft,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.verified, color: theme.primaryDark, size: 22),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text.rich(
+                          TextSpan(
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              color: theme.primaryDark,
+                              fontSize: 12.5,
+                              height: 1.4,
+                            ),
+                            children: const [
+                              TextSpan(
+                                text: 'Visto Bueno Vecinal: ',
+                                style: TextStyle(fontWeight: FontWeight.w900),
+                              ),
+                              TextSpan(
+                                text:
+                                    'solo cuentan las recomendaciones de vecinos verificados de tu misma zona, una por persona.',
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
         ),
-        const SizedBox(height: 12),
 
-        // Category chips
-        SizedBox(
-          height: 44,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            scrollDirection: Axis.horizontal,
-            itemCount: kServCats.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 8),
-            itemBuilder: (context, i) {
-              final c = kServCats[i];
-              final isSel = state.servCat == c.id;
-              return FilterChip(
-                key: c.id == 'gasfiteria'
-                    ? state.tourTarget('service-category')
-                    : null,
-                label: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      c.icon,
-                      size: 16,
-                      color: isSel ? theme.btnInk : theme.muted,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(c.label),
-                  ],
-                ),
-                selected: isSel,
-                onSelected: (_) {
-                  state.servCat = c.id;
-                  state.refresh();
-                  if (c.id == 'gasfiteria') state.checkTourEvent('servcat');
-                },
-                backgroundColor: theme.surface,
-                selectedColor: theme.btnBg,
-                labelStyle: TextStyle(
-                  fontFamily: 'Poppins',
-                  color: isSel ? theme.btnInk : theme.ink,
-                  fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
-                  fontSize: 13,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(999),
-                  side: BorderSide(color: isSel ? theme.btnBg : theme.line),
-                ),
-                showCheckmark: false,
-              );
-            },
-          ),
-        ),
-
-        // VB Explanation box
-        Container(
-          margin: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: theme.primarySoft,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(Icons.verified, color: theme.primaryDark, size: 22),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text.rich(
-                  TextSpan(
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      color: theme.primaryDark,
-                      fontSize: 12.5,
-                      height: 1.4,
-                    ),
-                    children: const [
-                      TextSpan(
-                        text: 'Visto Bueno Vecinal: ',
-                        style: TextStyle(fontWeight: FontWeight.w900),
-                      ),
-                      TextSpan(
-                        text: 'solo cuentan las recomendaciones de vecinos verificados de tu misma zona, una por persona.',
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // Services List
-        Padding(
+        // Services List (Virtualizado)
+        SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            children: filtered.map((s) => _buildServiceRow(s)).toList(),
+          sliver: SliverList.builder(
+            itemCount: filtered.length,
+            itemBuilder: (context, index) => _buildServiceRow(filtered[index]),
           ),
         ),
 
         // Add service banner
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          child: InkWell(
-            onTap: () {
-              state.pub.reset(step: 2, type: 'service');
-              state.go('publicar');
-            },
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: theme.surface,
-                border: Border.all(color: theme.line),
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: theme.cardShadow,
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: theme.infoSoft,
-                      borderRadius: BorderRadius.circular(16),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              16,
+              12,
+              16,
+              NavigationInsets.of(context).bottom + 24,
+            ),
+            child: InkWell(
+              onTap: () {
+                state.pub.reset(step: 2, type: 'service');
+                state.go('publicar');
+              },
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: theme.surface,
+                  border: Border.all(color: theme.line),
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: theme.cardShadow,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: theme.infoSoft,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(
+                        Icons.add_business,
+                        color: theme.info,
+                        size: 26,
+                      ),
                     ),
-                    child: Icon(
-                      Icons.add_business,
-                      color: theme.info,
-                      size: 26,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '¿Tienes un oficio?',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            color: theme.ink,
-                            fontSize: 14.5,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '¿Tienes un oficio?',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              color: theme.ink,
+                              fontSize: 14.5,
+                            ),
                           ),
-                        ),
-                        Text(
-                          'Ofrécelo a tus vecinos gratis',
-                          style: TextStyle(color: theme.muted, fontSize: 12.5),
-                        ),
-                      ],
+                          Text(
+                            'Ofrécelo a tus vecinos gratis',
+                            style: TextStyle(color: theme.muted, fontSize: 12.5),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  Icon(Icons.chevron_right, color: theme.muted),
-                ],
+                    Icon(Icons.chevron_right, color: theme.muted),
+                  ],
+                ),
               ),
             ),
           ),
@@ -256,7 +276,8 @@ class _ServicesScreenState extends State<ServicesScreen> {
     final state = widget.state;
     final hasVb = state.vbGiven[s.id] == true;
 
-    return Container(
+    return RepaintBoundary(
+      child: Container(
       margin: const EdgeInsets.only(bottom: 10),
       child: InkWell(
         key: s.id == 'julio' ? state.tourTarget('service-julio') : null,
@@ -375,8 +396,9 @@ class _ServicesScreenState extends State<ServicesScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Color _toneColor(String tone) {
     switch (tone) {
