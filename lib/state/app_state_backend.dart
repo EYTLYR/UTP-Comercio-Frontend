@@ -685,6 +685,33 @@ extension NearbyBackend on AppState {
     refresh();
   });
 
+  Future<void> loadPinsInBounds({
+    required double minLat,
+    required double maxLat,
+    required double minLon,
+    required double maxLon,
+  }) => _quiet(() async {
+    final revision = zoneViewRevision;
+    final query = <String, Object?>{
+      'minLat': minLat,
+      'maxLat': maxLat,
+      'minLon': minLon,
+      'maxLon': maxLon,
+    };
+    final daily = (await api.get(
+      'map/pins',
+      query: {...query, 'layer': 'daily'},
+    ) as List).cast<Map<String, dynamic>>();
+    final em = (await api.get(
+      'map/pins',
+      query: {...query, 'layer': 'emergency'},
+    ) as List).cast<Map<String, dynamic>>();
+    if (_disposed || revision != zoneViewRevision) return;
+    normalPins = daily.map(Api2App.pin).toList();
+    emergencyPins = em.map(Api2App.pin).toList();
+    refresh();
+  });
+
   Future<void> _loadInventory() => _quiet(() async {
     final list = (await api.get('ai/inventory') as List)
         .cast<Map<String, dynamic>>();

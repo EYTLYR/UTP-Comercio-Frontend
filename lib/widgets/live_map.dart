@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -20,6 +23,8 @@ class LiveMap extends StatefulWidget {
   final double topInset;
   final double bottomInset;
   final ValueChanged<String> onMessage;
+  final void Function(double minLat, double maxLat, double minLon, double maxLon)? onBoundsChanged;
+
   const LiveMap({
     super.key,
     required this.topInset,
@@ -33,6 +38,7 @@ class LiveMap extends StatefulWidget {
     required this.onOpenPin,
     required this.bottomInset,
     required this.onMessage,
+    this.onBoundsChanged,
   });
   @override
   State<LiveMap> createState() => _LiveMapState();
@@ -57,6 +63,7 @@ class _LiveMapState extends State<LiveMap> {
   bool _busy = false;
   bool _approximate = false;
   bool _tileError = false;
+  Timer? _boundsDebounce;
   // Caché del mapa offline; null en web y en pruebas (usa la red como antes).
   late final TileProvider? _cached = OfflineTiles.instance.provider();
   LatLng? get _home => widget.homeLat != null && widget.homeLng != null
@@ -240,8 +247,24 @@ class _LiveMapState extends State<LiveMap> {
     ),
   );
 
+  void _onPositionChanged(MapCamera camera, bool hasGesture) {
+    if (widget.onBoundsChanged == null) return;
+    _boundsDebounce?.cancel();
+    _boundsDebounce = Timer(const Duration(milliseconds: 350), () {
+      if (!mounted) return;
+      final bounds = camera.visibleBounds;
+      widget.onBoundsChanged!(
+        bounds.south,
+        bounds.north,
+        bounds.west,
+        bounds.east,
+      );
+    });
+  }
+
   @override
   void dispose() {
+    _boundsDebounce?.cancel();
     _map.dispose();
     super.dispose();
   }
@@ -255,6 +278,18 @@ class _LiveMapState extends State<LiveMap> {
           child: FlutterMap(
             mapController: _map,
             options: MapOptions(
+              onPositionChanged: _onPositionChanged,
+              onMapReady: () {
+                if (widget.onBoundsChanged != null) {
+                  final bounds = _map.camera.visibleBounds;
+                  widget.onBoundsChanged!(
+                    bounds.south,
+                    bounds.north,
+                    bounds.west,
+                    bounds.east,
+                  );
+                }
+              },
               onTap: (_, _) {
                 if (_selected != null) setState(() => _selected = null);
               },
@@ -269,24 +304,54 @@ class _LiveMapState extends State<LiveMap> {
             ),
             children: [
               _tiles(),
-              MarkerLayer(
-                markers: widget.pins
-                    .where((p) => p.latitude != null && p.longitude != null)
-                    .map(
-                      (p) => Marker(
-                        point: LatLng(p.latitude!, p.longitude!),
-                        width: 150,
-                        height: 66,
-                        // El círculo queda sobre el punto y la etiqueta debajo.
-                        alignment: const Alignment(0, 0.55),
-                        child: _PinMarker(
-                          pin: p,
-                          selected: _selected?.id == p.id,
-                          onTap: () => setState(() => _selected = p),
+              MarkerClusterLayerWidget(
+                options: MarkerClusterLayerOptions(
+                  maxClusterRadius: 45,
+                  size: const Size(40, 40),
+                  zoomToBoundsOnClick: true,
+                  spiderfyCluster: true,
+                  alignment: Alignment.center,
+                  builder: (context, markers) => Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00796B),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x33000000),
+                          blurRadius: 6,
+                          offset: Offset(0, 2),
                         ),
+                      ],
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      '${markers.length}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
                       ),
-                    )
-                    .toList(),
+                    ),
+                  ),
+                  markers: widget.pins
+                      .where((p) => p.latitude != null && p.longitude != null)
+                      .map(
+                        (p) => Marker(
+                          point: LatLng(p.latitude!, p.longitude!),
+                          width: 150,
+                          height: 66,
+                          // El círculo queda sobre el punto y la etiqueta debajo.
+                          alignment: const Alignment(0, 0.55),
+                          child: _PinMarker(
+                            pin: p,
+                            selected: _selected?.id == p.id,
+                            onTap: () => setState(() => _selected = p),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
               ),
               if (_home != null)
                 MarkerLayer(

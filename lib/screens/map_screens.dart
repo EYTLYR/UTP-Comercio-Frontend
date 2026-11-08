@@ -750,6 +750,14 @@ class _MapScreenState extends State<MapScreen> {
             topInset: insets.top,
             bottomInset: insets.bottom,
             onMessage: widget.state.toast,
+            onBoundsChanged: (minLat, maxLat, minLon, maxLon) {
+              widget.state.loadPinsInBounds(
+                minLat: minLat,
+                maxLat: maxLat,
+                minLon: minLon,
+                maxLon: maxLon,
+              );
+            },
           ),
         ),
         Positioned(
