@@ -9,6 +9,7 @@ import '../theme/nearby_theme.dart';
 class WallScreen extends StatelessWidget {
   final AppState state;
   final NearbyThemeData theme;
+  NearbyCommunityStyle get ui => NearbyCommunityStyle(theme);
 
   const WallScreen({super.key, required this.state, required this.theme});
 
@@ -21,6 +22,9 @@ class WallScreen extends StatelessWidget {
       final matchesCat = state.muroCat == null || p.cat == state.muroCat;
       return matchesSeg && matchesCat;
     }).toList();
+    final selectedCategory = kPostCats
+        .where((category) => category.id == state.muroCat)
+        .firstOrNull;
 
     return CustomScrollView(
       slivers: [
@@ -31,75 +35,70 @@ class WallScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Muro solidario',
                         style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                          color: theme.ink,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                          color: ui.ink,
                           letterSpacing: -0.5,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Cadena de favores: resolvemos necesidades sin dinero.',
-                        style: TextStyle(color: theme.muted, fontSize: 14),
+                        'Cadena de favores entre vecinos.',
+                        style: TextStyle(color: ui.muted, fontSize: 14),
                       ),
                     ],
                   ),
                 ),
 
-                // Cadena de favores progress banner
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: theme.accentSoft,
-                      borderRadius: BorderRadius.circular(20),
+                      color: ui.ivory,
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.handshake,
-                          color: NearbyColors.accentInk,
-                          size: 36,
+                        Flexible(
+                          child: Text(
+                            '${state.posts.length}',
+                            style: TextStyle(
+                              color: ui.ink,
+                              fontSize: 26,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                         ),
-                        const SizedBox(width: 14),
+                        const SizedBox(width: 12),
                         Expanded(
+                          flex: 4,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text.rich(
-                                TextSpan(
-                                  style: TextStyle(
-                                    fontFamily: 'Poppins',
-                                    color: theme.ink,
-                                    fontSize: 14,
-                                  ),
-                                  children: [
-                                    TextSpan(
-                                      text:
-                                          '${state.posts.length} ${state.posts.length == 1 ? 'favor' : 'favores'} ',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                    const TextSpan(text: 'cerca de ti'),
-                                  ],
+                              Text(
+                                state.posts.length == 1
+                                    ? 'favor cerca de ti'
+                                    : 'favores cerca de ti',
+                                style: TextStyle(
+                                  color: ui.ink,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              const SizedBox(height: 6),
                               Text(
                                 () {
                                   final mine = state.posts
                                       .where(
-                                        (p) =>
-                                            p.mine || p.dist == 'tú',
+                                        (post) =>
+                                            post.mine || post.dist == 'tú',
                                       )
                                       .length;
                                   if (mine > 0) return 'Tú publicaste $mine';
@@ -107,10 +106,7 @@ class WallScreen extends StatelessWidget {
                                       ? 'Publica el primero y suma a la cadena'
                                       : 'Pide u ofrece ayuda y suma a la cadena';
                                 }(),
-                                style: TextStyle(
-                                  color: theme.muted,
-                                  fontSize: 12,
-                                ),
+                                style: TextStyle(color: ui.muted, fontSize: 11),
                               ),
                             ],
                           ),
@@ -121,72 +117,54 @@ class WallScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
 
-                // Segmented controller (Todo / Necesitan / Ofrecen)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: theme.surface2,
-                      borderRadius: BorderRadius.circular(14),
+                      border: Border(bottom: BorderSide(color: ui.line)),
                     ),
                     child: Row(
                       children: [
                         _segButton('all', 'Todo'),
                         _segButton('need', 'Necesitan'),
                         _segButton('offer', 'Ofrecen'),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Category chips
-                SizedBox(
-                  height: 44,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: kPostCats.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 8),
-                    itemBuilder: (context, i) {
-                      final c = kPostCats[i];
-                      final isSel = state.muroCat == c.id;
-                      return FilterChip(
-                        label: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              c.icon,
-                              size: 16,
-                              color: isSel ? theme.btnInk : theme.muted,
+                        const SizedBox(width: 8),
+                        PopupMenuButton<String>(
+                          tooltip: selectedCategory == null
+                              ? 'Filtrar por categoría'
+                              : 'Categoría: ${selectedCategory.label}',
+                          icon: const Icon(Icons.tune, size: 20),
+                          style: IconButton.styleFrom(
+                            foregroundColor: ui.ink,
+                            backgroundColor: selectedCategory == null
+                                ? ui.ivory
+                                : ui.accent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            const SizedBox(width: 6),
-                            Text(c.short ?? c.label),
+                          ),
+                          onSelected: (categoryId) {
+                            state.muroCat = categoryId.isEmpty
+                                ? null
+                                : categoryId;
+                            state.refresh();
+                          },
+                          itemBuilder: (_) => [
+                            CheckedPopupMenuItem(
+                              value: '',
+                              checked: selectedCategory == null,
+                              child: const Text('Todas las categorías'),
+                            ),
+                            for (final category in kPostCats)
+                              CheckedPopupMenuItem(
+                                value: category.id,
+                                checked: category.id == state.muroCat,
+                                child: Text(category.label),
+                              ),
                           ],
                         ),
-                        selected: isSel,
-                        onSelected: (_) {
-                          state.muroCat = isSel ? null : c.id;
-                          state.refresh();
-                        },
-                        backgroundColor: theme.surface,
-                        selectedColor: theme.btnBg,
-                        labelStyle: TextStyle(
-                          fontFamily: 'Poppins',
-                          color: isSel ? theme.btnInk : theme.ink,
-                          fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(999),
-                          side: BorderSide(
-                            color: isSel ? theme.btnBg : theme.line,
-                          ),
-                        ),
-                        showCheckmark: false,
-                      );
-                    },
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -205,13 +183,13 @@ class WallScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: theme.surface,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: theme.line),
+                  border: Border.all(color: ui.line),
                   boxShadow: theme.cardShadow,
                 ),
                 child: Center(
                   child: Text(
                     'No hay publicaciones en esta categoría todavía.',
-                    style: TextStyle(color: theme.muted, fontSize: 13.5),
+                    style: TextStyle(color: ui.muted, fontSize: 13.5),
                   ),
                 ),
               ),
@@ -242,29 +220,25 @@ class WallScreen extends StatelessWidget {
           state.muroSeg = id;
           state.refresh();
         },
-        borderRadius: BorderRadius.circular(11),
         child: Container(
+          constraints: const BoxConstraints(minHeight: 44),
           padding: const EdgeInsets.symmetric(vertical: 9),
           decoration: BoxDecoration(
-            color: isSelected ? theme.surface : Colors.transparent,
-            borderRadius: BorderRadius.circular(11),
-            boxShadow: isSelected
-                ? const [
-                    BoxShadow(
-                      color: Color(0x14000000),
-                      blurRadius: 4,
-                      offset: Offset(0, 1),
-                    ),
-                  ]
-                : null,
+            border: Border(
+              bottom: BorderSide(
+                color: isSelected ? ui.accent : Colors.transparent,
+                width: 3,
+              ),
+            ),
           ),
           child: Center(
             child: Text(
               label,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                 fontSize: 13.5,
-                color: isSelected ? theme.ink : theme.muted,
+                color: isSelected ? ui.ink : ui.muted,
               ),
             ),
           ),
@@ -292,143 +266,97 @@ class WallScreen extends StatelessWidget {
     final showDetail =
         detail.isNotEmpty && detail.toLowerCase() != catName.toLowerCase();
 
+    final initials = p.user
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((word) => word.isNotEmpty)
+        .take(2)
+        .map((word) => word.characters.first.toUpperCase())
+        .join();
+    final metadata = [
+      if (!mine && p.dist.isNotEmpty) _formatDistance(p.dist),
+      p.time,
+      if (!mine && p.zone.isNotEmpty) p.zone,
+    ].where((value) => value.isNotEmpty).join(' · ');
+    final needsHelp = p.type == 'need';
+
     return RepaintBoundary(
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: theme.surface,
-          border: Border.all(color: theme.line),
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: theme.cardShadow,
+          border: Border.all(color: ui.line),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                CircleAvatar(
+                  radius: 17,
+                  backgroundColor: ui.blueSoft,
+                  foregroundColor: ui.ink,
+                  child: Text(
+                    initials,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        mine ? 'Tú' : p.user,
+                        style: TextStyle(
+                          color: ui.ink,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (metadata.isNotEmpty)
+                        Text(
+                          metadata,
+                          style: TextStyle(color: ui.muted, fontSize: 10),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
-                    vertical: 4,
+                    vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    color: p.type == 'need'
-                        ? theme.accentSoft
-                        : theme.primarySoft,
+                    color: needsHelp ? ui.ivory : ui.blueSoft,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    p.type == 'need' ? 'NECESITA' : 'OFRECE',
+                    needsHelp ? 'Necesita' : 'Ofrece',
                     style: TextStyle(
+                      color: ui.ink,
                       fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                      color: p.type == 'need'
-                          ? theme.accentInk
-                          : theme.primaryDark,
-                      letterSpacing: 0.8,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
-                if (catObj != null)
-                  Row(
-                    children: [
-                      Icon(catObj.icon, size: 16, color: theme.muted),
-                      const SizedBox(width: 4),
-                      Text(
-                        catObj.short ?? catObj.label,
-                        style: TextStyle(
-                          color: theme.muted,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(
-              headline,
+              showDetail ? detail : headline,
               style: TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 14.5,
-                color: theme.ink,
-                height: 1.3,
+                color: ui.ink,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
               ),
-            ),
-            if (showDetail) ...[
-              const SizedBox(height: 6),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: theme.surface2,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '«$detail»',
-                  style: TextStyle(
-                    fontSize: 13.5,
-                    color: theme.ink,
-                    height: 1.35,
-                  ),
-                ),
-              ),
-            ],
-            const SizedBox(height: 8),
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              runSpacing: 4,
-              children: [
-                CircleAvatar(
-                  radius: 12,
-                  backgroundColor: theme.violetSoft,
-                  child: Text(
-                    p.user
-                        .split(' ')
-                        .where((w) => w.isNotEmpty)
-                        .map((w) => w[0].toUpperCase())
-                        .take(2)
-                        .join(),
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: theme.violet,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  mine ? 'Tú' : p.user,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
-                    color: theme.ink,
-                  ),
-                ),
-                Container(
-                  width: 3,
-                  height: 3,
-                  margin: const EdgeInsets.symmetric(horizontal: 6),
-                  decoration: BoxDecoration(
-                    color: theme.muted,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                Text(
-                  [
-                    if (!mine) _formatDistance(p.dist),
-                    p.time,
-                    if (!mine && p.zone.isNotEmpty) p.zone,
-                  ].join(' · '),
-                  style: TextStyle(color: theme.muted, fontSize: 11.5),
-                ),
-              ],
             ),
             const SizedBox(height: 12),
             // En lo que publiqué yo: veo quién respondió y puedo aceptar/rechazar.
@@ -731,27 +659,17 @@ class WallScreen extends StatelessWidget {
       );
     }
 
-    return ElevatedButton.icon(
+    if (p.type == 'need') {
+      return ElevatedButton(
+        onPressed: () => state.helpPost(p.id),
+        style: ui.action(),
+        child: const Text('Yo te ayudo'),
+      );
+    }
+    return OutlinedButton(
       onPressed: () => state.helpPost(p.id),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: theme.primarySoft,
-        foregroundColor: theme.primaryDark,
-        elevation: 0,
-        minimumSize: const Size.fromHeight(48),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
-      ),
-      icon: Icon(
-        p.type == 'need'
-            ? Icons.volunteer_activism
-            : Icons.front_hand,
-        size: 18,
-      ),
-      label: Text(
-        p.type == 'need' ? 'Yo te ayudo' : 'Me interesa',
-        style: const TextStyle(fontWeight: FontWeight.w800),
-      ),
+      style: ui.action(filled: false),
+      child: const Text('Me interesa'),
     );
   }
 

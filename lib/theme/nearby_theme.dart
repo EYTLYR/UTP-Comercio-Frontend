@@ -618,3 +618,49 @@ class NearbyTextScaler extends TextScaler {
   @override
   int get hashCode => Object.hash(system, factor);
 }
+
+/// Palette for the screens that use the white Nearby layout.
+class NearbyCommunityStyle {
+  const NearbyCommunityStyle(this.theme);
+  final NearbyThemeData theme;
+
+  bool get light => !theme.dark && !theme.hc;
+  Color get ink => light ? const Color(0xFF263B65) : theme.ink;
+  Color get muted => light ? const Color(0xFF53627B) : theme.muted;
+  Color get line => light ? const Color(0xFFE7E4DD) : theme.line;
+  Color get ivory => light ? const Color(0xFFF7F4ED) : theme.surface2;
+  Color get blueSoft => light ? const Color(0xFFEAF0FA) : theme.infoSoft;
+  Color get accent => light ? const Color(0xFFF2C14E) : theme.btnBg;
+  Color get onAccent => light ? ink : theme.btnInk;
+  Color get panel => light ? ink : theme.surface2;
+  Color get onPanel => light ? Colors.white : theme.ink;
+
+  ButtonStyle action({bool filled = true}) {
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(8),
+    );
+    const text = TextStyle(
+      fontFamily: 'Poppins',
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+    );
+    return filled
+        ? ElevatedButton.styleFrom(
+            backgroundColor: accent,
+            foregroundColor: onAccent,
+            minimumSize: const Size(0, 48),
+            elevation: 0,
+            shape: shape,
+            textStyle: text,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          )
+        : OutlinedButton.styleFrom(
+            foregroundColor: ink,
+            side: BorderSide(color: ink, width: 1.5),
+            minimumSize: const Size(0, 48),
+            shape: shape,
+            textStyle: text,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          );
+  }
+}

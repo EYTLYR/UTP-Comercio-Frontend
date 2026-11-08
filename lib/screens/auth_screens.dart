@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../state/app_state.dart';
 import '../theme/nearby_theme.dart';
 import '../widgets/neighborhood_painter.dart';
+import '../widgets/nearby_logo.dart';
 
 Widget _buildPdots(int currentStep, NearbyThemeData theme) {
   final style = _SetupStyle(theme);
@@ -2084,57 +2085,215 @@ class ListoScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(24, 60, 24, 30),
-      child: Column(
-        children: [
-          Container(
-            width: 96,
-            height: 96,
-            decoration: BoxDecoration(
-              color: theme.primarySoft,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.verified_user, color: theme.primary, size: 54),
+    final ui = NearbyCommunityStyle(theme);
+    return LayoutBuilder(
+      builder: (context, bounds) => SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: (bounds.maxHeight - 40).clamp(0.0, double.infinity),
           ),
-          const SizedBox(height: 20),
-          Text(
-            '¡Te damos la bienvenida, ${state.firstName}!',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              color: theme.ink,
+          child: IntrinsicHeight(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    ExcludeSemantics(
+                      child: NearbyLogo(
+                        width: 36,
+                        inkColor: ui.ink,
+                        greenColor: ui.accent,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Nearby',
+                            style: TextStyle(
+                              color: ui.ink,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            'Siempre cerca para ayudar',
+                            style: TextStyle(color: ui.muted, fontSize: 10),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Divider(height: 1, color: ui.line),
+                const SizedBox(height: 24),
+                ExcludeSemantics(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: ui.blueSoft,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: CustomPaint(
+                      size: const Size(double.infinity, 240),
+                      painter: _ReadyDoorPainter(ui),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'Tu cuenta está lista',
+                  style: TextStyle(
+                    color: ui.muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '¡Bienvenida\nal barrio, ${state.firstName}!',
+                  style: TextStyle(
+                    color: ui.ink,
+                    fontSize: 30,
+                    height: 1.2,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Divider(height: 1, color: ui.line),
+                const SizedBox(height: 16),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: ui.ivory,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.verified_user_outlined,
+                        color: ui.ink,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Verificación vecinal',
+                            style: TextStyle(
+                              color: ui.ink,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Un delegado de tu zona confirmará que eres vecina o vecino para darte la insignia de verificado.',
+                            style: TextStyle(
+                              color: ui.muted,
+                              fontSize: 12,
+                              height: 1.45,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                const Spacer(),
+                ElevatedButton.icon(
+                  onPressed: () => state.go('home', reset: true),
+                  style: ui.action(),
+                  icon: const Icon(Icons.home_outlined, size: 19),
+                  label: const Text('Ir al inicio'),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 10),
-          Text(
-            'Tu cuenta está lista. Un delegado de tu zona confirmará que eres vecina o vecino para darte la insignia de verificado.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: theme.muted, fontSize: 14, height: 1.4),
-          ),
-          const SizedBox(height: 24),
-
-          const Spacer(),
-
-          ElevatedButton.icon(
-            onPressed: () => state.go('home', reset: true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: theme.btnBg,
-              foregroundColor: theme.btnInk,
-              minimumSize: const Size.fromHeight(52),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            icon: Icon(Icons.home, color: theme.primary, size: 22),
-            label: const Text(
-              'Ir al inicio',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
+}
+
+class _ReadyDoorPainter extends CustomPainter {
+  const _ReadyDoorPainter(this.ui);
+  final NearbyCommunityStyle ui;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final scale = (size.width / 300).clamp(0.0, 1.0);
+    canvas.save();
+    canvas.translate(
+      (size.width - 300 * scale) / 2,
+      (size.height - 220 * scale) / 2,
+    );
+    canvas.scale(scale);
+    final paint = Paint()..color = ui.accent;
+    canvas.drawCircle(const Offset(223, 64), 43, paint);
+    paint.color = const Color(0xFFBFD0EC);
+    canvas.drawRRect(
+      RRect.fromLTRBR(79, 45, 209, 186, const Radius.circular(43)),
+      paint,
+    );
+    paint.color = ui.panel;
+    canvas.drawRRect(
+      RRect.fromLTRBR(91, 59, 196, 186, const Radius.circular(34)),
+      paint,
+    );
+    paint.color = const Color(0xFF516F9D);
+    canvas.drawRRect(
+      RRect.fromLTRBR(103, 70, 184, 185, const Radius.circular(26)),
+      paint,
+    );
+    paint.color = const Color(0xFF7290BE);
+    canvas.drawPath(
+      Path()
+        ..moveTo(103, 78)
+        ..lineTo(144, 90)
+        ..lineTo(144, 174)
+        ..lineTo(103, 185)
+        ..close(),
+      paint,
+    );
+    paint.color = ui.accent;
+    canvas.drawCircle(const Offset(137, 131), 2.5, paint);
+    paint.color = const Color(0xFF182340);
+    canvas.drawOval(const Rect.fromLTWH(148, 120, 27, 34), paint);
+    paint.color = const Color(0xFFE2A47D);
+    canvas.drawOval(const Rect.fromLTWH(153, 125, 17, 25), paint);
+    paint.strokeWidth = 5;
+    paint.strokeCap = StrokeCap.round;
+    canvas.drawLine(const Offset(174, 158), const Offset(184, 143), paint);
+    paint.color = ui.accent;
+    canvas.drawRRect(
+      RRect.fromLTRBR(146, 148, 175, 183, const Radius.circular(9)),
+      paint,
+    );
+    paint.color = ui.ink;
+    canvas.drawLine(
+      const Offset(80, 187),
+      const Offset(209, 187),
+      paint..strokeWidth = 3,
+    );
+    paint.color = ui.theme.surface;
+    canvas.drawCircle(const Offset(222, 146), 23, paint);
+    paint.color = ui.ink;
+    canvas.drawLine(const Offset(212, 146), const Offset(219, 153), paint);
+    canvas.drawLine(const Offset(219, 153), const Offset(232, 139), paint);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_ReadyDoorPainter oldDelegate) =>
+      oldDelegate.ui.theme != ui.theme;
 }

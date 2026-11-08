@@ -13,6 +13,7 @@ import 'zone_picker.dart';
 class SosHoldButton extends StatefulWidget {
   final double size;
   final bool isLarge;
+  final bool redFace;
   final VoidCallback onComplete;
   final VoidCallback? onCancelShort;
 
@@ -20,6 +21,7 @@ class SosHoldButton extends StatefulWidget {
     super.key,
     this.size = 148,
     this.isLarge = false,
+    this.redFace = false,
     required this.onComplete,
     this.onCancelShort,
   });
@@ -112,98 +114,141 @@ class _SosHoldButtonState extends State<SosHoldButton>
           child: AnimatedBuilder(
             animation: Listenable.merge([_controller, _pulse]),
             builder: (context, child) {
-            return Stack(
-              clipBehavior: Clip.none,
-              children: [
-                if (!_isHolding && !MediaQuery.disableAnimationsOf(context))
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: Transform.scale(
-                        scale: 0.96 + _pulse.value * 0.22,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white.withValues(
-                                alpha: (1 - _pulse.value) * 0.4,
+              if (widget.redFace) {
+                const face = Color(0xFFB31732);
+                const rim = Color(0xFFD7263D);
+                return Container(
+                  width: widget.size,
+                  height: widget.size,
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFFFCE5E8),
+                    border: Border.all(color: rim, width: 2),
+                    gradient: _isHolding
+                        ? SweepGradient(
+                            transform: const GradientRotation(-math.pi / 2),
+                            colors: const [rim, Color(0xFFFCE5E8)],
+                            stops: [_controller.value, _controller.value],
+                          )
+                        : null,
+                  ),
+                  child: Container(
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: face,
+                      border: Border.all(color: rim, width: 2),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'SOS',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: widget.size * 0.26,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  if (!_isHolding && !MediaQuery.disableAnimationsOf(context))
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: Transform.scale(
+                          scale: 0.96 + _pulse.value * 0.22,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white.withValues(
+                                  alpha: (1 - _pulse.value) * 0.4,
+                                ),
+                                width: 2,
                               ),
-                              width: 2,
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                Container(
-                  width: widget.size,
-                  height: widget.size,
-                  padding: const EdgeInsets.all(9),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: SweepGradient(
-                      startAngle: 0,
-                      endAngle: math.pi * 2,
-                      transform: const GradientRotation(-math.pi / 2),
-                      colors: const [Colors.white, Color(0x42FFFFFF)],
-                      stops: [_controller.value, _controller.value],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.white.withValues(
-                          alpha: _isHolding ? 0.6 : 0.25,
-                        ),
-                        blurRadius: 18,
-                        spreadRadius: _isHolding ? 6 : 2,
-                      ),
-                    ],
-                  ),
-                  child: Container(
-                    decoration: const BoxDecoration(
+                  Container(
+                    width: widget.size,
+                    height: widget.size,
+                    padding: const EdgeInsets.all(9),
+                    decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white,
+                      gradient: SweepGradient(
+                        startAngle: 0,
+                        endAngle: math.pi * 2,
+                        transform: const GradientRotation(-math.pi / 2),
+                        colors: const [Colors.white, Color(0x42FFFFFF)],
+                        stops: [_controller.value, _controller.value],
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Color(0x15000000),
-                          offset: Offset(0, 4),
-                          blurRadius: 8,
+                          color: Colors.white.withValues(
+                            alpha: _isHolding ? 0.6 : 0.25,
+                          ),
+                          blurRadius: 18,
+                          spreadRadius: _isHolding ? 6 : 2,
                         ),
                       ],
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'SOS',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.w900,
-                            fontSize: widget.isLarge ? 54 : 36,
-                            color: NearbyColors.sos,
-                            letterSpacing: 1.0,
-                            height: 1.0,
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0x15000000),
+                            offset: Offset(0, 4),
+                            blurRadius: 8,
                           ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          'MANTENER',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.w800,
-                            fontSize: widget.isLarge ? 13 : 11,
-                            color: NearbyColors.sosDark,
-                            letterSpacing: 0.8,
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'SOS',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontWeight: FontWeight.w900,
+                              fontSize: widget.isLarge ? 54 : 36,
+                              color: NearbyColors.sos,
+                              letterSpacing: 1.0,
+                              height: 1.0,
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 3),
+                          Text(
+                            'MANTENER',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontWeight: FontWeight.w800,
+                              fontSize: widget.isLarge ? 13 : 11,
+                              color: NearbyColors.sosDark,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
-            );
-          },
+                ],
+              );
+            },
+          ),
         ),
       ),
-    ),
     );
   }
 }
@@ -218,33 +263,47 @@ class NearbyTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final em = state.emergency;
+    final home = !em && state.screen == 'home';
+    final community =
+        home ||
+        (!em && (state.screen == 'servicios' || state.screen == 'muro'));
+    final ui = NearbyCommunityStyle(theme);
     final topBarBg = em ? NearbyColors.navy : Colors.transparent;
 
     return Container(
       color: topBarBg,
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+      padding: community
+          ? const EdgeInsets.fromLTRB(24, 8, 24, 10)
+          : const EdgeInsets.fromLTRB(16, 6, 16, 10),
       child: Row(
         children: [
           // Brandmark logo
           PressableScale(
             onTap: () => state.selectTab('home'),
             child: Container(
-              width: 42,
+              width: community ? 28 : 42,
               height: 42,
               decoration: BoxDecoration(
                 color: em
                     ? Colors.white.withValues(alpha: 0.08)
-                    : theme.surface,
-                border: Border.all(
-                  color: em ? Colors.white.withValues(alpha: 0.16) : theme.line,
-                ),
+                    : (community ? Colors.transparent : theme.surface),
+                border: community
+                    ? null
+                    : Border.all(
+                        color: em
+                            ? Colors.white.withValues(alpha: 0.16)
+                            : theme.line,
+                      ),
                 borderRadius: BorderRadius.circular(14),
-                boxShadow: em ? null : theme.cardShadow,
+                boxShadow: em || community ? null : theme.cardShadow,
               ),
               child: Center(
                 child: NearbyLogo(
                   width: 28,
-                  inkColor: em ? Colors.white : theme.logoInk,
+                  inkColor: em
+                      ? Colors.white
+                      : (community ? ui.ink : theme.logoInk),
+                  greenColor: community && ui.light ? ui.accent : null,
                   gapColor: em ? NearbyColors.navy : theme.surface,
                 ),
               ),
@@ -252,7 +311,37 @@ class NearbyTopBar extends StatelessWidget {
           ),
           const SizedBox(width: 8),
 
-          // Zone badge
+          if (home ||
+              (community && MediaQuery.sizeOf(context).width >= 390)) ...[
+            Flexible(
+              fit: home ? FlexFit.tight : FlexFit.loose,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Nearby',
+                    style: TextStyle(
+                      color: ui.ink,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    'Siempre cerca para ayudar',
+                    style: TextStyle(color: ui.muted, fontSize: 8),
+                    maxLines: home ? 2 : 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+
+          // Zone selector
           Expanded(
             child: PressableScale(
               key: const ValueKey('zone-map'),
@@ -262,35 +351,24 @@ class NearbyTopBar extends StatelessWidget {
               },
               child: Container(
                 constraints: const BoxConstraints(minHeight: 42),
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                decoration: BoxDecoration(
-                  color: em
-                      ? Colors.white.withValues(alpha: 0.08)
-                      : theme.surface,
-                  border: Border.all(
-                    color: em
-                        ? Colors.white.withValues(alpha: 0.16)
-                        : theme.line,
-                  ),
-                  borderRadius: BorderRadius.circular(999),
-                  boxShadow: em ? null : theme.cardShadow,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 6),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     Icon(
-                      Icons.location_on,
-                      color: em ? const Color(0xFFFF8A98) : theme.primary,
-                      size: 20,
+                      Icons.location_on_outlined,
+                      color: em ? const Color(0xFFFF8A98) : ui.ink,
+                      size: 15,
                     ),
                     const SizedBox(width: 6),
-                    Expanded(
+                    Flexible(
                       child: Text(
                         state.visibleZoneName,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 13.5,
+                          fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: em ? Colors.white : theme.ink,
+                          color: em ? Colors.white : ui.ink,
                         ),
                       ),
                     ),
@@ -341,7 +419,7 @@ class NearbyTopBar extends StatelessWidget {
           ],
 
           // Mensajes (con los no leídos)
-          if (state.connected) ...[
+          if (!home && state.connected) ...[
             PressableScale(
               onTap: () => state.go('mensajes'),
               scale: 0.94,
@@ -375,7 +453,7 @@ class NearbyTopBar extends StatelessWidget {
           PressableScale(
             key: state.tourTarget('profile'),
             onTap: () => state.go('perfil'),
-            child: ProfilePhotoAvatar(state: state, size: 42),
+            child: ProfilePhotoAvatar(state: state, size: community ? 34 : 42),
           ),
         ],
       ),
@@ -400,8 +478,15 @@ class NearbyTopBarBack extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final community = state.screen == 'svc' && !emergencyStyle;
+    final ui = NearbyCommunityStyle(theme);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+      padding: EdgeInsets.fromLTRB(
+        community ? 24 : 16,
+        6,
+        community ? 24 : 16,
+        10,
+      ),
       child: Row(
         children: [
           PressableScale(
@@ -414,17 +499,22 @@ class NearbyTopBarBack extends StatelessWidget {
                 color: emergencyStyle
                     ? Colors.white.withValues(alpha: .08)
                     : theme.surface,
-                shape: BoxShape.circle,
+                shape: community ? BoxShape.rectangle : BoxShape.circle,
+                borderRadius: community ? BorderRadius.circular(8) : null,
                 border: Border.all(
                   color: emergencyStyle
                       ? Colors.white.withValues(alpha: .2)
                       : theme.line,
                 ),
-                boxShadow: emergencyStyle ? null : theme.cardShadow,
+                boxShadow: emergencyStyle || community
+                    ? null
+                    : theme.cardShadow,
               ),
               child: Icon(
-                Icons.arrow_back,
-                color: emergencyStyle ? Colors.white : theme.ink,
+                community ? Icons.chevron_left : Icons.arrow_back,
+                color: emergencyStyle
+                    ? Colors.white
+                    : (community ? ui.ink : theme.ink),
                 size: 22,
               ),
             ),
@@ -435,10 +525,12 @@ class NearbyTopBarBack extends StatelessWidget {
               title,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 19,
+                fontSize: community ? 15 : 19,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.3,
-                color: emergencyStyle ? Colors.white : theme.ink,
+                color: emergencyStyle
+                    ? Colors.white
+                    : (community ? ui.ink : theme.ink),
               ),
             ),
           ),
@@ -639,11 +731,23 @@ class NearbyBottomNav extends StatelessWidget {
 
     final cur = _currentTab(state.screen);
 
-    final activeColor = em ? theme.sosDark : theme.primaryDark;
-    final fabColor = theme.hc
+    final community =
+        !em &&
+        (state.screen == 'home' ||
+            state.screen == 'servicios' ||
+            state.screen == 'muro');
+    final ui = NearbyCommunityStyle(theme);
+    final activeColor = community
+        ? ui.ink
+        : (em ? theme.sosDark : theme.primaryDark);
+    final fabColor = community
+        ? ui.accent
+        : theme.hc
         ? theme.btnBg
         : (em ? theme.sos : NearbyColors.brandTurquoise);
-    final fabInk = theme.hc
+    final fabInk = community
+        ? ui.onAccent
+        : theme.hc
         ? theme.btnInk
         : (em ? Colors.white : NearbyColors.onPrimary);
     return Padding(
@@ -670,24 +774,33 @@ class NearbyBottomNav extends StatelessWidget {
                         if (tab.isFab)
                           Container(
                             key: const ValueKey('publish-floating-button'),
-                            width: 60,
-                            height: 60,
+                            width: community ? 44 : 60,
+                            height: community ? 44 : 60,
                             decoration: BoxDecoration(
                               color: fabColor,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: theme.bg, width: 5),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: fabColor.withValues(alpha: 0.32),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 8),
-                                ),
-                              ],
+                              shape: community
+                                  ? BoxShape.rectangle
+                                  : BoxShape.circle,
+                              borderRadius: community
+                                  ? BorderRadius.circular(8)
+                                  : null,
+                              border: community
+                                  ? null
+                                  : Border.all(color: theme.bg, width: 5),
+                              boxShadow: community
+                                  ? null
+                                  : [
+                                      BoxShadow(
+                                        color: fabColor.withValues(alpha: 0.32),
+                                        blurRadius: 16,
+                                        offset: const Offset(0, 8),
+                                      ),
+                                    ],
                             ),
                             child: Icon(
                               Icons.add_rounded,
                               color: fabInk,
-                              size: 32,
+                              size: community ? 24 : 32,
                             ),
                           )
                         else
@@ -699,14 +812,38 @@ class NearbyBottomNav extends StatelessWidget {
                             ),
                             decoration: BoxDecoration(
                               color: selected
-                                  ? (em ? theme.sosSoft : theme.primarySoft)
+                                  ? (community
+                                        ? ui.blueSoft
+                                        : (em
+                                              ? theme.sosSoft
+                                              : theme.primarySoft))
                                   : Colors.transparent,
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(
+                                community ? 8 : 16,
+                              ),
                             ),
-                            child: Icon(
-                              tab.icon,
-                              color: selected ? activeColor : theme.muted,
-                              size: 23,
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Icon(
+                                  tab.icon,
+                                  color: selected ? activeColor : theme.muted,
+                                  size: 23,
+                                ),
+                                if (selected && !em)
+                                  Positioned(
+                                    top: -5,
+                                    left: 4,
+                                    right: 4,
+                                    child: Container(
+                                      height: 3,
+                                      decoration: BoxDecoration(
+                                        color: ui.accent,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                         const SizedBox(height: 4),
@@ -776,6 +913,8 @@ class NearbySosCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!state.emergency) return _buildHomeCard(context);
+
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 2, 16, 0),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
@@ -824,28 +963,7 @@ class NearbySosCard extends StatelessWidget {
           const SizedBox(height: 16),
 
           // Center hold button
-          SosHoldButton(
-            key: state.tourTarget('sos'),
-            size: 148,
-            onComplete: () {
-              if (state.tourName != null) {
-                state.toast(
-                  '¡Muy bien! Así se envía una alerta. En el tutorial no se envía nada.',
-                  icon: 'verified',
-                );
-                state.checkTourEvent('sos-hold');
-              } else {
-                state.sosType = null;
-                state.go('sos-countdown');
-              }
-            },
-            onCancelShort: () {
-              state.toast(
-                'Mantén presionado 2 segundos para enviar la alerta',
-                icon: 'touch_app',
-              );
-            },
-          ),
+          _holdButton(148),
 
           const SizedBox(height: 12),
           const Text(
@@ -865,20 +983,136 @@ class NearbySosCard extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildHomeCard(BuildContext context) {
+    final ui = NearbyCommunityStyle(theme);
+    final red = ui.light ? const Color(0xFFB31732) : theme.sosDark;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: ui.light ? const Color(0xFFFCE5E8) : theme.sosSoft,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final size = (constraints.maxWidth * .46).clamp(112.0, 148.0);
+                final details = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.warning_amber_rounded, size: 19, color: red),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            '¿Estás en peligro?',
+                            style: TextStyle(
+                              color: red,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Mantén presionado el SOS',
+                      style: TextStyle(color: ui.ink, fontSize: 12),
+                    ),
+                    Text(
+                      '2 segundos',
+                      style: TextStyle(
+                        color: red,
+                        fontSize: 19,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Avisa a vecinos en 500 m, a tus contactos y a la brigada.',
+                      style: TextStyle(color: ui.ink, fontSize: 11),
+                    ),
+                  ],
+                );
+                final button = _holdButton(size, redFace: true);
+                if (constraints.maxWidth < 248 || theme.lg) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      details,
+                      const SizedBox(height: 16),
+                      Center(child: button),
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    Expanded(child: details),
+                    const SizedBox(width: 12),
+                    button,
+                  ],
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 8),
+          EmergencyCallShortcuts(state: state, homeStyle: ui),
+        ],
+      ),
+    );
+  }
+
+  Widget _holdButton(double size, {bool redFace = false}) => SosHoldButton(
+    key: state.tourTarget('sos'),
+    size: size,
+    redFace: redFace,
+    onComplete: () {
+      if (state.tourName != null) {
+        state.toast(
+          '¡Muy bien! Así se envía una alerta. En el tutorial no se envía nada.',
+          icon: 'verified',
+        );
+        state.checkTourEvent('sos-hold');
+      } else {
+        state.sosType = null;
+        state.go('sos-countdown');
+      }
+    },
+    onCancelShort: () {
+      state.toast(
+        'Mantén presionado 2 segundos para enviar la alerta',
+        icon: 'touch_app',
+      );
+    },
+  );
 }
 
 /// Same size for all three shortcuts; stack content together when scaled text
 /// cannot fit beside the icon, rather than breaking a service name mid-word.
 class EmergencyCallShortcuts extends StatelessWidget {
   final AppState state;
-  const EmergencyCallShortcuts({super.key, required this.state});
+  final NearbyCommunityStyle? homeStyle;
+  const EmergencyCallShortcuts({
+    super.key,
+    required this.state,
+    this.homeStyle,
+  });
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, bounds) {
       final calls = kCalls.take(3).toList();
       final width = (bounds.maxWidth - 16) / 3;
-      const labelStyle = TextStyle(
-        color: Colors.white70,
+      final ui = homeStyle;
+      final radius = BorderRadius.circular(ui == null ? 14 : 8);
+      final iconSize = ui == null ? 24.0 : 18.0;
+      final iconColor = ui?.theme.sosDark ?? Colors.white;
+      final labelStyle = TextStyle(
+        color: ui?.ink ?? Colors.white70,
         fontSize: 10.5,
         fontWeight: FontWeight.w600,
       );
@@ -892,7 +1126,7 @@ class EmergencyCallShortcuts extends StatelessWidget {
           textDirection: Directionality.of(context),
           maxLines: 1,
         )..layout();
-        final needsSpace = painter.width > width - 46;
+        final needsSpace = painter.width > width - 24 - iconSize;
         painter.dispose();
         return needsSpace;
       });
@@ -908,17 +1142,20 @@ class EmergencyCallShortcuts extends StatelessWidget {
                   message: 'Llamar a ${calls[i].label}, ${calls[i].num}',
                   child: InkWell(
                     onTap: () => state.startCall(calls[i].num),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: radius,
                     child: Container(
                       key: ValueKey('sos-call-${calls[i].num}'),
                       constraints: const BoxConstraints(minHeight: 50),
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: .15),
+                        color:
+                            ui?.theme.surface ??
+                            Colors.white.withValues(alpha: .15),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: .28),
+                          color:
+                              ui?.line ?? Colors.white.withValues(alpha: .28),
                         ),
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: radius,
                       ),
                       child: stacked
                           ? Column(
@@ -927,19 +1164,22 @@ class EmergencyCallShortcuts extends StatelessWidget {
                               children: [
                                 Icon(
                                   calls[i].icon,
-                                  color: Colors.white,
-                                  size: 24,
+                                  color: iconColor,
+                                  size: iconSize,
                                 ),
                                 const SizedBox(height: 6),
-                                _details(calls[i], labelStyle, true),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: _details(calls[i], labelStyle, true),
+                                ),
                               ],
                             )
                           : Row(
                               children: [
                                 Icon(
                                   calls[i].icon,
-                                  color: Colors.white,
-                                  size: 24,
+                                  color: iconColor,
+                                  size: iconSize,
                                 ),
                                 const SizedBox(width: 6),
                                 Expanded(
@@ -963,16 +1203,17 @@ class EmergencyCallShortcuts extends StatelessWidget {
         ? CrossAxisAlignment.center
         : CrossAxisAlignment.start,
     children: [
-      Text(
-        call.num,
-        maxLines: 1,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w900,
-          fontSize: 15,
-          height: 1.1,
+      if (homeStyle == null)
+        Text(
+          call.num,
+          maxLines: 1,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+            fontSize: 15,
+            height: 1.1,
+          ),
         ),
-      ),
       Text(
         call.label,
         maxLines: 1,
@@ -980,6 +1221,8 @@ class EmergencyCallShortcuts extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: labelStyle,
       ),
+      if (homeStyle case final ui?)
+        Text(call.num, style: TextStyle(color: ui.muted, fontSize: 11)),
     ],
   );
 }
@@ -1054,7 +1297,8 @@ class StaggeredEntrance extends StatelessWidget {
     if (MediaQuery.disableAnimationsOf(context)) return child;
     return TweenAnimationBuilder<double>(
       tween: Tween<double>(begin: 0.0, end: 1.0),
-      duration: duration + Duration(milliseconds: (index * delayMs).clamp(0, 320)),
+      duration:
+          duration + Duration(milliseconds: (index * delayMs).clamp(0, 320)),
       curve: const Cubic(0.23, 1.0, 0.32, 1.0),
       builder: (context, value, childWidget) {
         return Opacity(

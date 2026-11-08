@@ -150,16 +150,21 @@ class NearbyMasterShell extends StatelessWidget {
   });
 
   Color get _pageBackground =>
-      const {
-            'splash',
-            'login',
-            'otp',
-            'registro',
-            'contactos',
-            'permisos',
-          }.contains(state.screen) &&
-          !theme.dark &&
-          !theme.hc
+      !theme.dark &&
+          !theme.hc &&
+          ((state.screen == 'home' && !state.emergency) ||
+              const {
+                'splash',
+                'login',
+                'otp',
+                'registro',
+                'contactos',
+                'permisos',
+                'listo',
+                'servicios',
+                'svc',
+                'muro',
+              }.contains(state.screen))
       ? Colors.white
       : theme.bg;
 

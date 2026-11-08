@@ -23,6 +23,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = widget.theme;
+    final ui = NearbyCommunityStyle(theme);
     final state = widget.state;
 
     final filtered = state.services.where((s) {
@@ -39,30 +40,28 @@ class _ServicesScreenState extends State<ServicesScreen> {
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
-            padding: EdgeInsets.only(
-              top: NavigationInsets.of(context).top,
-            ),
+            padding: EdgeInsets.only(top: NavigationInsets.of(context).top),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Servicios del barrio',
                         style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                          color: theme.ink,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                          color: ui.ink,
                           letterSpacing: -0.5,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Oficios y profesiones de tu zona, recomendados por tus vecinos.',
-                        style: TextStyle(color: theme.muted, fontSize: 14),
+                        'Oficios recomendados por tus vecinos.',
+                        style: TextStyle(color: ui.muted, fontSize: 14),
                       ),
                     ],
                   ),
@@ -70,19 +69,18 @@ class _ServicesScreenState extends State<ServicesScreen> {
 
                 // Search bar
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Container(
                     height: 52,
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                     decoration: BoxDecoration(
                       color: theme.surface,
-                      border: Border.all(color: theme.line),
-                      borderRadius: BorderRadius.circular(18),
-                      boxShadow: theme.cardShadow,
+                      border: Border.all(color: ui.ink, width: 1.5),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.search, color: theme.muted, size: 22),
+                        Icon(Icons.search, color: ui.muted, size: 22),
                         const SizedBox(width: 10),
                         Expanded(
                           child: TextField(
@@ -103,7 +101,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                 SizedBox(
                   height: 44,
                   child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
                     scrollDirection: Axis.horizontal,
                     itemCount: kServCats.length,
                     separatorBuilder: (_, _) => const SizedBox(width: 8),
@@ -114,35 +112,26 @@ class _ServicesScreenState extends State<ServicesScreen> {
                         key: c.id == 'gasfiteria'
                             ? state.tourTarget('service-category')
                             : null,
-                        label: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              c.icon,
-                              size: 16,
-                              color: isSel ? theme.btnInk : theme.muted,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(c.label),
-                          ],
-                        ),
+                        label: Text(c.label),
                         selected: isSel,
                         onSelected: (_) {
                           state.servCat = c.id;
                           state.refresh();
-                          if (c.id == 'gasfiteria') state.checkTourEvent('servcat');
+                          if (c.id == 'gasfiteria')
+                            state.checkTourEvent('servcat');
                         },
                         backgroundColor: theme.surface,
-                        selectedColor: theme.btnBg,
+                        selectedColor: ui.ivory,
+                        side: BorderSide(color: isSel ? ui.accent : ui.line),
                         labelStyle: TextStyle(
                           fontFamily: 'Poppins',
-                          color: isSel ? theme.btnInk : theme.ink,
-                          fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
+                          color: ui.ink,
+                          fontWeight: isSel ? FontWeight.w600 : FontWeight.w500,
                           fontSize: 13,
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(999),
-                          side: BorderSide(color: isSel ? theme.btnBg : theme.line),
+                          side: BorderSide(color: isSel ? ui.accent : ui.line),
                         ),
                         showCheckmark: false,
                       );
@@ -152,34 +141,33 @@ class _ServicesScreenState extends State<ServicesScreen> {
 
                 // VB Explanation box
                 Container(
-                  margin: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                  margin: const EdgeInsets.fromLTRB(24, 12, 24, 16),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: theme.primarySoft,
-                    borderRadius: BorderRadius.circular(16),
+                    color: ui.blueSoft,
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.verified, color: theme.primaryDark, size: 22),
+                      Icon(Icons.verified, color: ui.ink, size: 22),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text.rich(
                           TextSpan(
                             style: TextStyle(
                               fontFamily: 'Poppins',
-                              color: theme.primaryDark,
+                              color: ui.ink,
                               fontSize: 12.5,
                               height: 1.4,
                             ),
                             children: const [
                               TextSpan(
                                 text: 'Visto Bueno Vecinal: ',
-                                style: TextStyle(fontWeight: FontWeight.w900),
+                                style: TextStyle(fontWeight: FontWeight.w700),
                               ),
                               TextSpan(
-                                text:
-                                    'solo cuentan las recomendaciones de vecinos verificados de tu misma zona, una por persona.',
+                                text: 'recomendaciones de vecinos verificados de tu zona, una por persona.',
                               ),
                             ],
                           ),
@@ -195,7 +183,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
 
         // Services List (Virtualizado)
         SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           sliver: SliverList.builder(
             itemCount: filtered.length,
             itemBuilder: (context, index) => _buildServiceRow(filtered[index]),
@@ -206,9 +194,9 @@ class _ServicesScreenState extends State<ServicesScreen> {
         SliverToBoxAdapter(
           child: Padding(
             padding: EdgeInsets.fromLTRB(
-              16,
+              24,
               12,
-              16,
+              24,
               NavigationInsets.of(context).bottom + 24,
             ),
             child: InkWell(
@@ -220,25 +208,20 @@ class _ServicesScreenState extends State<ServicesScreen> {
               child: Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: theme.surface,
-                  border: Border.all(color: theme.line),
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: theme.cardShadow,
+                  color: ui.ivory,
+                  border: Border.all(color: ui.line),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
                     Container(
-                      width: 48,
-                      height: 48,
+                      width: 28,
+                      height: 28,
                       decoration: BoxDecoration(
-                        color: theme.infoSoft,
-                        borderRadius: BorderRadius.circular(16),
+                        color: ui.ivory,
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Icon(
-                        Icons.add_business,
-                        color: theme.info,
-                        size: 26,
-                      ),
+                      child: Icon(Icons.add, color: ui.ink, size: 20),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -248,19 +231,19 @@ class _ServicesScreenState extends State<ServicesScreen> {
                           Text(
                             '¿Tienes un oficio?',
                             style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              color: theme.ink,
+                              fontWeight: FontWeight.w700,
+                              color: ui.ink,
                               fontSize: 14.5,
                             ),
                           ),
                           Text(
                             'Ofrécelo a tus vecinos gratis',
-                            style: TextStyle(color: theme.muted, fontSize: 12.5),
+                            style: TextStyle(color: ui.muted, fontSize: 12.5),
                           ),
                         ],
                       ),
                     ),
-                    Icon(Icons.chevron_right, color: theme.muted),
+                    Icon(Icons.chevron_right, color: ui.muted),
                   ],
                 ),
               ),
@@ -271,167 +254,132 @@ class _ServicesScreenState extends State<ServicesScreen> {
     );
   }
 
-  Widget _buildServiceRow(ServiceItem s) {
-    final theme = widget.theme;
+  Widget _buildServiceRow(ServiceItem service) {
     final state = widget.state;
-    final hasVb = state.vbGiven[s.id] == true;
+    final ui = NearbyCommunityStyle(widget.theme);
+    final count = service.vb + (state.vbGiven[service.id] == true ? 1 : 0);
 
     return RepaintBoundary(
-      child: Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: InkWell(
-        key: s.id == 'julio' ? state.tourTarget('service-julio') : null,
-        onTap: () {
-          state.selService = s.id;
-          state.go('svc');
-        },
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: theme.surface,
-            border: Border.all(color: theme.line),
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: theme.cardShadow,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Material(
+          color: widget.theme.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: ui.line),
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: _toneSoft(s.tone),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(s.icon, color: _toneColor(s.tone), size: 26),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      s.name,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        color: theme.ink,
-                        fontSize: 14.5,
+          child: InkWell(
+            key: service.id == 'julio'
+                ? state.tourTarget('service-julio')
+                : null,
+            onTap: () {
+              state.selService = service.id;
+              state.go('svc');
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: service.tone == 'amber'
+                              ? ui.ivory
+                              : ui.blueSoft,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(service.icon, size: 21, color: ui.ink),
                       ),
-                    ),
-                    Text(
-                      '${s.job} · ${s.dist}',
-                      style: TextStyle(color: theme.muted, fontSize: 12.5),
-                    ),
-                    const SizedBox(height: 4),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.primarySoft,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.verified,
-                                color: theme.primaryDark,
-                                size: 14,
+                      const SizedBox(width: 10),
+                      Expanded(
+                        flex: 3,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              service.name,
+                              style: TextStyle(
+                                color: ui.ink,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${s.vb + (hasVb ? 1 : 0)} vistos buenos',
-                                style: TextStyle(
-                                  color: theme.primaryDark,
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
+                            ),
+                            Text(
+                              service.job,
+                              style: TextStyle(color: ui.muted, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          service.price,
+                          textAlign: TextAlign.end,
+                          style: TextStyle(
+                            color: ui.ink,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                        if (s.emerg)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: theme.sosSoft,
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.emergency,
-                                  color: NearbyColors.sosDark,
-                                  size: 14,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Emergencias',
-                                  style: TextStyle(
-                                    color: NearbyColors.sosDark,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
-                            ),
+                      ),
+                    ],
+                  ),
+                  Divider(height: 16, color: ui.line),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.verified_user_outlined,
+                        size: 14,
+                        color: ui.ink,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          '$count vistos buenos',
+                          style: TextStyle(
+                            color: ui.ink,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
                           ),
-                      ],
+                        ),
+                      ),
+                      Flexible(
+                        child: Text(
+                          service.dist,
+                          textAlign: TextAlign.end,
+                          style: TextStyle(color: ui.muted, fontSize: 10),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (service.emerg)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Disponible en emergencias',
+                          style: TextStyle(
+                            color: widget.theme.sosDark,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
                     ),
-                  ],
-                ),
+                ],
               ),
-              Icon(Icons.chevron_right, color: theme.muted),
-            ],
+            ),
           ),
         ),
       ),
-    ),
-  );
-}
-
-  Color _toneColor(String tone) {
-    switch (tone) {
-      case 'green':
-        return NearbyColors.primary;
-      case 'blue':
-        return NearbyColors.info;
-      case 'amber':
-        return NearbyColors.accent;
-      case 'red':
-        return NearbyColors.sos;
-      case 'violet':
-        return NearbyColors.violet;
-      default:
-        return NearbyColors.primary;
-    }
-  }
-
-  Color _toneSoft(String tone) {
-    switch (tone) {
-      case 'green':
-        return widget.theme.primarySoft;
-      case 'blue':
-        return widget.theme.infoSoft;
-      case 'amber':
-        return widget.theme.accentSoft;
-      case 'red':
-        return widget.theme.sosSoft;
-      case 'violet':
-        return widget.theme.violetSoft;
-      default:
-        return widget.theme.primarySoft;
-    }
+    );
   }
 }
 
@@ -448,342 +396,305 @@ class ServiceDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s =
-        state.services.where((x) => x.id == state.selService).firstOrNull ??
+    final ui = NearbyCommunityStyle(theme);
+    final service =
+        state.services
+            .where((item) => item.id == state.selService)
+            .firstOrNull ??
         state.services.first;
-    final given = state.vbGiven[s.id] == true;
-    final count = s.vb + (given ? 1 : 0);
+    final given = state.vbGiven[service.id] == true;
+    final count = service.vb + (given ? 1 : 0);
+    final detail = state.serviceDetails[service.id];
+    final endorsers =
+        (detail?['endorserInitials'] as List?)?.cast<String>() ??
+        const <String>[];
 
     return ListView(
-      padding: NavigationInsets.of(context) + const EdgeInsets.only(bottom: 24),
+      padding:
+          NavigationInsets.of(context) +
+          const EdgeInsets.fromLTRB(24, 12, 24, 24),
       children: [
-        // Hero
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: ui.panel,
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Column(
             children: [
-              Container(
-                width: 88,
-                height: 88,
-                decoration: BoxDecoration(
-                  color: _toneSoft(s.tone),
-                  borderRadius: BorderRadius.circular(28),
-                ),
-                child: Icon(s.icon, color: _toneColor(s.tone), size: 44),
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: ui.accent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(service.icon, color: ui.onAccent),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          service.name,
+                          style: TextStyle(
+                            color: ui.onPanel,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          service.job,
+                          style: TextStyle(color: ui.onPanel, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 10),
-              Text(
-                s.name,
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: theme.ink,
-                ),
-              ),
-              Text(s.job, style: TextStyle(color: theme.muted, fontSize: 14)),
-              const SizedBox(height: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: theme.infoSoft,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.verified_user, color: theme.info, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
+              const SizedBox(height: 8),
+              Divider(color: ui.onPanel.withValues(alpha: .24)),
+              Row(
+                children: [
+                  Icon(
+                    Icons.verified_user_outlined,
+                    color: ui.light ? ui.accent : ui.onPanel,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
                       [
-                        if (state.serviceDetails[s.id]?['ownerVerified'] !=
-                            false)
+                        if (detail?['ownerVerified'] != false)
                           'Vecino verificado',
-                        (state.serviceDetails[s.id]?['zoneName']
-                                as String?) ??
-                            state.zoneName,
+                        (detail?['zoneName'] as String?) ?? state.zoneName,
                       ].join(' · '),
                       style: TextStyle(
-                        color: theme.info,
-                        fontWeight: FontWeight.w800,
+                        color: ui.onPanel,
                         fontSize: 12,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          key: state.tourTarget('vb-score'),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: ui.blueSoft,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Flexible(
+                child: Text(
+                  '$count',
+                  style: TextStyle(
+                    color: ui.ink,
+                    fontSize: 30,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                flex: 4,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Vistos buenos vecinales',
+                      style: TextStyle(
+                        color: ui.ink,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      'De vecinos de ${state.zoneName} que ya lo contrataron.',
+                      style: TextStyle(color: ui.muted, fontSize: 11),
+                    ),
+                    if (endorsers.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
+                        children: [
+                          for (final initials in endorsers)
+                            CircleAvatar(
+                              radius: 12,
+                              backgroundColor: theme.surface,
+                              foregroundColor: ui.ink,
+                              child: Text(
+                                initials,
+                                style: const TextStyle(fontSize: 9),
+                              ),
+                            ),
+                          if (count > 4)
+                            Text(
+                              '+${count - 4}',
+                              style: TextStyle(color: ui.muted, fontSize: 11),
+                            ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
             ],
           ),
         ),
-
-        // Big Visto Bueno Card
-        Padding(
-          key: state.tourTarget('vb-score'),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: theme.surface,
-              border: Border.all(color: theme.line),
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: theme.cardShadow,
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 78,
-                  height: 78,
-                  decoration: BoxDecoration(
-                    color: theme.btnBg,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.verified, color: theme.primary, size: 24),
-                      Text(
-                        '$count',
-                        style: TextStyle(
-                          color: theme.btnInk,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 26,
-                          height: 1.1,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Vistos buenos vecinales',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          color: theme.ink,
-                          fontSize: 14.5,
-                        ),
-                      ),
-                      Text(
-                        'de vecinos de ${state.zoneName} que ya lo contrataron',
-                        style: TextStyle(color: theme.muted, fontSize: 12),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          ...((state.serviceDetails[s.id]?['endorserInitials']
-                                      as List?) ??
-                                  const [])
-                              .cast<String>()
-                              .map(
-                            (x) => Container(
-                              width: 26,
-                              height: 26,
-                              margin: const EdgeInsets.only(right: 4),
-                              decoration: BoxDecoration(
-                                color: theme.violetSoft,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: theme.surface,
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  x,
-                                  style: TextStyle(
-                                    color: theme.violet,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          if (count > 4)
-                          Text(
-                            ' +${count - 4}',
-                            style: TextStyle(
-                              color: theme.muted,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        // 3 Actions: Call, Message, Give Visto Bueno
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              Expanded(
-                child: _actionButton(
-                  icon: Icons.call,
-                  label: 'Llamar',
-                  onTap: () => state.startCall(s.name),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _actionButton(
-                  icon: Icons.chat,
-                  label: 'Mensaje',
-                  onTap: () => state.contactService(s),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _actionButton(
-                  icon: Icons.thumb_up,
-                  key: state.tourTarget('vb'),
-                  label: given ? 'Visto bueno dado' : 'Dar visto bueno',
-                  isOn: given,
-                  onTap: () => state.toggleVb(s.id),
-                ),
-              ),
-            ],
-          ),
-        ),
         const SizedBox(height: 16),
-
-        // Info List
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            decoration: BoxDecoration(
-              color: theme.surface,
-              border: Border.all(color: theme.line),
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: theme.cardShadow,
-            ),
-            child: Column(
-              children: [
-                _infoRow(
-                  Icons.location_on,
-                  'Distancia',
-                  '${s.dist} de tu casa',
-                ),
-                const Divider(height: 1),
-                _infoRow(Icons.schedule, 'Horario', s.hours),
-                const Divider(height: 1),
-                _infoRow(Icons.payments, 'Precio referencial', s.price),
-                if (s.emerg) ...[
-                  const Divider(height: 1),
-                  _infoRow(
-                    Icons.emergency,
-                    'Disponible en emergencias',
-                    'Integra los grupos de apoyo de la zona',
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-
-        // Reviews section
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 22, 16, 10),
-          child: Text(
-            'Lo que dicen tus vecinos',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-              color: theme.ink,
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            children: state
-                .reviewsFor(s.id)
-                .map((r) => _buildReviewCard(r))
-                .toList(),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _actionButton({
-    Key? key,
-    required IconData icon,
-    required String label,
-    bool isOn = false,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      key: key,
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
-        decoration: BoxDecoration(
-          color: isOn ? theme.btnBg : theme.surface,
-          border: Border.all(color: isOn ? theme.btnBg : theme.line),
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Column(
+        Row(
           children: [
-            Icon(
-              icon,
-              color: isOn
-                  ? (theme.dark ? theme.btnInk : theme.primary)
-                  : theme.primary,
-              size: 24,
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => state.contactService(service),
+                style: ui.action(),
+                icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                label: const Text('Mensaje', textAlign: TextAlign.center),
+              ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: isOn ? theme.btnInk : theme.ink,
+            const SizedBox(width: 10),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => state.startCall(service.name),
+                style: ui.action(filled: false),
+                icon: const Icon(Icons.call_outlined, size: 18),
+                label: const Text('Llamar', textAlign: TextAlign.center),
               ),
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          key: state.tourTarget('vb'),
+          onPressed: () => state.toggleVb(service.id),
+          style: ui.action(filled: false),
+          icon: Icon(given ? Icons.verified_outlined : Icons.check, size: 18),
+          label: Text(given ? 'Visto bueno dado' : 'Dar visto bueno'),
+        ),
+        const SizedBox(height: 24),
+        Text(
+          'Datos del servicio',
+          style: TextStyle(
+            color: ui.ink,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: theme.surface,
+            border: Border.all(color: ui.line),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              _infoRow(
+                ui,
+                Icons.location_on_outlined,
+                'Distancia',
+                '${service.dist} de tu casa',
+              ),
+              Divider(height: 1, color: ui.line),
+              _infoRow(ui, Icons.schedule, 'Horario', service.hours),
+              Divider(height: 1, color: ui.line),
+              _infoRow(
+                ui,
+                Icons.payments_outlined,
+                'Precio referencial',
+                service.price,
+              ),
+            ],
+          ),
+        ),
+        if (service.emerg) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.sosSoft,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Tooltip(
+              message: 'Integra los grupos de apoyo de la zona',
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    color: theme.sosDark,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Disponible en emergencias',
+                      style: TextStyle(
+                        color: theme.sosDark,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: 24),
+        Text(
+          'Lo que dicen tus vecinos',
+          style: TextStyle(
+            color: ui.ink,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 12),
+        for (final review in state.reviewsFor(service.id))
+          _buildReviewCard(review),
+      ],
     );
   }
 
-  Widget _infoRow(IconData icon, String label, String value) {
+  Widget _infoRow(
+    NearbyCommunityStyle ui,
+    IconData icon,
+    String label,
+    String value,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
-          Icon(icon, color: theme.muted, size: 20),
-          const SizedBox(width: 12),
+          Icon(icon, color: ui.ink, size: 18),
+          const SizedBox(width: 8),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: TextStyle(color: theme.muted, fontSize: 12)),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: theme.ink,
-                    fontSize: 13.5,
-                  ),
-                ),
-              ],
+            child: Text(label, style: TextStyle(color: ui.muted, fontSize: 11)),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 2,
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                color: ui.ink,
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
             ),
           ),
         ],
@@ -798,8 +709,7 @@ class ServiceDetailScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.surface,
         border: Border.all(color: theme.line),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: theme.cardShadow,
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -841,39 +751,5 @@ class ServiceDetailScreen extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  Color _toneColor(String tone) {
-    switch (tone) {
-      case 'green':
-        return NearbyColors.primary;
-      case 'blue':
-        return NearbyColors.info;
-      case 'amber':
-        return NearbyColors.accent;
-      case 'red':
-        return NearbyColors.sos;
-      case 'violet':
-        return NearbyColors.violet;
-      default:
-        return NearbyColors.primary;
-    }
-  }
-
-  Color _toneSoft(String tone) {
-    switch (tone) {
-      case 'green':
-        return theme.primarySoft;
-      case 'blue':
-        return theme.infoSoft;
-      case 'amber':
-        return theme.accentSoft;
-      case 'red':
-        return theme.sosSoft;
-      case 'violet':
-        return theme.violetSoft;
-      default:
-        return theme.primarySoft;
-    }
   }
 }
