@@ -87,6 +87,9 @@ class PostItem {
   /// Estado de la publicación ('OPEN', 'IN_PROGRESS', 'RESOLVED', 'CANCELLED')
   final String status;
 
+  /// URL de la foto adjunta al favor o necesidad
+  final String? photoUrl;
+
   PostItem({
     required this.id,
     required this.type,
@@ -103,6 +106,7 @@ class PostItem {
     this.myResponseStatus,
     this.incomingResponses = const [],
     this.status = 'OPEN',
+    this.photoUrl,
   });
 }
 

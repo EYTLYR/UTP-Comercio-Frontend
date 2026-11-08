@@ -428,6 +428,19 @@ class WallScreen extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
+            if (p.photoUrl != null && p.photoUrl!.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.network(
+                  p.photoUrl!,
+                  height: 180,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             // En lo que publiqué yo: veo quién respondió y puedo aceptar/rechazar.
             if (mine) ...[

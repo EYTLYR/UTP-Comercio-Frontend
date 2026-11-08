@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/models.dart';
+import 'api_config.dart';
 
 /// Traducción entre el contrato de la API (enums en inglés, lat/lng, ISO-8601)
 /// y los modelos de la app (ids en español, posiciones 0..100 en el mapa).
@@ -278,6 +279,9 @@ class Api2App {
         .map((r) => postResponse(r as Map<String, dynamic>))
         .toList(),
     status: _s(j['status'], 'OPEN'),
+    photoUrl: (j['photoUrl'] as String?)?.isNotEmpty == true
+        ? ApiConfig.fileUrl(j['photoUrl'] as String)
+        : null,
   );
 
   static PostResponseItem postResponse(Map<String, dynamic> j) =>
