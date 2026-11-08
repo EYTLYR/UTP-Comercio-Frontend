@@ -94,12 +94,57 @@ class InternetCall extends ChangeNotifier {
   }
 
   Future<RTCPeerConnection> _prepare(int generation) async {
-    final config = Map<String, dynamic>.from(
-      await api.get('calls/config') as Map,
-    );
+    final rawConfig = await api.get('calls/config') as Map;
+    final config = Map<String, dynamic>.from(rawConfig);
+
+    // Asegurar compatibilidad WebRTC y servidores STUN/TURN para redes 4G/LTE con Symmetric NAT (CGNAT)
+    final iceServers = <Map<String, dynamic>>[];
+    if (config['iceServers'] is List) {
+      for (final server in config['iceServers'] as List) {
+        if (server is Map) iceServers.add(Map<String, dynamic>.from(server));
+      }
+    }
+
+    final hasTurn = iceServers.any((s) {
+      final urls = s['urls'];
+      if (urls is String) return urls.startsWith('turn:');
+      if (urls is List) return urls.any((u) => u.toString().startsWith('turn:'));
+      return false;
+    });
+
+    if (!hasTurn) {
+      iceServers.add({
+        'urls': [
+          'turn:openrelay.metered.ca:80',
+          'turn:openrelay.metered.ca:443',
+          'turn:openrelay.metered.ca:443?transport=tcp',
+        ],
+        'username': 'openrelayproject',
+        'credential': 'openrelayproject',
+      });
+    }
+
+    final hasGoogle = iceServers.any((s) => s['urls'].toString().contains('google'));
+    if (!hasGoogle) {
+      iceServers.insert(0, {
+        'urls': [
+          'stun:stun.l.google.com:19302',
+          'stun:stun1.l.google.com:19302',
+          'stun:stun2.l.google.com:19302',
+        ],
+      });
+    }
+
+    config['iceServers'] = iceServers;
+    config['sdpSemantics'] = 'unified-plan';
+
     if (!_current(generation)) throw StateError('Llamada cancelada');
     final stream = await navigator.mediaDevices.getUserMedia({
-      'audio': true,
+      'audio': {
+        'echoCancellation': true,
+        'noiseSuppression': true,
+        'autoGainControl': true,
+      },
       'video': false,
     });
     if (!_current(generation)) {
@@ -115,7 +160,12 @@ class InternetCall extends ChangeNotifier {
       rendererReady = true;
     }
     if (!_current(generation)) throw StateError('Llamada cancelada');
-    final peer = await createPeerConnection(config);
+    final peer = await createPeerConnection(config, {
+      'mandatory': {},
+      'optional': [
+        {'DtlsSrtpKeyAgreement': true},
+      ],
+    });
     if (!_current(generation)) {
       await peer.close();
       await peer.dispose();
@@ -123,8 +173,21 @@ class InternetCall extends ChangeNotifier {
     }
     _peer = peer;
     peer.onTrack = (event) {
-      if (_current(generation) && event.streams.isNotEmpty) {
+      if (!_current(generation)) return;
+      if (event.streams.isNotEmpty) {
         remoteAudio.srcObject = event.streams.first;
+      }
+    };
+    peer.onIceConnectionState = (state) {
+      if (!_current(generation)) return;
+      if (state == RTCIceConnectionState.RTCIceConnectionStateConnected ||
+          state == RTCIceConnectionState.RTCIceConnectionStateCompleted) {
+        unawaited(SoundService.instance.stopCallSounds());
+        if (phase != 'connected') {
+          phase = 'connected';
+          _duration.start();
+          _update();
+        }
       }
     };
     peer.onConnectionState = (state) {
@@ -155,14 +218,32 @@ class InternetCall extends ChangeNotifier {
     RTCSessionDescription description,
   ) async {
     final gathered = Completer<void>();
+    Timer? fallbackTimer;
+
     peer.onIceGatheringState = (state) {
       if (state == RTCIceGatheringState.RTCIceGatheringStateComplete &&
           !gathered.isCompleted) {
+        fallbackTimer?.cancel();
         gathered.complete();
       }
     };
+
+    // Al detectar candidatos STUN (srflx) o TURN (relay), dar 1.5s de gracia para juntar los restantes
+    peer.onIceCandidate = (candidate) {
+      final c = candidate.candidate;
+      if (c != null && (c.contains('typ relay') || c.contains('typ srflx'))) {
+        fallbackTimer ??= Timer(const Duration(milliseconds: 1500), () {
+          if (!gathered.isCompleted) gathered.complete();
+        });
+      }
+    };
+
     await peer.setLocalDescription(description);
-    await gathered.future.timeout(const Duration(seconds: 8), onTimeout: () {});
+    if (peer.iceGatheringState == RTCIceGatheringState.RTCIceGatheringStateComplete) {
+      if (!gathered.isCompleted) gathered.complete();
+    }
+    await gathered.future.timeout(const Duration(seconds: 7), onTimeout: () {});
+    fallbackTimer?.cancel();
     final local = await peer.getLocalDescription();
     if (local?.sdp == null) throw StateError('No se pudo preparar el audio');
     return local!.sdp!;
