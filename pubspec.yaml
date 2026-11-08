@@ -59,6 +59,7 @@ dependencies:
   # Foto de perfil y fotos de riesgo (cámara o galería, ya comprimidas) y su envío multipart.
   image_picker: ^1.1.2
   http_parser: ^4.1.0
+  audioplayers: ^6.1.0
 
 dev_dependencies:
   flutter_test:
@@ -85,6 +86,8 @@ flutter:
     - .env
     # Logo oficial en capas (tinta y corazón) para teñirlo según el tema.
     - assets/brand/
+    # Efectos de sonido (llamadas, alertas SOS, notificaciones)
+    - assets/sounds/
   # Tipografía de marca: Poppins (OFL, assets/fonts/OFL.txt). Sin peso 800/900: los textos
   # que los piden usan Bold (700), así la jerarquía queda en 400/500/600/700.
   fonts:

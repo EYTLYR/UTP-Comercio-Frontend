@@ -17,6 +17,7 @@ import '../services/device_actions.dart';
 import '../services/biometric_guard.dart';
 import '../services/outbox_storage.dart';
 import '../services/internet_call.dart';
+import '../services/sound_service.dart';
 import '../services/speech_input.dart';
 import '../services/startup_permissions.dart';
 
@@ -109,6 +110,7 @@ class AppState extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    unawaited(SoundService.instance.stopAll());
     _connSub?.cancel();
     _pollTimer?.cancel();
     _chatTimer?.cancel();
@@ -814,6 +816,7 @@ class AppState extends ChangeNotifier {
   void sendChat(String text) {
     final t = text.trim();
     if (t.isEmpty || chatWith == null) return;
+    unawaited(SoundService.instance.playMessagePop());
     chats[chatWith]!.add(
       ChatMessage(from: 'me', text: t, time: _nowTime(), pending: offline),
     );
@@ -837,6 +840,7 @@ class AppState extends ChangeNotifier {
           final reply =
               replies[(DateTime.now().millisecondsSinceEpoch ~/ 100) %
                   replies.length];
+          unawaited(SoundService.instance.playMessagePop());
           chats[target]?.add(
             ChatMessage(from: 'them', text: reply, time: _nowTime()),
           );

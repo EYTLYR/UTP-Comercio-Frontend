@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../api/api_client.dart';
+import 'sound_service.dart';
 
 class InternetCall extends ChangeNotifier {
   final ApiClient api;
@@ -39,6 +40,7 @@ class InternetCall extends ChangeNotifier {
   bool _current(int generation) => !_disposed && generation == _generation;
 
   void resetSelection() {
+    SoundService.instance.stopCallSounds();
     if (active) return;
     phase = 'idle';
     error = null;
@@ -59,6 +61,7 @@ class InternetCall extends ChangeNotifier {
       phase = 'incoming';
       error = null;
       _duration.reset();
+      unawaited(SoundService.instance.playCallRingtone());
       _watch();
       _update();
       return true;
@@ -106,6 +109,7 @@ class InternetCall extends ChangeNotifier {
     peer.onConnectionState = (state) {
       if (!_current(generation)) return;
       if (state == RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
+        unawaited(SoundService.instance.stopCallSounds());
         phase = 'connected';
         _duration.start();
         _update();
@@ -174,6 +178,7 @@ class InternetCall extends ChangeNotifier {
       }
       details = record;
       phase = 'ringing';
+      unawaited(SoundService.instance.playCallDialing());
       _watch();
       _update();
     } catch (e) {
@@ -183,6 +188,7 @@ class InternetCall extends ChangeNotifier {
 
   Future<void> accept() async {
     if (phase != 'incoming' || details == null) return;
+    unawaited(SoundService.instance.stopCallSounds());
     final generation = ++_generation;
     phase = 'preparing';
     _remoteAnswered = true;
@@ -237,6 +243,7 @@ class InternetCall extends ChangeNotifier {
       } else if (!_remoteAnswered &&
           record['answer'] != null &&
           _peer != null) {
+        unawaited(SoundService.instance.stopCallSounds());
         _remoteAnswered = true;
         phase = 'connecting';
         await _peer!.setRemoteDescription(
@@ -302,6 +309,11 @@ class InternetCall extends ChangeNotifier {
     String? message,
     bool failed = false,
   }) async {
+    final wasActive = active;
+    unawaited(SoundService.instance.stopCallSounds());
+    if (wasActive && phase != 'ended' && phase != 'failed') {
+      unawaited(SoundService.instance.playCallEnded());
+    }
     ++_generation;
     _timer?.cancel();
     _duration.stop();

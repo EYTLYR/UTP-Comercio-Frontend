@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../models/models.dart';
+import '../services/sound_service.dart';
 import '../state/app_state.dart';
 import '../theme/nearby_theme.dart';
 import '../widgets/common_widgets.dart';
@@ -389,6 +390,7 @@ class _SosCountdownScreenState extends State<SosCountdownScreen>
   late final AnimationController _countdown;
   bool _sent = false;
   Timer? _deadline;
+  Timer? _soundTicker;
   static const types = [
     ('salud', 'Salud', Icons.medical_services),
     ('fuego', 'Incendio', Icons.local_fire_department),
@@ -401,6 +403,10 @@ class _SosCountdownScreenState extends State<SosCountdownScreen>
   @override
   void initState() {
     super.initState();
+    unawaited(SoundService.instance.playSosCountdown());
+    _soundTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+      unawaited(SoundService.instance.playSosCountdown());
+    });
     _countdown =
         AnimationController(vsync: this, duration: const Duration(seconds: 5))
           ..addStatusListener((status) {
@@ -413,14 +419,17 @@ class _SosCountdownScreenState extends State<SosCountdownScreen>
   void _send() {
     if (_sent) return;
     _sent = true;
+    _soundTicker?.cancel();
     _deadline?.cancel();
     _countdown.stop();
+    unawaited(SoundService.instance.playSosAlarm());
     widget.state.go('sos-sent');
     widget.state.sendSos();
   }
 
   @override
   void dispose() {
+    _soundTicker?.cancel();
     _deadline?.cancel();
     _countdown.dispose();
     super.dispose();
@@ -454,6 +463,7 @@ class _SosCountdownScreenState extends State<SosCountdownScreen>
                       SosCountdownButton(
                         countdown: _countdown,
                         onCancel: () {
+                          _soundTicker?.cancel();
                           _deadline?.cancel();
                           _countdown.stop();
                           widget.state.back();
@@ -1102,7 +1112,7 @@ class SosSentScreen extends StatelessWidget {
 }
 
 // --- Alerta Recibida de un Vecino ---
-class AlertaRecibidaScreen extends StatelessWidget {
+class AlertaRecibidaScreen extends StatefulWidget {
   final AppState state;
   final NearbyThemeData theme;
 
@@ -1112,6 +1122,11 @@ class AlertaRecibidaScreen extends StatelessWidget {
     required this.theme,
   });
 
+  @override
+  State<AlertaRecibidaScreen> createState() => _AlertaRecibidaScreenState();
+}
+
+class _AlertaRecibidaScreenState extends State<AlertaRecibidaScreen> {
   static const _typeLabels = {
     'HEALTH': 'Salud',
     'FIRE': 'Incendio',
@@ -1121,8 +1136,32 @@ class AlertaRecibidaScreen extends StatelessWidget {
     'OTHER': 'Emergencia',
   };
 
+  bool _alarmMuted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(SoundService.instance.playSosAlarm());
+  }
+
+  @override
+  void dispose() {
+    unawaited(SoundService.instance.stopSosAlarm());
+    super.dispose();
+  }
+
+  void _toggleAlarm() {
+    setState(() => _alarmMuted = !_alarmMuted);
+    if (_alarmMuted) {
+      unawaited(SoundService.instance.stopSosAlarm());
+    } else {
+      unawaited(SoundService.instance.playSosAlarm());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final state = widget.state;
     // Con sesión solo mostramos lo que llegó del backend; sin datos, textos neutros.
     final live = state.connected;
     final sos = live ? state.incomingSos : null;
@@ -1177,37 +1216,78 @@ class AlertaRecibidaScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Center(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.18),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.crisis_alert,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                                SizedBox(width: 6),
-                                Text(
-                                  'ALERTA DE UN VECINO',
-                                  style: TextStyle(
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.crisis_alert,
                                     color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 11,
-                                    letterSpacing: 0.8,
+                                    size: 16,
                                   ),
-                                ),
-                              ],
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'ALERTA DE UN VECINO',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 11,
+                                      letterSpacing: 0.8,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            InkWell(
+                              onTap: _toggleAlarm,
+                              borderRadius: BorderRadius.circular(20),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(
+                                    alpha: _alarmMuted ? 0.35 : 0.18,
+                                  ),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      _alarmMuted
+                                          ? Icons.volume_off
+                                          : Icons.volume_up,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      _alarmMuted ? 'Silenciado' : 'Sirena activa',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 28),
 
@@ -1287,6 +1367,7 @@ class AlertaRecibidaScreen extends StatelessWidget {
 
                         ElevatedButton.icon(
                           onPressed: () {
+                            unawaited(SoundService.instance.stopSosAlarm());
                             state.respondSos(true);
                             state.routeTo = {
                               'title': live
@@ -1319,7 +1400,10 @@ class AlertaRecibidaScreen extends StatelessWidget {
                           children: [
                             Expanded(
                               child: OutlinedButton.icon(
-                                onPressed: () => state.startCall('106'),
+                                onPressed: () {
+                                  unawaited(SoundService.instance.stopSosAlarm());
+                                  state.startCall('106');
+                                },
                                 style: _onRedOutline(),
                                 icon: const Icon(
                                   Icons.medical_services,
@@ -1333,7 +1417,10 @@ class AlertaRecibidaScreen extends StatelessWidget {
                             if (initials.isNotEmpty)
                               Expanded(
                                 child: OutlinedButton.icon(
-                                  onPressed: () => state.startCall(who),
+                                  onPressed: () {
+                                    unawaited(SoundService.instance.stopSosAlarm());
+                                    state.startCall(who);
+                                  },
                                   style: _onRedOutline(),
                                   icon: const Icon(Icons.call, size: 18),
                                   label: Text(
@@ -1348,6 +1435,7 @@ class AlertaRecibidaScreen extends StatelessWidget {
                         Center(
                           child: TextButton(
                             onPressed: () {
+                              unawaited(SoundService.instance.stopSosAlarm());
                               state.respondSos(false);
                               state.go('home', reset: true);
                               state.toast(
