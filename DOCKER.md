@@ -30,7 +30,21 @@ docker load -i nearby-frontend.tar
 docker compose up -d
 ```
 
-La web queda en `http://IP_DEL_SERVIDOR`, puerto 80; el backend puede seguir en 8080. Compose utiliza exclusivamente la imagen cargada, sin descargarla ni compilarla. El puerto 80 debe estar disponible y permitido en el firewall. Si ya existe un proxy ocupándolo, cambia el puerto publicado en Compose, por ejemplo `8081:80`, y dirige el proxy a ese puerto.
+La web queda disponible en `http://127.0.0.1:8081` dentro del servidor; el backend puede seguir en 8080. Compose utiliza exclusivamente la imagen cargada, sin descargarla ni compilarla. Nginx del servidor mantiene los puertos 80/443 y dirige las peticiones al puerto 8081 del contenedor. El puerto 8081 se publica solo en loopback para utilizarlo mediante ese proxy.
+
+En el bloque `server` del dominio del frontend en Nginx, configura:
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:8081;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+Valida y recarga Nginx con `sudo nginx -t && sudo systemctl reload nginx`. Si el contenedor ya estaba creado con otro puerto, copia el Compose actualizado y ejecuta `docker compose up -d --force-recreate`; no necesitas reconstruir ni exportar otra vez la imagen para este cambio.
 
 ```sh
 docker compose ps
@@ -55,7 +69,7 @@ Para detenerlo: `docker compose down`.
 Tras cargar la imagen, también puedes ejecutar:
 
 ```sh
-docker run -d --name nearby-frontend --restart unless-stopped -p 80:80 nearby-frontend:server
+docker run -d --name nearby-frontend --restart unless-stopped -p 127.0.0.1:8081:80 nearby-frontend:server
 ```
 
 Utiliza esta alternativa o Compose para evitar conflictos de puerto. Nginx incluye compresión, comprobación de salud en `/healthz`, revalidación de caché y soporte de rutas de la app al recargar la página.
