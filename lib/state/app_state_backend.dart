@@ -72,7 +72,11 @@ extension NearbyBackend on AppState {
       );
       otpDevCode = response['devCode'] as String?;
       otpResendSeconds = (response['resendInSeconds'] as num?)?.toInt() ?? 30;
-      toast('Código solicitado al +51 $phoneDraft', icon: 'sms');
+      if (otpDevCode != null) {
+        toast('Código de acceso: $otpDevCode', icon: 'key');
+      } else {
+        toast('Código solicitado al +51 $phoneDraft', icon: 'sms');
+      }
       return true;
     } on ApiException catch (e) {
       toast(e.message, icon: 'error');

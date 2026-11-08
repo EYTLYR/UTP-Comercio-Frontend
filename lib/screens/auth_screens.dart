@@ -640,38 +640,45 @@ class _OtpScreenState extends State<OtpScreen> {
           ),
         ],
 
-        // Only the code returned by a development backend can be shown.
-        if (AppEnvironment.showDevelopmentTools && state.otpDevCode != null)
+        // Muestra el código si el servidor lo devolvió (modo demo o respaldo por fallo de SMS)
+        if (state.otpDevCode != null)
           Container(
             margin: const EdgeInsets.only(top: 12),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
               color: theme.infoSoft,
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: theme.info.withValues(alpha: 0.3)),
             ),
             child: Row(
               children: [
-                Icon(Icons.info, color: theme.info, size: 18),
+                Icon(Icons.vpn_key_outlined, color: theme.info, size: 18),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Servidor de desarrollo: ${state.otpDevCode}',
+                    'Código de acceso: ${state.otpDevCode}',
                     style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
                       color: NearbyColors.info,
                     ),
                   ),
                 ),
                 InkWell(
                   onTap: _fillDemo,
-                  child: const Text(
-                    'Usarlo',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 13,
-                      decoration: TextDecoration.underline,
-                      color: NearbyColors.info,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: theme.info,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      'Usar código',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
