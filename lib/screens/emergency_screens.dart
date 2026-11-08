@@ -127,7 +127,9 @@ class SosScreen extends StatelessWidget {
                         const SizedBox(height: 8),
                         _whatRow(
                           Icons.share_location,
-                          'Tu ubicación a 3 contactos ${state.offline ? "por SMS" : "(en vivo)"}',
+                          state.connected && state.contacts.isEmpty
+                              ? 'Agrega contactos para compartir tu ubicación'
+                              : 'Tu ubicación a ${state.contacts.length} contactos ${state.offline ? "por SMS" : "(en vivo)"}',
                         ),
                         const SizedBox(height: 8),
                         _whatRow(
@@ -642,7 +644,11 @@ class SosSentScreen extends StatelessWidget {
                               icon: Icons.sms,
                               color: theme.primary,
                               softColor: theme.primarySoft,
-                              title: 'SMS enviado a 3 contactos y a la brigada',
+                              title: !live
+                                  ? 'SMS enviado a 3 contactos y a la brigada'
+                                  : state.contacts.isEmpty
+                                  ? 'Código SMS listo para la brigada'
+                                  : 'Código SMS listo para tus ${state.contacts.length} contactos',
                               subtitle:
                                   'Sin internet: código comprimido de ${state.lastCode?.length ?? 22} caracteres',
                               trailing: Icon(
@@ -704,7 +710,9 @@ class SosSentScreen extends StatelessWidget {
                               icon: Icons.medical_services,
                               color: theme.violet,
                               softColor: theme.violetSoft,
-                              title: 'Brigada Zona 3 notificada',
+                              title: live
+                                  ? 'Brigada de tu zona notificada'
+                                  : 'Brigada Zona 3 notificada',
                               subtitle: brigadeSub,
                               trailing: Icon(
                                 Icons.check_circle,
@@ -756,8 +764,13 @@ class SosSentScreen extends StatelessWidget {
                                   title: x['status'] == 'ARRIVED'
                                       ? '${x['name'] ?? 'Un vecino'} llegó'
                                       : '${x['name'] ?? 'Un vecino'} va en camino',
-                                  subtitle:
-                                      'A ${x['distanceM'] ?? '?'} m · llega en ${x['etaMinutes'] ?? '?'} min',
+                                  // Solo distancia y tiempo si el backend los dio
+                                  subtitle: [
+                                    if (x['distanceM'] != null)
+                                      'A ${x['distanceM']} m',
+                                    if (x['etaMinutes'] != null)
+                                      'llega en ${x['etaMinutes']} min',
+                                  ].join(' · '),
                                   trailing: Icon(
                                     Icons.directions_walk,
                                     color: theme.primary,
@@ -1134,27 +1147,40 @@ class AlertaRecibidaScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sos = state.connected ? state.incomingSos : null;
-    final who = (sos?['userName'] as String?) ?? 'Rosa Flores';
-    final initials = who
-        .split(' ')
-        .where((w) => w.isNotEmpty)
-        .take(2)
-        .map((w) => w[0].toUpperCase())
-        .join();
+    // Con sesión solo mostramos lo que llegó del backend; sin datos, textos neutros.
+    final live = state.connected;
+    final sos = live ? state.incomingSos : null;
+    final named = sos?['userName'] as String?;
+    final who = named ?? (live ? 'Un vecino' : 'Rosa Flores');
+    final initials = live && named == null
+        ? ''
+        : who
+              .split(' ')
+              .where((w) => w.isNotEmpty)
+              .take(2)
+              .map((w) => w[0].toUpperCase())
+              .join();
     final type = sos == null
-        ? 'Salud'
+        ? (live ? 'Emergencia' : 'Salud')
         : (_typeLabels[sos['type']] ?? 'Emergencia');
-    final dist = sos == null ? 'a 150 m' : 'a ${sos['distanceM'] ?? '?'} m';
-    final ago = sos == null
+    final distM = (sos?['distanceM'] as num?)?.toInt();
+    final String? dist = !live
+        ? 'a 150 m'
+        : (distM == null ? null : 'a $distM m');
+    final minutes = (sos?['minutesAgo'] as num?)?.toInt();
+    final String? ago = !live
         ? 'hace 1 min'
-        : ((sos['minutesAgo'] as num? ?? 0) < 1
-              ? 'ahora'
-              : 'hace ${sos['minutesAgo']} min');
-    final going = (sos?['goingCount'] as num?)?.toInt() ?? 2;
-    final detail = sos == null
+        : (minutes == null
+              ? null
+              : (minutes < 1 ? 'ahora' : 'hace $minutes min'));
+    final going = (sos?['goingCount'] as num?)?.toInt() ?? 0;
+    final detail = !live
         ? 'Jr. Los Pinos 210 · ubicación en vivo. 31 vecinos más recibieron esta alerta; 2 ya van en camino.'
+        : sos == null
+        ? 'Ubicación aproximada para proteger su privacidad.'
         : 'Ubicación aproximada para proteger su privacidad. ${going == 0 ? 'Nadie va todavía: tu ayuda cuenta.' : '$going ${going == 1 ? 'vecino ya va' : 'vecinos ya van'} en camino.'}';
+    final destLat = sos?['approxLat'] as num?;
+    final destLng = sos?['approxLng'] as num?;
     return Container(
       color: NearbyColors.sos,
       child: SafeArea(
@@ -1206,14 +1232,20 @@ class AlertaRecibidaScreen extends StatelessWidget {
                   ],
                 ),
                 child: Center(
-                  child: Text(
-                    initials,
-                    style: const TextStyle(
-                      color: NearbyColors.sosDark,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 32,
-                    ),
-                  ),
+                  child: initials.isEmpty
+                      ? const Icon(
+                          Icons.person,
+                          color: NearbyColors.sosDark,
+                          size: 48,
+                        )
+                      : Text(
+                          initials,
+                          style: const TextStyle(
+                            color: NearbyColors.sosDark,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 32,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 22),
@@ -1236,8 +1268,8 @@ class AlertaRecibidaScreen extends StatelessWidget {
                 alignment: WrapAlignment.center,
                 children: [
                   _chip(Icons.medical_services, type),
-                  _chip(Icons.near_me, dist),
-                  _chip(Icons.schedule, ago),
+                  if (dist != null) _chip(Icons.near_me, dist),
+                  if (ago != null) _chip(Icons.schedule, ago),
                 ],
               ),
               const SizedBox(height: 16),
@@ -1258,15 +1290,23 @@ class AlertaRecibidaScreen extends StatelessWidget {
                 onPressed: () {
                   state.respondSos(true);
                   state.routeTo = {
-                    'title': sos == null
-                        ? 'Rosa Flores · Jr. Los Pinos 210'
-                        : '$who · $dist',
+                    'title': live
+                        ? '$who · $type'
+                        : 'Rosa Flores · Jr. Los Pinos 210',
+                    if (live) 'sub': 'Ubicación aproximada',
+                    // Coordenadas aproximadas del SOS (GET /sos/nearby)
+                    if (destLat != null && destLng != null) ...{
+                      'lat': destLat.toDouble(),
+                      'lng': destLng.toDouble(),
+                    },
                     'icon': Icons.emergency,
                     'kind': 'help',
                   };
                   state.go('ruta', reset: true);
                   state.toast(
-                    '${who.split(' ').first} y la brigada saben que vas en camino',
+                    initials.isEmpty
+                        ? 'Avisamos que vas en camino'
+                        : '${who.split(' ').first} y la brigada saben que vas en camino',
                     icon: 'directions_run',
                   );
                 },
@@ -1309,8 +1349,9 @@ class AlertaRecibidaScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
+                  // Sin nombre real no hay a quién llamar
+                  if (initials.isNotEmpty) const SizedBox(width: 8),
+                  if (initials.isNotEmpty) Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () => state.startCall(who),
                       style: OutlinedButton.styleFrom(

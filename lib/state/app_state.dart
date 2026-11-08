@@ -142,13 +142,58 @@ class AppState extends ChangeNotifier {
   /// Panel de Municipalidad: solicitudes de brigadista pendientes.
   List<Map<String, dynamic>> adminRequests = [];
 
+  /// Vecino verificado por un delegado (campo verified de /me).
+  bool verified = false;
+
+  /// Mis números reales: favorsDone, endorsementsGiven, favorsReceived (GET me/stats).
+  Map<String, dynamic> myStats = const {};
+
+  /// Hora de la última vez que la app trajo todo del backend.
+  DateTime? lastSyncAt;
+
+  /// Mis conversaciones (bandeja de mensajes), la más reciente primero.
+  List<Map<String, dynamic>> conversations = [];
+
+  /// Mensajes sin leer en todas mis conversaciones.
+  int get unreadMessages => conversations.fold(
+    0,
+    (sum, c) => sum + ((c['unread'] as num?)?.toInt() ?? 0),
+  );
+
+  /// Detalle del backend de cada oficio (ownerVerified, zoneName, endorserInitials…).
+  final Map<String, Map<String, dynamic>> serviceDetails = {};
+
+  /// Municipalidad de la que soy parte (rol MUNICIPALITY): {id, name, district}.
+  Map<String, dynamic>? municipality;
+
+  /// Mi registro de Municipalidad. status: NONE, PENDING, APPROVED o REJECTED.
+  Map<String, dynamic> myMunicipality = const {'status': 'NONE'};
+
+  /// Administrador de la plataforma: Municipalidades registradas (pendientes primero).
+  List<Map<String, dynamic>> municipalities = [];
+
+  /// Zonas que administro (Municipalidad: su distrito; delegado: su zona).
+  List<Map<String, dynamic>> managedZones = [];
+
+  /// Equipo de mi Municipalidad.
+  List<Map<String, dynamic>> staff = [];
+
+  /// Distritos con zonas en Nearby (sugerencias del registro de Municipalidad).
+  List<String> muniDistricts = [];
+
+  /// Pantalla que se abre después de ingresar (registrar Municipalidad desde la bienvenida).
+  String? afterLogin;
+
+  /// Rol con el que se emitió el token actual: si /me trae otro, se pide un token nuevo.
+  String? sessionRole;
+
   /// Modo real de la zona (NORMAL, PREVENTION o EMERGENCY), aunque yo haya vuelto a normal en mi app.
   String zoneMode = 'NORMAL';
 
   /// Reportes de riesgo recientes de mi zona (modo Prevención El Niño).
   List<Map<String, dynamic>> riskReports = [];
   String? zoneId;
-  String zoneName = 'Zona 3 · Las Flores';
+  String zoneName = 'Sin zona';
   double? homeZoneLat, homeZoneLng;
   BrowseZone? viewedZone;
   int zoneViewRevision = 0;
@@ -156,18 +201,8 @@ class AppState extends ChangeNotifier {
       ? viewedZone!.name
       : effectiveZoneName;
 
-  String get effectiveZoneName {
-    final parts = userAddress.split(',');
-    if (parts.length > 1) {
-      final district = parts.last.trim();
-      if (district.isNotEmpty &&
-          !district.toLowerCase().contains('sjl') &&
-          !district.toLowerCase().contains('las flores')) {
-        return district;
-      }
-    }
-    return zoneName;
-  }
+  /// Nombre de mi zona tal como lo guarda el backend (el barrio de mi casa).
+  String get effectiveZoneName => zoneName;
 
   Future<List<BrowseZone>> fetchZones() async {
     if (!connected) return [];
@@ -252,15 +287,23 @@ class AppState extends ChangeNotifier {
   Timer? _outboxRetryTimer;
   bool _isSendingSos = false;
 
-  /// Municipalidad o delegado: ven el panel para cambiar el modo de la zona y aprobar brigadistas.
-  bool get isAdmin => connected && const {'ADMIN', 'DELEGATE'}.contains(role);
+  /// Plataforma, Municipalidad o delegado: ven el panel (modo de sus zonas, brigadistas y roles).
+  bool get isAdmin =>
+      connected && const {'ADMIN', 'MUNICIPALITY', 'DELEGATE'}.contains(role);
+
+  /// Administrador de la plataforma Nearby: aprueba a las Municipalidades.
+  bool get isPlatformAdmin => connected && role == 'ADMIN';
+
+  /// Equipo de una Municipalidad aprobada.
+  bool get isMunicipality => connected && role == 'MUNICIPALITY';
 
   /// La app muestra el modo Prevención (Fenómeno El Niño).
   bool get prevention => effectiveMode == 'PREVENTION';
 
   /// Brigada, delegado o Municipalidad. Sin sesión (demo) se muestra todo.
   bool get isBrigade =>
-      !connected || const {'BRIGADIST', 'DELEGATE', 'ADMIN'}.contains(role);
+      !connected ||
+      const {'BRIGADIST', 'DELEGATE', 'MUNICIPALITY', 'ADMIN'}.contains(role);
 
   /// Reseñas del oficio (del backend; de ejemplo sin sesión).
   List<ReviewItem> reviewsFor(String serviceId) =>
@@ -561,6 +604,11 @@ class AppState extends ChangeNotifier {
     if (!isAdmin && name == 'municipalidad') {
       toast('Esta vista es solo para la Municipalidad', icon: 'lock');
       return;
+    }
+    // Registrar una Municipalidad pide ingresar primero con el celular del responsable.
+    if (name == 'muni-registro' && !connected && useApi) {
+      afterLogin = 'muni-registro';
+      name = 'login';
     }
     if (reset) {
       hist.clear();
@@ -1298,7 +1346,7 @@ class AppState extends ChangeNotifier {
       chips.add(['location_on', loc]);
     }
     if (emergency && cat != null) {
-      chips.add(['hub', 'Cruzando con Brigada Z3']);
+      chips.add(['hub', 'Cruzando con la brigada de $zoneName']);
     }
 
     return {

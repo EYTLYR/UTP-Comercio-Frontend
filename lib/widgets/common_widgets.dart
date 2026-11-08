@@ -340,7 +340,38 @@ class NearbyTopBar extends StatelessWidget {
             const SizedBox(width: 8),
           ],
 
-          // User Avatar MQ
+          // Mensajes (con los no leídos)
+          if (state.connected) ...[
+            PressableScale(
+              onTap: () => state.go('mensajes'),
+              scale: 0.94,
+              child: Tooltip(
+                message: 'Mensajes',
+                child: Badge(
+                  isLabelVisible: state.unreadMessages > 0,
+                  label: Text('${state.unreadMessages}'),
+                  backgroundColor: NearbyColors.sos,
+                  child: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: theme.surface,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: theme.line),
+                    ),
+                    child: Icon(
+                      Icons.chat_bubble_outline,
+                      color: theme.ink,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+
+          // Avatar del vecino
           PressableScale(
             key: state.tourTarget('profile'),
             onTap: () => state.go('perfil'),

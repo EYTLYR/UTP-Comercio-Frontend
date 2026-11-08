@@ -82,6 +82,12 @@ class SplashScreen extends StatelessWidget {
               fontWeight: FontWeight.w400,
             ),
           ),
+          const SizedBox(height: 6),
+          TextButton.icon(
+            onPressed: () => state.go('muni-registro'),
+            icon: const Icon(Icons.account_balance, size: 18),
+            label: const Text('¿Eres una Municipalidad? Regístrala aquí'),
+          ),
         ],
       ),
     );

@@ -481,7 +481,8 @@ class _PuenteScreenState extends State<PuenteScreen> {
     _codeController = TextEditingController(
       text: (widget.state.lastCode != null && widget.state.lastCode!.isNotEmpty)
           ? widget.state.lastCode!
-          : 'NB#SOS!H1@LP340\$P:ALTA',
+          // Con sesión no hay código de ejemplo: se espera uno real.
+          : (widget.state.connected ? '' : 'NB#SOS!H1@LP340\$P:ALTA'),
     );
   }
 
@@ -493,9 +494,13 @@ class _PuenteScreenState extends State<PuenteScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final live = widget.state.connected;
     final code = _codeController.text;
+    final hasCode = code.trim().isNotEmpty;
     final decompressed = decompressSOS(code);
     final isDecoded = widget.state.decoded;
+    final gpsLat = decompressed?['lat'] as double?;
+    final gpsLng = decompressed?['lng'] as double?;
 
     return SingleChildScrollView(
       padding: NavigationInsets.of(context),
@@ -571,7 +576,9 @@ class _PuenteScreenState extends State<PuenteScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'SMS · +51 987 *** 321 · ${widget.state.nowTime()}',
+                        live
+                            ? 'Código SOS recibido'
+                            : 'SMS · +51 987 *** 321 · ${widget.state.nowTime()}',
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -580,20 +587,31 @@ class _PuenteScreenState extends State<PuenteScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        code,
-                        style: const TextStyle(
-                          fontFamily: 'monospace',
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: NearbyColors.sos,
-                          letterSpacing: 1.1,
-                        ),
+                        hasCode
+                            ? code
+                            : 'Aún no recibiste ningún código. Pega abajo el SMS que te llegó.',
+                        style: hasCode
+                            ? const TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: NearbyColors.sos,
+                                letterSpacing: 1.1,
+                              )
+                            : const TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                color: NearbyColors.muted,
+                              ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 12),
-                if (!isDecoded)
+                // Sin código no hay nada que descomprimir
+                if (!hasCode)
+                  const SizedBox.shrink()
+                else if (!isDecoded)
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: NearbyColors.ai,
@@ -667,6 +685,9 @@ class _PuenteScreenState extends State<PuenteScreen> {
                             label: 'Canal',
                             value: 'SMS, sin internet',
                           ),
+                          // Mini mapa ilustrativo solo en la demo; con sesión
+                          // se usa "Ver en el mapa" con el GPS real del código.
+                          if (!live) ...[
                           const SizedBox(height: 14),
                           // Mini map container
                           ClipRRect(
@@ -698,6 +719,7 @@ class _PuenteScreenState extends State<PuenteScreen> {
                               ),
                             ),
                           ),
+                          ],
                           const SizedBox(height: 14),
                           Row(
                             children: [
@@ -721,7 +743,16 @@ class _PuenteScreenState extends State<PuenteScreen> {
                                     widget.state.routeTo = {
                                       'title':
                                           decompressed['where'] ??
-                                          'Jr. Los Pinos 340',
+                                          (live
+                                              ? 'Lugar del reporte'
+                                              : 'Jr. Los Pinos 340'),
+                                      'sub':
+                                          '${decompressed['type']} · prioridad ${decompressed['prio']}',
+                                      // GPS del SMS (#G:lat,lng) si vino
+                                      if (gpsLat != null && gpsLng != null) ...{
+                                        'lat': gpsLat,
+                                        'lng': gpsLng,
+                                      },
                                       'icon': Icons.emergency,
                                       'kind': 'help',
                                     };

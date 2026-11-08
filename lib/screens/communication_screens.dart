@@ -7,6 +7,130 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 import '../state/app_state.dart';
 import '../theme/nearby_theme.dart';
 
+// --- Bandeja de mensajes ---
+
+/// Todas mis conversaciones: aquí aparecen también las que empezó otro vecino.
+class MensajesScreen extends StatefulWidget {
+  final AppState state;
+  final NearbyThemeData theme;
+  const MensajesScreen({super.key, required this.state, required this.theme});
+
+  @override
+  State<MensajesScreen> createState() => _MensajesScreenState();
+}
+
+class _MensajesScreenState extends State<MensajesScreen> {
+  @override
+  void initState() {
+    super.initState();
+    widget.state.loadConversations();
+  }
+
+  static String _when(String? iso) {
+    final t = iso == null ? null : DateTime.tryParse(iso)?.toLocal();
+    if (t == null) return '';
+    final now = DateTime.now();
+    final hm =
+        '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+    if (t.year == now.year && t.month == now.month && t.day == now.day) {
+      return hm;
+    }
+    return '${t.day.toString().padLeft(2, '0')}/${t.month.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = widget.state;
+    final theme = widget.theme;
+    final list = state.conversations;
+    return RefreshIndicator(
+      onRefresh: state.loadConversations,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 120),
+        children: [
+          if (list.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 60),
+              child: Column(
+                children: [
+                  Icon(Icons.forum_outlined, size: 56, color: theme.muted),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Aún no tienes mensajes',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: theme.ink,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Cuando respondas un favor o escribas a un oficio, la conversación aparece aquí.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: theme.muted, fontSize: 13.5),
+                  ),
+                ],
+              ),
+            ),
+          for (final c in list)
+            Card(
+              margin: const EdgeInsets.only(bottom: 10),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 6,
+                ),
+                leading: CircleAvatar(
+                  backgroundColor: theme.violetSoft,
+                  child: Text(
+                    (c['otherInitials'] as String?) ?? '?',
+                    style: TextStyle(
+                      color: theme.violet,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                title: Text(
+                  (c['otherUserName'] as String?) ?? 'Vecino',
+                  style: TextStyle(
+                    fontWeight: ((c['unread'] as num?) ?? 0) > 0
+                        ? FontWeight.w800
+                        : FontWeight.w600,
+                  ),
+                ),
+                subtitle: Text(
+                  (c['lastMessage'] as String?) ??
+                      (c['contextText'] as String?) ??
+                      '',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      _when(c['lastAt'] as String?),
+                      style: TextStyle(fontSize: 11.5, color: theme.muted),
+                    ),
+                    if (((c['unread'] as num?) ?? 0) > 0) ...[
+                      const SizedBox(height: 4),
+                      Badge(
+                        label: Text('${c['unread']}'),
+                        backgroundColor: NearbyColors.sos,
+                      ),
+                    ],
+                  ],
+                ),
+                onTap: () => state.openConversation(c),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 // --- Chat Screen ---
 class ChatScreen extends StatefulWidget {
   final AppState state;
@@ -21,9 +145,42 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _msgController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  late final _voice = widget.state.voice;
+
+  @override
+  void initState() {
+    super.initState();
+    _voice.addListener(_onVoice);
+  }
+
+  /// Lo que dice el vecino se escribe en la caja; lo revisa y lo envía él.
+  void _onVoice() {
+    if (!mounted) return;
+    if (_voice.listening && _voice.transcript.isNotEmpty) {
+      _msgController.value = TextEditingValue(
+        text: _voice.transcript,
+        selection: TextSelection.collapsed(offset: _voice.transcript.length),
+      );
+    }
+    if (_voice.error != null && !_voice.listening) {
+      widget.state.toast(_voice.error!, icon: 'mic_off');
+      _voice.error = null;
+    }
+    setState(() {});
+  }
+
+  Future<void> _toggleVoice() async {
+    if (_voice.listening || _voice.preparing) {
+      await _voice.stop();
+    } else {
+      await _voice.start();
+    }
+  }
 
   @override
   void dispose() {
+    _voice.removeListener(_onVoice);
+    _voice.cancel();
     _msgController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -55,7 +212,17 @@ class _ChatScreenState extends State<ChatScreen> {
     final name = state.chatWith ?? 'Vecino';
     final msgs = state.chats[name] ?? [];
 
-    final initials = name.split(' ').map((w) => w[0]).take(2).join();
+    final initials = name
+        .split(' ')
+        .where((w) => w.isNotEmpty)
+        .map((w) => w[0])
+        .take(2)
+        .join();
+    final convId = state.convIds[name];
+    final context0 = state.conversations
+        .where((c) => c['id'] == convId)
+        .map((c) => c['contextText'] as String?)
+        .firstOrNull;
 
     return Column(
       children: [
@@ -102,7 +269,9 @@ class _ChatScreenState extends State<ChatScreen> {
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            'Vecino de la Zona 3 · responde rápido',
+                            context0 != null && context0.isNotEmpty
+                                ? context0
+                                : 'Vecino de ${state.zoneName}',
                             style: TextStyle(
                               color: theme.muted,
                               fontSize: 11.5,
@@ -320,14 +489,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                   const SizedBox(width: 8),
                   InkWell(
-                    onTap: () {
-                      state.sendChat('Hola, ¿a qué hora puedo pasar?');
-                      _scrollToBottom();
-                      state.toast(
-                        'Listo, escribimos lo que dijiste',
-                        icon: 'mic',
-                      );
-                    },
+                    onTap: _toggleVoice,
                     borderRadius: BorderRadius.circular(25),
                     child: Container(
                       width: 50,
@@ -337,8 +499,10 @@ class _ChatScreenState extends State<ChatScreen> {
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        Icons.mic,
-                        color: theme.primaryDark,
+                        _voice.listening ? Icons.stop : Icons.mic,
+                        color: _voice.listening
+                            ? NearbyColors.sos
+                            : theme.primaryDark,
                         size: 22,
                       ),
                     ),

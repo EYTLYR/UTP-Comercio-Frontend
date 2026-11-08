@@ -273,7 +273,7 @@ class Api2App {
     id: j['id'] as String,
     cat: vulnCat[j['category']] ?? 'herido',
     who: _s(j['categoryLabel'], 'Vecino vulnerable'),
-    where: _s(j['addressText'], 'Zona 3'),
+    where: _s(j['addressText'], 'Sin dirección'),
     detail: _s(j['detail']),
     prio: j['priority'] == 'MEDIUM' ? 'media' : 'alta',
     status: reportStatus[j['status']] ?? 'p',
@@ -343,7 +343,7 @@ class Api2App {
     return HistoryItem(
       id: j['id'] as String,
       who: _s(j['displayName'], 'Vecino'),
-      zona: _s(j['zoneLabel'], 'Zona 3'),
+      zona: _s(j['zoneLabel'], ''),
       src: src,
       when: _s(j['sourceAgo'], 'reciente'),
       txt: _s(j['evidenceText'], _s(j['label'])),

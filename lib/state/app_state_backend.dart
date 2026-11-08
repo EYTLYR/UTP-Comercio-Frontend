@@ -124,7 +124,9 @@ extension NearbyBackend on AppState {
     viewedZone = null;
     zoneViewRevision++;
     _resetToServerData();
+    sessionRole = null;
     if (user != null) _applyUser(user);
+    sessionRole = role;
     await loadAll();
     _startPolling();
     // Lo que quedó encolado (incluso de antes de cerrar la app) sale apenas hay sesión.
@@ -133,6 +135,16 @@ extension NearbyBackend on AppState {
 
   /// Sin datos de ejemplo una vez que hay sesión: todo viene del backend.
   void _resetToServerData() {
+    conversations = [];
+    myStats = const {};
+    serviceDetails.clear();
+    verified = false;
+    municipality = null;
+    myMunicipality = const {'status': 'NONE'};
+    municipalities = [];
+    managedZones = [];
+    staff = [];
+    adminRequests = [];
     pubLat = null;
     pubLng = null;
     pubPlace = null;
@@ -167,6 +179,24 @@ extension NearbyBackend on AppState {
     if (name != null && name.isNotEmpty) userName = name;
     userPhone = (u['phone'] as String?) ?? userPhone;
     role = (u['role'] as String?) ?? 'NEIGHBOR';
+    municipality = u['municipality'] as Map<String, dynamic>?;
+    verified = u['verified'] == true;
+    // Cambió mi rol (p. ej. aprobaron mi Municipalidad): el token viejo aún tiene el rol anterior.
+    if (connected && sessionRole != null && sessionRole != role) {
+      final approved = role == 'MUNICIPALITY' && sessionRole != 'ADMIN';
+      sessionRole = role;
+      unawaited(
+        api.refreshSession().then((ok) {
+          if (ok) unawaited(loadAll());
+        }),
+      );
+      if (approved && screen != 'splash') {
+        toast(
+          'Tu Municipalidad fue aprobada: ya puedes usar el panel',
+          icon: 'verified_user',
+        );
+      }
+    }
     final photo = u['photoUrl'] as String?;
     photoUrl = photo == null || photo.isEmpty ? null : ApiConfig.fileUrl(photo);
     aiConsent = u['aiConsent'] != false;
@@ -250,10 +280,8 @@ extension NearbyBackend on AppState {
     regLng = pos.lng;
     if (pos.real) {
       String? resolvedAddress;
-      String? resolvedZone;
 
       if (pos.city != null && pos.city!.isNotEmpty) {
-        resolvedZone = pos.city;
         resolvedAddress = pos.region != null
             ? '${pos.city}, ${pos.region}'
             : pos.city;
@@ -287,18 +315,13 @@ extension NearbyBackend on AppState {
               resolvedAddress = '$road $num, $district'
                   .replaceAll('  ', ' ')
                   .trim();
-              resolvedZone = district;
             } else if (district.isNotEmpty) {
-              resolvedZone = district;
               resolvedAddress = district;
             }
           }
         }
       } catch (_) {}
 
-      if (resolvedZone != null && resolvedZone.isNotEmpty) {
-        zoneName = resolvedZone;
-      }
       if (_disposed) return;
       regAddress =
           resolvedAddress ??
@@ -330,9 +353,16 @@ extension NearbyBackend on AppState {
       final me = await api.put('me', body: {'name': userName});
       _applyUser(me as Map<String, dynamic>);
       if (regLat != null && regLng != null) {
+        final hint = await _placeParts(regLat!, regLng!);
         final withZone = await api.put(
           'me/location',
-          body: {'lat': regLat, 'lng': regLng, 'addressText': regAddress},
+          body: {
+            'lat': regLat,
+            'lng': regLng,
+            'addressText': regAddress,
+            'zoneName': ?hint?.barrio,
+            'district': ?hint?.district,
+          },
         );
         _applyUser(withZone as Map<String, dynamic>);
         userAddress = regAddress;
@@ -360,15 +390,6 @@ extension NearbyBackend on AppState {
     if (lng != null) regLng = lng;
     viewedZone = null;
     zoneViewRevision++;
-    final parts = address.split(',');
-    if (parts.length > 1) {
-      final district = parts.last.trim();
-      if (district.isNotEmpty &&
-          !district.toLowerCase().contains('sjl') &&
-          !district.toLowerCase().contains('las flores')) {
-        zoneName = district;
-      }
-    }
     refresh();
 
     if (!connected) return true;
@@ -381,16 +402,16 @@ extension NearbyBackend on AppState {
         body['lat'] = regLat;
         body['lng'] = regLng;
       }
+      // Barrio y distrito de la casa: si ninguna zona la cubre, el backend crea la de este barrio.
+      final hLat = body['lat'] as double?, hLng = body['lng'] as double?;
+      if (hLat != null && hLng != null) {
+        final hint = await _placeParts(hLat, hLng);
+        if (hint?.barrio != null) body['zoneName'] = hint!.barrio;
+        if (hint?.district != null) body['district'] = hint!.district;
+      }
       final withZone = await api.put('me/location', body: body);
       _applyUser(withZone as Map<String, dynamic>);
-      if (parts.length > 1) {
-        final district = parts.last.trim();
-        if (district.isNotEmpty &&
-            !district.toLowerCase().contains('sjl') &&
-            !district.toLowerCase().contains('las flores')) {
-          zoneName = district;
-        }
-      }
+      unawaited(_loadPins().then((_) => refresh()));
       refresh();
       return true;
     } on ApiException catch (e) {
@@ -506,10 +527,17 @@ extension NearbyBackend on AppState {
       _loadInventory(),
       _loadContacts(),
       _loadBrigadeRequest(),
+      loadMyMunicipality(),
+      loadMyStats(),
+      loadConversations(),
       if (prevention) loadRiskReports(),
       if (isAdmin) loadAdminRequests(),
+      if (isAdmin) loadManagedZones(),
+      if (isPlatformAdmin) loadMunicipalities(),
+      if (isMunicipality) loadStaff(),
       // La ficha médica no se carga aquí: solo al abrirla (openMedicalCard).
     ]);
+    lastSyncAt = DateTime.now();
     refresh();
     // Con wifi, guarda el mapa de 5 km alrededor de la casa para usarlo sin internet.
     unawaited(ensureOfflineMap());
@@ -549,6 +577,7 @@ extension NearbyBackend on AppState {
 
   Future<void> _loadServiceDetail(String id) => _quiet(() async {
     final d = await api.get('services/$id') as Map<String, dynamic>;
+    serviceDetails[id] = d;
     final updated = Api2App.service(d);
     final i = services.indexWhere((s) => s.id == id);
     vbGiven[id] = d['endorsedByMe'] == true;
@@ -712,23 +741,18 @@ extension NearbyBackend on AppState {
     if (addr != null && addr.isNotEmpty) {
       userAddress = addr;
       regAddress = addr;
-      final parts = addr.split(',');
-      if (parts.length > 1) {
-        final district = parts.last.trim();
-        if (district.isNotEmpty &&
-            !district.toLowerCase().contains('sjl') &&
-            !district.toLowerCase().contains('las flores')) {
-          zoneName = district;
-        }
-      }
     }
     final lat = (loc['lat'] as num?)?.toDouble();
     final lng = (loc['lng'] as num?)?.toDouble();
     if (lat != null) regLat = lat;
     if (lng != null) regLng = lng;
     final zName = loc['zoneName'] as String?;
-    if (zName != null && zName.isNotEmpty && !addr.toString().contains(',')) {
-      zoneName = zName;
+    if (zName != null && zName.isNotEmpty) zoneName = zName;
+    // La zona guardada no cubre la casa (cuentas de antes): se vuelve a ubicar en la zona de su barrio.
+    if (loc['zoneCoversHome'] == false && lat != null && lng != null) {
+      unawaited(
+        updateUserLocation(address: userAddress, lat: lat, lng: lng),
+      );
     }
   });
 
@@ -798,6 +822,8 @@ extension NearbyBackend on AppState {
     await _loadMe();
     await _checkNearbySos();
     if (emergency) await _loadReports();
+    await loadConversations(notify: true);
+    lastSyncAt = DateTime.now();
     refresh();
   }
 
@@ -1816,6 +1842,279 @@ extension NearbyBackend on AppState {
       if (screen == 'prevencion') go('home', reset: true);
       refresh();
       toast('Volviste al modo normal en tu app', icon: 'check_circle');
+    } on ApiException catch (e) {
+      toast(e.message, icon: 'error');
+    }
+  }
+
+  // ============================================================ mensajes y perfil
+
+  Future<void> loadMyStats() => _quiet(() async {
+    if (!connected) return;
+    myStats = await api.get('me/stats') as Map<String, dynamic>;
+  });
+
+  /// Bandeja de mensajes. Con [notify], avisa si llegó algo nuevo fuera del chat.
+  Future<void> loadConversations({bool notify = false}) => _quiet(() async {
+    if (!connected) return;
+    final before = unreadMessages;
+    final list = await api.get('conversations') as List;
+    conversations = list.cast<Map<String, dynamic>>();
+    if (notify && unreadMessages > before && screen != 'chat') {
+      final c = conversations.firstWhere(
+        (c) => ((c['unread'] as num?)?.toInt() ?? 0) > 0,
+        orElse: () => const {},
+      );
+      toast(
+        'Nuevo mensaje de ${c['otherUserName'] ?? 'un vecino'}',
+        icon: 'chat',
+      );
+    }
+    refresh();
+  });
+
+  /// Abre una conversación de la bandeja.
+  void openConversation(Map<String, dynamic> c) {
+    final name = (c['otherUserName'] as String?) ?? 'Vecino';
+    c['unread'] = 0;
+    openChat(name, conversationId: c['id'] as String?);
+  }
+
+  /// Barrio (urbanización) y distrito de un punto, según OpenStreetMap. null sin internet.
+  Future<({String? barrio, String? district})?> _placeParts(
+    double lat,
+    double lng,
+  ) async {
+    try {
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?format=json'
+        '&lat=$lat&lon=$lng&zoom=18&addressdetails=1',
+      );
+      final res = await http
+          .get(
+            uri,
+            headers: {'User-Agent': 'NearbyApp/1.0', 'Accept-Language': 'es'},
+          )
+          .timeout(const Duration(seconds: 5));
+      if (res.statusCode != 200) return null;
+      final a =
+          (jsonDecode(res.body) as Map<String, dynamic>)['address']
+              as Map<String, dynamic>?;
+      if (a == null) return null;
+      final barrio =
+          (a['neighbourhood'] ??
+                  a['quarter'] ??
+                  a['residential'] ??
+                  a['hamlet'] ??
+                  a['village'])
+              as String?;
+      final district =
+          (a['city_district'] ??
+                  a['suburb'] ??
+                  a['town'] ??
+                  a['city'] ??
+                  a['county'])
+              as String?;
+      return (barrio: barrio, district: district);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ============================================================ Municipalidades
+
+  /// Municipalidad: crea una zona de su distrito (el ADMIN indica el distrito).
+  Future<bool> createZone({
+    required String name,
+    required double lat,
+    required double lng,
+    required int radiusM,
+    String? district,
+  }) async {
+    try {
+      await api.post(
+        'municipality/zones',
+        body: {
+          'name': name.trim(),
+          'lat': lat,
+          'lng': lng,
+          'radiusM': radiusM,
+          if (district != null && district.trim().isNotEmpty)
+            'district': district.trim(),
+        },
+      );
+      await loadManagedZones();
+      toast('Zona «${name.trim()}» creada', icon: 'check_circle');
+      return true;
+    } on ApiException catch (e) {
+      toast(e.message, icon: 'error');
+      return false;
+    }
+  }
+
+  Future<void> loadMyMunicipality() => _quiet(() async {
+    if (!connected) return;
+    final r = await api.get('municipalities/mine') as Map<String, dynamic>;
+    myMunicipality = r;
+    refresh();
+  });
+
+  Future<void> loadMunicipalityDistricts() => _quiet(() async {
+    if (!connected) return;
+    final list = await api.get('municipalities/districts') as List;
+    muniDistricts = list.cast<String>();
+    refresh();
+  });
+
+  /// Registra la Municipalidad del responsable que ingresó. Queda pendiente hasta que Nearby la apruebe.
+  Future<bool> registerMunicipality({
+    required String name,
+    required String district,
+    required String ruc,
+    required String contactName,
+    required String contactPosition,
+    required String email,
+  }) async {
+    if (!connected) {
+      go('muni-registro');
+      return false;
+    }
+    try {
+      final r =
+          await api.post(
+                'municipalities',
+                body: {
+                  'name': name.trim(),
+                  'district': district.trim(),
+                  'ruc': ruc.trim(),
+                  'contactName': contactName.trim(),
+                  'contactPosition': contactPosition.trim().isEmpty
+                      ? null
+                      : contactPosition.trim(),
+                  'email': email.trim(),
+                },
+              )
+              as Map<String, dynamic>;
+      myMunicipality = r;
+      // Cuenta nueva: el nombre del responsable queda como su nombre en Nearby.
+      if (regPending) {
+        try {
+          final me = await api.put('me', body: {'name': contactName.trim()});
+          _applyUser(me as Map<String, dynamic>);
+        } on ApiException catch (_) {}
+      }
+      refresh();
+      toast(
+        'Recibimos el registro. Te avisaremos cuando Nearby lo apruebe.',
+        icon: 'check_circle',
+      );
+      return true;
+    } on ApiException catch (e) {
+      toast(e.message, icon: 'error');
+      return false;
+    }
+  }
+
+  Future<void> loadMunicipalities() => _quiet(() async {
+    if (!isPlatformAdmin) return;
+    final list = await api.get('admin/municipalities') as List;
+    municipalities = list.cast<Map<String, dynamic>>();
+    refresh();
+  });
+
+  /// Plataforma: aprueba o rechaza el registro de una Municipalidad.
+  Future<void> decideMunicipality(
+    String id, {
+    required bool approve,
+    String? reason,
+  }) async {
+    try {
+      await api.post(
+        'admin/municipalities/$id/${approve ? 'approve' : 'reject'}',
+        body: approve
+            ? null
+            : {
+                'reason': reason == null || reason.trim().isEmpty
+                    ? null
+                    : reason.trim(),
+              },
+      );
+      toast(
+        approve ? 'Municipalidad aprobada' : 'Registro rechazado',
+        icon: approve ? 'verified_user' : 'close',
+      );
+    } on ApiException catch (e) {
+      toast(e.message, icon: 'error');
+    }
+    await loadMunicipalities();
+  }
+
+  Future<void> loadManagedZones() => _quiet(() async {
+    if (!isAdmin) return;
+    final list = await api.get('municipality/zones') as List;
+    managedZones = list.cast<Map<String, dynamic>>();
+    refresh();
+  });
+
+  /// Cambia el modo de una zona de mi jurisdicción y avisa a sus vecinos.
+  Future<bool> setModeOfZone(
+    String id,
+    String name,
+    String mode,
+    String reason,
+  ) async {
+    try {
+      await api.post(
+        'admin/zones/$id/mode',
+        body: {
+          'mode': mode,
+          'reason': reason.trim().isEmpty ? null : reason.trim(),
+        },
+      );
+      await loadManagedZones();
+      if (id == zoneId) {
+        await _loadMe();
+        if (prevention) await loadRiskReports();
+      }
+      refresh();
+      toast(switch (mode) {
+        'PREVENTION' => 'Activamos Prevención El Niño en $name',
+        'EMERGENCY' => 'Activamos el modo emergencia en $name',
+        _ => '$name volvió al modo normal',
+      }, icon: 'campaign');
+      return true;
+    } on ApiException catch (e) {
+      toast(e.message, icon: 'error');
+      return false;
+    }
+  }
+
+  Future<void> loadStaff() => _quiet(() async {
+    if (!isMunicipality) return;
+    final list = await api.get('municipality/staff') as List;
+    staff = list.cast<Map<String, dynamic>>();
+    refresh();
+  });
+
+  /// Agrega a un funcionario a mi Municipalidad por su celular.
+  Future<bool> addStaff(String phone) async {
+    try {
+      await api.post('municipality/staff', body: {'phone': phone});
+      await loadStaff();
+      toast('Agregamos a tu equipo', icon: 'check_circle');
+      return true;
+    } on ApiException catch (e) {
+      toast(e.message, icon: 'error');
+      return false;
+    }
+  }
+
+  Future<void> removeStaff(String userId) async {
+    try {
+      await api.delete('municipality/staff/$userId');
+      staff.removeWhere((s) => s['id'] == userId);
+      refresh();
+      toast('Ya no es parte del equipo', icon: 'check_circle');
     } on ApiException catch (e) {
       toast(e.message, icon: 'error');
     }

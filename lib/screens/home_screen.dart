@@ -446,7 +446,9 @@ class HomeScreen extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            'Avisamos a tus 3 contactos y a la brigada.',
+                            state.contacts.isEmpty
+                                ? 'Avisamos a la brigada de tu zona.'
+                                : 'Avisamos a tus ${state.contacts.length} contactos y a la brigada.',
                             style: TextStyle(color: theme.muted, fontSize: 12),
                           ),
                         ],
@@ -717,7 +719,11 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(width: 8),
               _buildStatCard('$pendingCount', 'Por atender'),
               const SizedBox(width: 8),
-              _buildStatCard('64', 'A salvo'),
+              // Sin conteo real de "a salvo": mostramos los atendidos
+              _buildStatCard(
+                '${state.reports.where((r) => r.status == 'a').length}',
+                'Atendidos',
+              ),
             ],
           ),
         ),

@@ -211,6 +211,10 @@ class ApiClient {
   }
 
   /// Rota el token de refresco. Una sola renovación a la vez.
+  /// Pide un token nuevo (por ejemplo, cuando cambió mi rol y el token viejo aún tiene el anterior).
+  Future<bool> refreshSession() =>
+      refreshToken == null ? Future.value(false) : _refresh();
+
   Future<bool> _refresh() {
     return _refreshing ??= () async {
       try {

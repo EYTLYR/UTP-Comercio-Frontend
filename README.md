@@ -157,5 +157,10 @@ Los controles del mapa tienen un margen de 4 px respecto al área visible entre 
 
 - **Mi casa:** Perfil › Mi dirección abre un mapa con el pin fijo al centro. Mueves el mapa hasta tu puerta, la dirección se completa sola y «Usar mi GPS» centra el mapa en tu ubicación.
 - **Foto de perfil:** tocas tu foto en Perfil y eliges cámara o galería (`image_picker`). La foto se reduce a unos 800 px y se comprime antes de subirla. Aparece en Perfil y en el avatar de la barra superior; si no hay foto, se ven las iniciales.
-- **Brigadista:** en Perfil › Mi rol en el barrio pides ser brigadista y ves el estado de tu solicitud. La Municipalidad (ADMIN o DELEGATE) tiene su panel en la ruta `municipalidad`. Desde ahí cambia el modo de la zona (Normal, Prevención El Niño o Emergencia, con confirmación), aprueba o rechaza solicitudes y, si es ADMIN, cambia el rol de un vecino.
+- **Registro de Municipalidad:** en la bienvenida («¿Eres una Municipalidad? Regístrala aquí») o en Perfil se abre la ruta `muni-registro`. El responsable ingresa con su celular y envía nombre, distrito, RUC, responsable, cargo y correo. Ve el estado del registro (en revisión, aprobada o rechazada con el motivo). Al aprobarse, la app renueva el token sola y abre el panel.
+- **Brigadista:** en Perfil › Mi rol en el barrio pides ser brigadista y ves el estado de tu solicitud.
+- **Panel (`municipalidad`):** cambia según el rol.
+  - **Administración Nearby (ADMIN):** aprueba o rechaza Municipalidades y ve todas las zonas.
+  - **Municipalidad (MUNICIPALITY):** cambia el modo de las zonas de su distrito (Normal, Prevención o Emergencia, con confirmación), aprueba brigadistas de su distrito, cambia roles de sus vecinos y arma su equipo por celular.
+  - **Delegado (DELEGATE):** su zona y los brigadistas de su zona.
 - **Prevención El Niño:** cuando la Municipalidad lo activa, aparece un banner ámbar en las pantallas principales. Abre la ruta `prevencion`, donde reportas un riesgo con foto opcional, ves los reportes de las últimas 48 h y puedes «Volver al modo normal en mi app».

@@ -497,7 +497,14 @@ class ServiceDetailScreen extends StatelessWidget {
                     Icon(Icons.verified_user, color: theme.info, size: 16),
                     const SizedBox(width: 4),
                     Text(
-                      'Vecino verificado · Zona 3',
+                      [
+                        if (state.serviceDetails[s.id]?['ownerVerified'] !=
+                            false)
+                          'Vecino verificado',
+                        (state.serviceDetails[s.id]?['zoneName']
+                                as String?) ??
+                            state.zoneName,
+                      ].join(' · '),
                       style: TextStyle(
                         color: theme.info,
                         fontWeight: FontWeight.w800,
@@ -568,7 +575,11 @@ class ServiceDetailScreen extends StatelessWidget {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          ...['EV', 'JP', 'TR', 'LM'].map(
+                          ...((state.serviceDetails[s.id]?['endorserInitials']
+                                      as List?) ??
+                                  const [])
+                              .cast<String>()
+                              .map(
                             (x) => Container(
                               width: 26,
                               height: 26,
@@ -593,6 +604,7 @@ class ServiceDetailScreen extends StatelessWidget {
                               ),
                             ),
                           ),
+                          if (count > 4)
                           Text(
                             ' +${count - 4}',
                             style: TextStyle(
@@ -816,7 +828,7 @@ class ServiceDetailScreen extends StatelessWidget {
                 ),
               ),
               Text(
-                ' · Zona 3 · ${r.when}',
+                ' · ${r.when}',
                 style: TextStyle(color: theme.muted, fontSize: 11.5),
               ),
             ],

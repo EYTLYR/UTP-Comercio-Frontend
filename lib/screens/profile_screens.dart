@@ -343,6 +343,7 @@ class PerfilScreen extends StatelessWidget {
                                 color: NearbyColors.muted,
                               ),
                             ),
+                            if (!state.connected || state.verified) ...[
                             const SizedBox(height: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -376,6 +377,7 @@ class PerfilScreen extends StatelessWidget {
                                 ],
                               ),
                             ),
+                            ],
                           ],
                         ),
                       ),
@@ -393,19 +395,25 @@ class PerfilScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  const Expanded(
-                    child: _ProfileStat(val: '12', label: 'Favores hechos'),
+                  Expanded(
+                    child: _ProfileStat(
+                      val: '${state.myStats['favorsDone'] ?? 0}',
+                      label: 'Favores hechos',
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: _ProfileStat(
-                      val: '${5 + state.vbGiven.values.where((v) => v).length}',
+                      val: '${state.myStats['endorsementsGiven'] ?? 0}',
                       label: 'Vistos dados',
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const Expanded(
-                    child: _ProfileStat(val: '3', label: 'Favores recibidos'),
+                  Expanded(
+                    child: _ProfileStat(
+                      val: '${state.myStats['favorsReceived'] ?? 0}',
+                      label: 'Favores recibidos',
+                    ),
                   ),
                 ],
               ),
@@ -657,6 +665,18 @@ class PerfilScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: NeighborhoodRoleCard(state: state),
           ),
+          if (state.connected && !state.isAdmin)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 4, 16, 0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => state.go('muni-registro'),
+                  icon: const Icon(Icons.account_balance, size: 18),
+                  label: const Text('¿Trabajas en una Municipalidad? Regístrala'),
+                ),
+              ),
+            ),
           if (state.prevention || state.zoneMode == 'PREVENTION') ...[
             const SizedBox(height: 10),
             Padding(
@@ -878,16 +898,20 @@ class PerfilScreen extends StatelessWidget {
                       Icons.sync,
                       color: NearbyColors.primary,
                     ),
-                    title: const Text(
-                      'Última sincronización 10:31',
-                      style: TextStyle(
+                    title: Text(
+                      state.lastSyncAt == null
+                          ? 'Aún no se sincroniza'
+                          : 'Última sincronización '
+                                '${state.lastSyncAt!.hour.toString().padLeft(2, '0')}:'
+                                '${state.lastSyncAt!.minute.toString().padLeft(2, '0')}',
+                      style: const TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
                       ),
                     ),
                     subtitle: Text(
-                      state.pending > 0
-                          ? '${state.pending} envíos pendientes'
+                      state.outboxCount > 0
+                          ? '${state.outboxCount} envíos pendientes'
                           : 'Todo al día',
                       style: const TextStyle(fontSize: 12),
                     ),

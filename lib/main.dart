@@ -13,6 +13,7 @@ import 'screens/map_screens.dart';
 import 'screens/profile_screens.dart';
 import 'screens/publish_screen.dart';
 import 'screens/roles_screens.dart';
+import 'screens/municipality_screens.dart';
 import 'screens/services_screens.dart';
 import 'screens/splash_screen.dart';
 import 'screens/wall_screen.dart';
@@ -386,6 +387,10 @@ class NearbyMasterShell extends StatelessWidget {
         return PerfilScreen(state: state, theme: theme);
       case 'municipalidad':
         return MunicipalidadScreen(state: state, theme: theme);
+      case 'muni-registro':
+        return MunicipalityRegisterScreen(state: state, theme: theme);
+      case 'mensajes':
+        return MensajesScreen(state: state, theme: theme);
       case 'prevencion':
         return PrevencionScreen(state: state, theme: theme);
 
@@ -433,7 +438,13 @@ class NearbyMasterShell extends StatelessWidget {
       case 'perfil':
         return 'Mi perfil';
       case 'municipalidad':
-        return 'Municipalidad';
+        return state.isPlatformAdmin
+            ? 'Administración Nearby'
+            : 'Panel de Municipalidad';
+      case 'muni-registro':
+        return 'Registrar Municipalidad';
+      case 'mensajes':
+        return 'Mensajes';
       case 'prevencion':
         return 'Prevención El Niño';
       default:
@@ -481,6 +492,8 @@ const Map<String, ScreenMeta> _screensMeta = {
   'puente': ScreenMeta(bar: 'back', noEm: true),
   'perfil': ScreenMeta(bar: 'back'),
   'municipalidad': ScreenMeta(bar: 'back'),
+  'muni-registro': ScreenMeta(bar: 'back'),
+  'mensajes': ScreenMeta(bar: 'back', nav: true),
   'prevencion': ScreenMeta(bar: 'back', nav: true),
 };
 

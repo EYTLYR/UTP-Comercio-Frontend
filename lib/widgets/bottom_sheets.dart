@@ -113,8 +113,8 @@ class NearbyBottomSheetModal extends StatelessWidget {
 
   Widget _buildAiRunSheet(BuildContext context) {
     final steps = [
-      'Leyendo 127 favores del muro solidario',
-      'Revisando 48 oficios y 312 reseñas vecinales',
+      'Leyendo ${state.posts.length} favores del muro solidario',
+      'Revisando ${state.services.length} oficios y ${state.services.fold(0, (sum, s) => sum + s.vb)} recomendaciones vecinales',
       'Armando el inventario de supervivencia (${state.buildInventory().length} hallazgos)',
       'Cruzando con ${state.reports.where((r) => r.status != 'a').length} reportes de vecinos vulnerables',
       'Asignando a los vecinos más cercanos',
@@ -236,15 +236,22 @@ class NearbyBottomSheetModal extends StatelessWidget {
               _kvRow(
                 Icons.campaign,
                 'Activado por',
-                yo ? 'Ti, desde tu app' : 'Defensa Civil / Municipalidad',
+                yo
+                    ? 'Ti, desde tu app'
+                    : (state.connected
+                          ? 'La Municipalidad de tu zona'
+                          : 'Defensa Civil / Municipalidad'),
               ),
               const Divider(height: 16),
-              _kvRow(
-                Icons.schedule,
-                'Desde',
-                '10:42 · ${yo ? "Alerta personal" : "Sismo en Lima"}',
-              ),
-              const Divider(height: 16),
+              // Sin hora ni motivo reales: solo en la demo
+              if (!state.connected) ...[
+                _kvRow(
+                  Icons.schedule,
+                  'Desde',
+                  '10:42 · ${yo ? "Alerta personal" : "Sismo en Lima"}',
+                ),
+                const Divider(height: 16),
+              ],
               _kvRow(Icons.location_on, 'Zona', state.zoneName),
             ],
           ),
@@ -289,6 +296,17 @@ class NearbyBottomSheetModal extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  /// Nombres reales de mis contactos de emergencia.
+  String _contactNames() {
+    final names = state.contacts
+        .map(
+          (id) => state.contactBook.where((c) => c.id == id).firstOrNull?.name,
+        )
+        .whereType<String>()
+        .join(', ');
+    return names.isEmpty ? 'Aún no tienes contactos de emergencia' : names;
   }
 
   Widget _buildEmOffSheet(BuildContext context) {
@@ -359,7 +377,7 @@ class NearbyBottomSheetModal extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'Mamá, Carlos, Sra. Rosa',
+                        _contactNames(),
                         style: TextStyle(color: theme.muted, fontSize: 12),
                       ),
                     ],
@@ -585,7 +603,7 @@ class NearbyBottomSheetModal extends StatelessWidget {
               _kvRow(
                 Icons.schedule,
                 'Estado',
-                g.live ? 'Activo ahora' : 'Desde las 14:00',
+                g.live ? 'Activo ahora' : 'Sin actividad ahora',
               ),
             ],
           ),
@@ -951,7 +969,11 @@ class _SonicSheetState extends State<_SonicSheet>
 
   @override
   Widget build(BuildContext context) {
-    final code = widget.state.lastCode ?? 'NB#SOS!S1@LF245\$P:ALTA';
+    // Con sesión no hay código de ejemplo: sin SOS previo no hay nada que transmitir.
+    final code =
+        widget.state.lastCode ??
+        (widget.state.connected ? null : 'NB#SOS!S1@LF245\$P:ALTA');
+    final sending = _transmitting && code != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -977,7 +999,9 @@ class _SonicSheetState extends State<_SonicSheet>
         ),
         const SizedBox(height: 6),
         Text(
-          'Transmitiendo tu código de celular a celular, sin internet ni señal. Alcance de unos 5 metros.',
+          code == null
+              ? 'Aún no tienes un código SOS. Se genera cuando envías una alerta sin internet.'
+              : 'Transmitiendo tu código de celular a celular, sin internet ni señal. Alcance de unos 5 metros.',
           style: TextStyle(color: widget.theme.muted, fontSize: 13.5),
         ),
         const SizedBox(height: 16),
@@ -989,7 +1013,7 @@ class _SonicSheetState extends State<_SonicSheet>
             borderRadius: BorderRadius.circular(14),
           ),
           child: Text(
-            code,
+            code ?? 'Sin código todavía',
             style: const TextStyle(
               fontFamily: 'monospace',
               fontWeight: FontWeight.w900,
@@ -1007,7 +1031,7 @@ class _SonicSheetState extends State<_SonicSheet>
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(22, (i) {
-                  final h = _transmitting
+                  final h = sending
                       ? 6.0 + (((_anim.value + (i * 0.12)) % 1.0) * 36.0)
                       : 8.0;
                   return Container(
@@ -1027,11 +1051,18 @@ class _SonicSheetState extends State<_SonicSheet>
         const SizedBox(height: 12),
         Center(
           child: Text(
-            _transmitting
+            sending
                 ? 'Transmitiendo…'
+                : code == null
+                ? 'Nada que transmitir'
+                : widget.state.connected
+                ? 'Código emitido. Pide a quien esté cerca que abra el Puente.'
                 : '2 celulares cercanos confirmaron la recepción',
+            textAlign: TextAlign.center,
             style: TextStyle(
-              color: _transmitting ? widget.theme.violet : widget.theme.primary,
+              color: sending
+                  ? widget.theme.violet
+                  : (code == null ? widget.theme.muted : widget.theme.primary),
               fontWeight: FontWeight.w800,
               fontSize: 14,
             ),

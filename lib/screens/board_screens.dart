@@ -52,11 +52,19 @@ class TableroScreen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              _buildStatCard('${state.reports.length + 14}', 'Reportes'),
+              _buildStatCard(
+                '${state.connected ? state.reports.length : state.reports.length + 14}',
+                'Reportes',
+              ),
               const SizedBox(width: 8),
               _buildStatCard('$pendCount', 'Por atender'),
               const SizedBox(width: 8),
-              _buildStatCard('11', 'Atendidos'),
+              _buildStatCard(
+                state.connected
+                    ? '${state.reports.where((r) => r.status == 'a').length}'
+                    : '11',
+                'Atendidos',
+              ),
             ],
           ),
         ),
@@ -1154,7 +1162,7 @@ class ApoyoScreen extends StatelessWidget {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                g.live ? 'Activo ahora' : 'Desde las 14:00',
+                                g.live ? 'Activo ahora' : 'Sin actividad ahora',
                                 style: TextStyle(
                                   color: g.live
                                       ? theme.primaryDark

@@ -330,8 +330,10 @@ class _OtpScreenState extends State<OtpScreen> {
         _isSuccess = true;
         _err = '';
       });
+      final next = widget.state.afterLogin;
+      widget.state.afterLogin = null;
       widget.state.go(
-        widget.state.regPending ? 'registro' : 'home',
+        next ?? (widget.state.regPending ? 'registro' : 'home'),
         reset: true,
       );
     } finally {

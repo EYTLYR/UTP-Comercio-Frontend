@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart' show TileProvider;
+import 'package:latlong2/latlong.dart' show Distance, LatLng, LengthUnit;
+import 'package:url_launcher/url_launcher.dart';
 
 import '../widgets/navigation_chrome.dart';
 
@@ -363,34 +365,111 @@ class RouteScreen extends StatelessWidget {
 
   const RouteScreen({super.key, required this.state, required this.theme});
 
+  /// 260 m · 1,2 km
+  static String _fmtDist(double m) => m < 1000
+      ? '${m.round()} m'
+      : '${(m / 1000).toStringAsFixed(1).replaceAll('.', ',')} km';
+
   @override
   Widget build(BuildContext context) {
     final r =
         state.routeTo ??
-        {
-          'title': 'Punto de reunión · Parque Las Flores',
-          'sub': 'Zona segura',
-          'icon': Icons.flag,
-          'kind': 'safe',
-        };
+        (state.connected
+            ? <String, dynamic>{
+                'title': 'Elige un destino en el mapa',
+                'icon': Icons.flag,
+                'kind': 'safe',
+              }
+            : <String, dynamic>{
+                'title': 'Punto de reunión · Parque Las Flores',
+                'sub': 'Zona segura',
+                'icon': Icons.flag,
+                'kind': 'safe',
+              });
+    final lat = (r['lat'] as num?)?.toDouble();
+    final lng = (r['lng'] as num?)?.toDouble();
+    final dest = lat != null && lng != null ? LatLng(lat, lng) : null;
+    // Sin sesión ni coordenadas: ruta de ejemplo de la demo.
+    final demo = !state.connected && dest == null;
+    final title = (r['title'] as String?) ?? 'Destino';
+    final sub = (r['sub'] as String?) ?? '';
+    final icon = (r['icon'] as IconData?) ?? Icons.flag;
+
+    // Distancia en línea recta desde el último GPS real.
+    final gps = state.location.last;
+    final meters = dest != null && gps != null && gps.real
+        ? const Distance().as(
+            LengthUnit.Meter,
+            LatLng(gps.lat, gps.lng),
+            dest,
+          )
+        : null;
 
     final isHelp = r['kind'] == 'help' || r['kind'] == 'vuln';
     final col = isHelp
         ? NearbyColors.sos
         : (r['kind'] == 'safe' ? NearbyColors.info : NearbyColors.primary);
 
+    final Widget map;
+    if (dest != null && state.networkMaps) {
+      map = LiveMap(
+        key: ValueKey('route-${dest.latitude},${dest.longitude}'),
+        centerLat: dest.latitude,
+        centerLng: dest.longitude,
+        location: state.location,
+        pins: [
+          MapPin(
+            latitude: dest.latitude,
+            longitude: dest.longitude,
+            id: 'route-dest',
+            kind: (r['kind'] as String?) ?? 'safe',
+            x: 0,
+            y: 0,
+            icon: icon,
+            title: title,
+            sub: sub,
+          ),
+        ],
+        onOpenPin: (_) {},
+        topInset: NavigationInsets.controlsOf(context).top,
+        bottomInset: 236,
+        onMessage: state.toast,
+      );
+    } else if (demo) {
+      map = NearbyMapView(
+        theme: theme,
+        emergency: state.emergency,
+        pins: const [],
+        showRoute: true,
+        routeColor: col,
+        routeDestIcon: icon,
+      );
+    } else {
+      // Sin coordenadas del destino: no dibujamos una ruta inventada.
+      map = Container(
+        color: theme.bg,
+        alignment: const Alignment(0, -0.4),
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.location_off, color: theme.muted, size: 40),
+            const SizedBox(height: 8),
+            Text(
+              dest == null
+                  ? 'Este destino no tiene ubicación exacta'
+                  : 'El mapa no está disponible ahora',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: theme.muted, fontSize: 13.5),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Stack(
       children: [
-        Positioned.fill(
-          child: NearbyMapView(
-            theme: theme,
-            emergency: state.emergency,
-            pins: const [],
-            showRoute: true,
-            routeColor: col,
-            routeDestIcon: (r['icon'] as IconData?) ?? Icons.flag,
-          ),
-        ),
+        Positioned.fill(child: map),
 
         // Route Card
         Positioned(
@@ -437,29 +516,44 @@ class RouteScreen extends StatelessWidget {
                           Row(
                             children: [
                               Text(
-                                '4 min',
+                                demo
+                                    ? '4 min'
+                                    : (meters != null
+                                          ? _fmtDist(meters)
+                                          : 'Destino'),
                                 style: TextStyle(
                                   fontWeight: FontWeight.w900,
                                   fontSize: 18,
                                   color: theme.ink,
                                 ),
                               ),
-                              Text(
-                                ' · 260 m a pie',
-                                style: TextStyle(
-                                  color: theme.muted,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
+                              if (demo || meters != null)
+                                Text(
+                                  demo ? ' · 260 m a pie' : ' en línea recta',
+                                  style: TextStyle(
+                                    color: theme.muted,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
-                              ),
                             ],
                           ),
                           Text(
-                            r['title'] as String,
+                            title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(color: theme.muted, fontSize: 12),
                           ),
+                          if (!demo && sub.isNotEmpty)
+                            Text(
+                              sub,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: theme.muted,
+                                fontSize: 12,
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -467,31 +561,62 @@ class RouteScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
 
-                // Turn-by-turn directions
-                _stepRow(Icons.straight, 'Camina 40 m por Jr. Las Flores', col),
-                _stepRow(
-                  Icons.turn_left,
-                  'Gira a la izquierda en la Av. Principal (110 m)',
-                  col,
-                ),
-                _stepRow(
-                  Icons.turn_right,
-                  'Gira a la derecha en Jr. Los Pinos; llegas en 70 m',
-                  col,
-                ),
+                if (demo) ...[
+                  // Turn-by-turn directions (solo demo)
+                  _stepRow(
+                    Icons.straight,
+                    'Camina 40 m por Jr. Las Flores',
+                    col,
+                  ),
+                  _stepRow(
+                    Icons.turn_left,
+                    'Gira a la izquierda en la Av. Principal (110 m)',
+                    col,
+                  ),
+                  _stepRow(
+                    Icons.turn_right,
+                    'Gira a la derecha en Jr. Los Pinos; llegas en 70 m',
+                    col,
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Icon(Icons.download_done, color: theme.primary, size: 16),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Ruta disponible sin conexión',
+                        style: TextStyle(color: theme.muted, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                ],
 
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Icon(Icons.download_done, color: theme.primary, size: 16),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Ruta disponible sin conexión',
-                      style: TextStyle(color: theme.muted, fontSize: 12),
+                // Indicaciones paso a paso: las da Google Maps
+                if (dest != null) ...[
+                  OutlinedButton.icon(
+                    onPressed: () => launchUrl(
+                      Uri.parse(
+                        'https://www.google.com/maps/dir/?api=1&destination=${dest.latitude},${dest.longitude}&travelmode=walking',
+                      ),
+                      mode: LaunchMode.externalApplication,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 14),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: theme.ink,
+                      side: BorderSide(color: theme.line, width: 1.5),
+                      minimumSize: const Size.fromHeight(48),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    icon: Icon(Icons.map, color: col, size: 20),
+                    label: const Text(
+                      'Abrir ruta en Google Maps',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
 
                 ElevatedButton.icon(
                   onPressed: () {

@@ -148,7 +148,10 @@ void showProfilePhotoSheet(BuildContext context, AppState state) {
           ),
           if (state.photoUrl != null)
             ListTile(
-              leading: const Icon(Icons.delete_outline, color: NearbyColors.sos),
+              leading: const Icon(
+                Icons.delete_outline,
+                color: NearbyColors.sos,
+              ),
               title: const Text(
                 'Quitar foto',
                 style: TextStyle(color: NearbyColors.sos),
@@ -174,41 +177,52 @@ class NeighborhoodRoleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
-    final (IconData icon, String title, String subtitle, VoidCallback? onTap) =
-        switch (state.role) {
-          'ADMIN' || 'DELEGATE' => (
-            Icons.account_balance,
-            'Panel de Municipalidad',
-            'Modo de la zona y solicitudes de brigadistas',
-            () => state.go('municipalidad'),
-          ),
-          'BRIGADIST' => (
-            Icons.verified_user,
-            'Eres brigadista',
-            'Ves el tablero del barrio y las alertas de rescate',
-            () => state.go('tablero'),
-          ),
-          _ => switch (state.brigadeRequest) {
-            'PENDING' => (
-              Icons.hourglass_top,
-              'Solicitud enviada',
-              'La Municipalidad la está revisando',
-              null,
-            ),
-            'REJECTED' => (
-              Icons.shield,
-              'Quiero ser brigadista',
-              'Tu solicitud anterior no fue aprobada. Puedes volver a pedirlo.',
-              () => _askBrigade(context, state),
-            ),
-            _ => (
-              Icons.shield,
-              'Quiero ser brigadista',
-              'Ayuda en emergencias de tu barrio. La Municipalidad te aprueba.',
-              () => _askBrigade(context, state),
-            ),
-          },
-        };
+    final (
+      IconData icon,
+      String title,
+      String subtitle,
+      VoidCallback? onTap,
+    ) = switch (state.role) {
+      'ADMIN' => (
+        Icons.admin_panel_settings,
+        'Administración Nearby',
+        'Aprueba Municipalidades y revisa todas las zonas',
+        () => state.go('municipalidad'),
+      ),
+      'MUNICIPALITY' || 'DELEGATE' => (
+        Icons.account_balance,
+        'Panel de Municipalidad',
+        state.municipality?['name'] as String? ??
+            'Modo de tu zona y solicitudes de brigadistas',
+        () => state.go('municipalidad'),
+      ),
+      'BRIGADIST' => (
+        Icons.verified_user,
+        'Eres brigadista',
+        'Ves el tablero del barrio y las alertas de rescate',
+        () => state.go('tablero'),
+      ),
+      _ => switch (state.brigadeRequest) {
+        'PENDING' => (
+          Icons.hourglass_top,
+          'Solicitud enviada',
+          'La Municipalidad la está revisando',
+          null,
+        ),
+        'REJECTED' => (
+          Icons.shield,
+          'Quiero ser brigadista',
+          'Tu solicitud anterior no fue aprobada. Puedes volver a pedirlo.',
+          () => _askBrigade(context, state),
+        ),
+        _ => (
+          Icons.shield,
+          'Quiero ser brigadista',
+          'Ayuda en emergencias de tu barrio. La Municipalidad te aprueba.',
+          () => _askBrigade(context, state),
+        ),
+      },
+    };
     return Card(
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -222,7 +236,10 @@ class NeighborhoodRoleCard extends StatelessWidget {
           child: Icon(icon, color: NearbyColors.navy2),
         ),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(subtitle, style: TextStyle(fontSize: 12.5, color: muted)),
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(fontSize: 12.5, color: muted),
+        ),
         trailing: onTap == null ? null : const Icon(Icons.chevron_right),
         onTap: onTap,
       ),
@@ -281,373 +298,6 @@ class NeighborhoodRoleCard extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-// =============================================================== Municipalidad
-
-const _modes = [
-  (
-    'NORMAL',
-    'Normal',
-    'Día a día del barrio',
-    Icons.wb_sunny,
-    NearbyColors.navy2,
-    NearbyColors.infoSoft,
-  ),
-  (
-    'PREVENTION',
-    'Prevención El Niño',
-    'Los vecinos reportan riesgos con foto',
-    Icons.flood,
-    NearbyColors.accentInk,
-    NearbyColors.accentSoft,
-  ),
-  (
-    'EMERGENCY',
-    'Emergencia',
-    'Sismo, huaico o incendio',
-    Icons.crisis_alert,
-    NearbyColors.sos,
-    NearbyColors.sosSoft,
-  ),
-];
-
-/// Panel de Municipalidad (ADMIN o DELEGATE): modo de la zona, solicitudes de brigadista y roles.
-class MunicipalidadScreen extends StatefulWidget {
-  final AppState state;
-  final NearbyThemeData theme;
-  const MunicipalidadScreen({
-    super.key,
-    required this.state,
-    required this.theme,
-  });
-
-  @override
-  State<MunicipalidadScreen> createState() => _MunicipalidadScreenState();
-}
-
-class _MunicipalidadScreenState extends State<MunicipalidadScreen> {
-  final _phone = TextEditingController();
-  Map<String, dynamic>? _found;
-  bool _searching = false;
-
-  AppState get state => widget.state;
-
-  @override
-  void initState() {
-    super.initState();
-    state.loadAdminRequests();
-  }
-
-  @override
-  void dispose() {
-    _phone.dispose();
-    super.dispose();
-  }
-
-  Future<void> _confirmMode(String mode, String label) async {
-    if (mode == state.zoneMode) return;
-    final reason = TextEditingController();
-    final ok = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (sheet) => Padding(
-        padding: EdgeInsets.fromLTRB(
-          16,
-          16,
-          16,
-          MediaQuery.viewInsetsOf(sheet).bottom + 20,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              mode == 'NORMAL' ? '¿Volver al modo normal?' : '¿Activar $label?',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Avisaremos a todos los vecinos de ${state.zoneName} y su app cambiará de modo.',
-              style: TextStyle(
-                fontSize: 13.5,
-                color: Theme.of(sheet).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: reason,
-              maxLength: 300,
-              decoration: const InputDecoration(
-                labelText: 'Mensaje para los vecinos (opcional)',
-                hintText: 'Ej. Lluvias fuertes previstas esta semana',
-              ),
-            ),
-            const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(sheet, true),
-              child: Text(mode == 'NORMAL' ? 'Volver a normal' : 'Activar y avisar'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(sheet, false),
-              child: const Text('Cancelar'),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (ok == true) await state.setZoneMode(mode, reason.text);
-    reason.dispose();
-  }
-
-  Future<void> _search() async {
-    final phone = _phone.text.trim();
-    if (phone.length < 9) {
-      state.toast('Escribe los 9 dígitos del celular', icon: 'warning');
-      return;
-    }
-    setState(() => _searching = true);
-    final u = await state.findUserByPhone(phone);
-    if (mounted) {
-      setState(() {
-        _searching = false;
-        _found = u;
-      });
-    }
-  }
-
-  static const _roleLabels = {
-    'NEIGHBOR': 'Vecino',
-    'BRIGADIST': 'Brigadista',
-    'DELEGATE': 'Delegado',
-    'ADMIN': 'Municipalidad',
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
-    final pad = NavigationInsets.of(context);
-    return ListView(
-      padding: EdgeInsets.fromLTRB(16, 8, 16, pad.bottom + 24),
-      children: [
-        Text(
-          'Modo de ${state.zoneName}',
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'El modo cambia la app de todos los vecinos de la zona.',
-          style: TextStyle(fontSize: 13, color: muted),
-        ),
-        const SizedBox(height: 12),
-        for (final (id, label, desc, icon, color, soft) in _modes)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(NearbyRadius.card),
-                side: BorderSide(
-                  color: state.zoneMode == id ? color : NearbyColors.line,
-                  width: state.zoneMode == id ? 2 : 1,
-                ),
-              ),
-              color: state.zoneMode == id ? soft : null,
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 6,
-                ),
-                leading: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: soft,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(icon, color: color),
-                ),
-                title: Text(
-                  label,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                subtitle: Text(desc),
-                trailing: Icon(
-                  state.zoneMode == id
-                      ? Icons.radio_button_checked
-                      : Icons.radio_button_unchecked,
-                  color: state.zoneMode == id ? color : NearbyColors.lineStrong,
-                ),
-                onTap: () => _confirmMode(id, label),
-              ),
-            ),
-          ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                'Quieren ser brigadistas · ${state.adminRequests.length}',
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            IconButton(
-              tooltip: 'Actualizar',
-              onPressed: state.loadAdminRequests,
-              icon: const Icon(Icons.refresh),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        if (state.adminRequests.isEmpty)
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Text(
-                'No hay solicitudes pendientes.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: muted),
-              ),
-            ),
-          ),
-        for (final r in state.adminRequests)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      '${r['name'] ?? 'Vecino'} · ${r['phone'] ?? ''}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                      ),
-                    ),
-                    if ((r['skills'] as String?)?.isNotEmpty == true) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        r['skills'] as String,
-                        style: TextStyle(fontSize: 13, color: muted),
-                      ),
-                    ],
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => state.decideBrigadeRequest(
-                              r['id'] as String,
-                              approve: false,
-                            ),
-                            child: const Text('Rechazar'),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () => state.decideBrigadeRequest(
-                              r['id'] as String,
-                              approve: true,
-                            ),
-                            child: const Text('Aprobar'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        if (state.role == 'ADMIN') ...[
-          const SizedBox(height: 12),
-          const Text(
-            'Cambiar el rol de un vecino',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _phone,
-                  keyboardType: TextInputType.phone,
-                  maxLength: 9,
-                  decoration: const InputDecoration(
-                    labelText: 'Celular',
-                    counterText: '',
-                    prefixText: '+51 ',
-                  ),
-                  onSubmitted: (_) => _search(),
-                ),
-              ),
-              const SizedBox(width: 10),
-              ElevatedButton(
-                onPressed: _searching ? null : _search,
-                child: const Text('Buscar'),
-              ),
-            ],
-          ),
-          if (_found != null) ...[
-            const SizedBox(height: 10),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      '${_found!['name']} · ${_found!['phone']}',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    Text(
-                      'Hoy: ${_roleLabels[_found!['role']] ?? _found!['role']}'
-                      '${_found!['zoneName'] != null ? ' · ${_found!['zoneName']}' : ''}',
-                      style: TextStyle(fontSize: 13, color: muted),
-                    ),
-                    const SizedBox(height: 10),
-                    if (_found!['role'] == 'ADMIN')
-                      Text(
-                        'El rol de Municipalidad se configura en el servidor.',
-                        style: TextStyle(fontSize: 13, color: muted),
-                      )
-                    else
-                      SegmentedButton<String>(
-                        segments: const [
-                          ButtonSegment(value: 'NEIGHBOR', label: Text('Vecino')),
-                          ButtonSegment(
-                            value: 'BRIGADIST',
-                            label: Text('Brigada'),
-                          ),
-                          ButtonSegment(
-                            value: 'DELEGATE',
-                            label: Text('Delegado'),
-                          ),
-                        ],
-                        selected: {_found!['role'] as String},
-                        onSelectionChanged: (v) async {
-                          final u = await state.changeUserRole(
-                            _found!['id'] as String,
-                            v.first,
-                          );
-                          if (u != null && mounted) setState(() => _found = u);
-                        },
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ],
-      ],
     );
   }
 }
@@ -768,7 +418,10 @@ class _PrevencionScreenState extends State<PrevencionScreen> {
         _photoName = file.name;
       });
     } catch (_) {
-      state.toast('No pudimos abrir la cámara. Revisa los permisos.', icon: 'error');
+      state.toast(
+        'No pudimos abrir la cámara. Revisa los permisos.',
+        icon: 'error',
+      );
     }
   }
 
@@ -875,7 +528,9 @@ class _PrevencionScreenState extends State<PrevencionScreen> {
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: _pickPhoto,
-                icon: Icon(_photo == null ? Icons.add_a_photo : Icons.check_circle),
+                icon: Icon(
+                  _photo == null ? Icons.add_a_photo : Icons.check_circle,
+                ),
                 label: Text(_photo == null ? 'Agregar foto' : 'Foto lista'),
               ),
             ),
