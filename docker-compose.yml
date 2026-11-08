@@ -1,0 +1,9 @@
+# Solo necesita la imagen precargada con docker load.
+name: nearby-frontend
+services:
+  web:
+    image: nearby-frontend:server
+    pull_policy: never
+    restart: unless-stopped
+    ports:
+      - '80:80'

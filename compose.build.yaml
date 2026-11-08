@@ -1,0 +1,7 @@
+# Ejecutar en el equipo de desarrollo, no en el servidor.
+services:
+  web:
+    image: nearby-frontend:server
+    build:
+      context: .
+      dockerfile: Dockerfile
