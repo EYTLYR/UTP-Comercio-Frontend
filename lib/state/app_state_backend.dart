@@ -573,7 +573,7 @@ extension NearbyBackend on AppState {
   Future<void> _loadServices() => _quiet(() async {
     final page = await api.get(
       'services',
-      query: {'size': 50, 'sort': 'endorsements'},
+      query: {'size': 50, 'radiusM': 5000, 'sort': 'endorsements'},
     );
     final list = (page['content'] as List).cast<Map<String, dynamic>>();
     if (tourName != null) return;
@@ -608,7 +608,7 @@ extension NearbyBackend on AppState {
   });
 
   Future<void> _loadPosts() => _quiet(() async {
-    final page = await api.get('posts', query: {'size': 50});
+    final page = await api.get('posts', query: {'size': 50, 'radiusM': 5000});
     final list = (page['content'] as List).cast<Map<String, dynamic>>();
     posts = list.map(Api2App.post).toList();
     helped = {
@@ -669,7 +669,7 @@ extension NearbyBackend on AppState {
     final selected = viewedZone;
     final query = <String, Object?>{
       if (selected != null) 'zoneId': selected.id,
-      if (selected != null) 'radiusM': selected.radius,
+      'radiusM': selected?.radius ?? 5000,
     };
     final daily = (await api.get(
       'map/pins',
@@ -1041,6 +1041,8 @@ extension NearbyBackend on AppState {
     String? prio,
   }) async {
     final clientId = newClientId();
+    final effLat = pubLat ?? regLat ?? homeZoneLat ?? location.last?.lat;
+    final effLng = pubLng ?? regLng ?? homeZoneLng ?? location.last?.lng;
     try {
       switch (type) {
         case 'need':
@@ -1052,14 +1054,17 @@ extension NearbyBackend on AppState {
               'category':
                   Api2App.reverse(Api2App.postCat, catId) ?? 'TEMPORARY_HELP',
               if (text.isNotEmpty) 'text': text,
-              'lat': ?pubLat,
-              'lng': ?pubLng,
+              'lat': ?effLat,
+              'lng': ?effLng,
             };
             if (offline) {
               await _enqueue('POST', payload);
             } else {
               await api.post('posts', body: payload);
-              await _loadPosts();
+              await Future.wait([
+                _loadPosts(),
+                _loadPins(),
+              ]);
             }
           }
         case 'vulnerable':
@@ -1067,21 +1072,25 @@ extension NearbyBackend on AppState {
             final gps = pubLat != null && pubLng != null
                 ? null
                 : await location.current();
-            final pos = (lat: pubLat ?? gps!.lat, lng: pubLng ?? gps!.lng);
+            final vulnLat = effLat ?? gps?.lat;
+            final vulnLng = effLng ?? gps?.lng;
             final payload = {
               'clientId': clientId,
               'category': Api2App.reverse(Api2App.vulnCat, catId) ?? 'INJURED',
               'priority': prio == 'media' ? 'MEDIUM' : 'HIGH',
               if (text.isNotEmpty) 'detail': text,
               'addressText': ?where,
-              'lat': pos.lat,
-              'lng': pos.lng,
+              'lat': ?vulnLat,
+              'lng': ?vulnLng,
             };
             if (offline) {
               await _enqueue('VULNERABLE_REPORT', payload);
             } else {
               await api.post('vulnerable-reports', body: payload);
-              await _loadReports();
+              await Future.wait([
+                _loadReports(),
+                _loadPins(),
+              ]);
             }
           }
         case 'needres':
@@ -1102,7 +1111,10 @@ extension NearbyBackend on AppState {
                           'Recurso'),
               },
             );
-            await _loadResources();
+            await Future.wait([
+              _loadResources(),
+              _loadPins(),
+            ]);
           });
         case 'service':
           await _whenOnline(() async {
@@ -1114,11 +1126,14 @@ extension NearbyBackend on AppState {
                 'category':
                     Api2App.reverse(Api2App.serviceCat, catId) ?? 'OTHER',
                 'availableInEmergency': true,
-                'lat': ?pubLat,
-                'lng': ?pubLng,
+                'lat': ?effLat,
+                'lng': ?effLng,
               },
             );
-            await _loadServices();
+            await Future.wait([
+              _loadServices(),
+              _loadPins(),
+            ]);
           });
       }
       refresh();
