@@ -765,6 +765,7 @@ class CallScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final call = state.internetCall;
+    final isPublicEmergency = state.callWith?['publicEmergency'] == true;
     final emergency = state.callWith?['emergency'] == true;
     final inApp = call.active;
     final label = switch (call.phase) {
@@ -912,7 +913,7 @@ class CallScreen extends StatelessWidget {
                     ),
                   ),
                 ] else ...[
-                  if (!emergency) ...[
+                  if (!isPublicEmergency) ...[
                     ElevatedButton.icon(
                       key: const ValueKey('nearby-internet-call'),
                       onPressed: state.startInternetCall,
@@ -940,7 +941,7 @@ class CallScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
                   ],
-                  if (emergency)
+                  if (isPublicEmergency)
                     ElevatedButton.icon(
                       key: const ValueKey('nearby-cellular-call'),
                       onPressed: state.callLaunching
@@ -957,8 +958,8 @@ class CallScreen extends StatelessWidget {
                           ? null
                           : () => state.launchCurrentCall(),
                       style: _full(ui.action(filled: false)),
-                      icon: const Icon(Icons.call),
-                      label: const Text('Llamar por línea celular'),
+                      icon: const Icon(Icons.phone_android),
+                      label: Text('Llamar al celular de ${state.callWith?['name']}'),
                     ),
                   const SizedBox(height: 10),
                   OutlinedButton.icon(

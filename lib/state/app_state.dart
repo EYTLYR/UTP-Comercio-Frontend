@@ -854,23 +854,61 @@ class AppState extends ChangeNotifier {
     }
     internetCall.resetSelection();
     final c = kCalls.where((x) => x.num == target).firstOrNull;
+    final isSosTarget = incomingSos != null && (target == incomingSos?['userName'] || (incomingSos?['userName'] as String? ?? '').startsWith(target));
     if (c != null) {
       callWith = {
         'name': '${c.label} · ${c.num}',
         'icon': c.icon,
         'emergency': true,
+        'publicEmergency': true,
+        'sosNeighbor': false,
       };
     } else {
-      callWith = {'name': target, 'icon': Icons.person, 'emergency': false};
+      callWith = {
+        'name': target,
+        'icon': isSosTarget ? Icons.emergency : Icons.person,
+        'emergency': isSosTarget,
+        'publicEmergency': false,
+        'sosNeighbor': isSosTarget,
+      };
     }
     muted = false;
     speaker = false;
+
+    // Si viene de un SOS, usar el teléfono del SOS si está disponible
+    String? sosPhone;
+    if (isSosTarget && incomingSos != null) {
+      sosPhone = incomingSos!['userPhone']?.toString();
+    }
     callWith!['number'] =
-        contactBook
-            .where((contact) => contact.name == target)
-            .firstOrNull
-            ?.phone ??
-        target;
+        (sosPhone != null && sosPhone.isNotEmpty)
+            ? sosPhone
+            : contactBook
+                .where((contact) => contact.name == target)
+                .firstOrNull
+                ?.phone ??
+            target;
+
+    // Si es emergencia SOS, precargar el canal de contacto para llamada por internet instantánea
+    if (isSosTarget && connected && !offline && incomingSos != null) {
+      final sosId = incomingSos!['id']?.toString();
+      if (sosId != null && sosId.isNotEmpty) {
+        unawaited(
+          api.post('sos/$sosId/contact').then((ref) {
+            if (ref is Map && ref['conversationId'] != null) {
+              final convId = ref['conversationId'].toString();
+              convIds[target] = convId;
+              final phone = ref['phone']?.toString();
+              if (phone != null && phone.isNotEmpty) {
+                callWith?['number'] = phone;
+              }
+              refresh();
+            }
+          }).catchError((_) {}),
+        );
+      }
+    }
+
     go('llamada');
   }
 
@@ -912,11 +950,25 @@ class AppState extends ChangeNotifier {
     var conversation = convIds[target];
     try {
       if (conversation == null) {
+        // 1. Si es un servicio del catálogo
         final service = services.where((s) => s.name == target).firstOrNull;
         if (service != null) {
           final ref = await api.post('services/${service.id}/contact') as Map;
           conversation = ref['conversationId'] as String?;
           if (conversation != null) convIds[target] = conversation;
+        }
+        // 2. Si es una alerta SOS activa
+        else if (incomingSos != null) {
+          final sosId = incomingSos!['id']?.toString();
+          if (sosId != null && sosId.isNotEmpty) {
+            final ref = await api.post('sos/$sosId/contact') as Map;
+            conversation = ref['conversationId']?.toString();
+            if (conversation != null) convIds[target] = conversation;
+            final phone = ref['phone']?.toString();
+            if (phone != null && phone.isNotEmpty) {
+              callWith?['number'] = phone;
+            }
+          }
         }
       }
       if (conversation == null) {
