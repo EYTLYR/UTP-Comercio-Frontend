@@ -160,24 +160,24 @@ void main() {
   for (final screen in ['publicar', 'perfil']) {
     for (final dark in [false, true]) {
       testWidgets(
-        'emergency header is navy and $screen respects dark preference $dark',
+        'emergency header uses the new white design and $screen respects dark preference $dark',
         (tester) async {
           final state = AppState()
             ..emergency = true
             ..screen = screen
             ..dark = dark;
           await tester.pumpWidget(harness(state));
-          final expected = dark ? NearbyColors.darkBg : NearbyColors.bg;
+          // Diseño nuevo: página blanca (oscura en modo oscuro), también en emergencia.
+          final expected = dark ? NearbyColors.darkBg : Colors.white;
           expect(
             tester
                 .widget<Scaffold>(find.byType(Scaffold).first)
                 .backgroundColor,
             expected,
           );
-          final header = tester.widget<Container>(
-            find.byKey(const ValueKey('top-chrome')),
-          );
-          expect((header.decoration as BoxDecoration).color, NearbyColors.navy);
+          // El aviso rojo de emergencia está en la cabecera.
+          expect(find.byKey(const ValueKey('top-chrome')), findsOneWidget);
+          expect(find.text('Modo emergencia activo'), findsOneWidget);
           expect(state.dark, dark);
           state.emergency = false;
           state.refresh();
@@ -187,7 +187,7 @@ void main() {
             tester
                 .widget<Scaffold>(find.byType(Scaffold).first)
                 .backgroundColor,
-            dark ? NearbyColors.darkBg : Colors.white,
+            expected,
           );
           expect(state.dark, dark);
           expect(tester.takeException(), isNull);
