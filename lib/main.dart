@@ -16,6 +16,7 @@ import 'screens/roles_screens.dart';
 import 'screens/municipality_screens.dart';
 import 'screens/services_screens.dart';
 import 'screens/splash_screen.dart';
+import 'screens/startup_screen.dart';
 import 'screens/wall_screen.dart';
 import 'state/app_state.dart';
 import 'theme/nearby_theme.dart';
@@ -29,14 +30,9 @@ import 'widgets/simulation_panel.dart';
 import 'screens/sms_map_screen.dart';
 import 'services/offline_tiles.dart';
 
-Future<void> main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await AppEnvironment.load();
-  // Caché del mapa sin conexión (no hace nada en web).
-  await OfflineTiles.instance.init();
-  final permissions = StartupPermissions();
-  await permissions.initialize();
-  runApp(NearbyApp(permissions: permissions, connectToApi: true));
+  runApp(NearbyApp(permissions: StartupPermissions(), connectToApi: true));
 }
 
 class NearbyApp extends StatefulWidget {
@@ -53,6 +49,7 @@ class NearbyApp extends StatefulWidget {
 
 class _NearbyAppState extends State<NearbyApp> {
   late final AppState _state;
+  bool _starting = false;
 
   @override
   void initState() {
@@ -61,8 +58,30 @@ class _NearbyAppState extends State<NearbyApp> {
     // Sesión guardada -> inicio con datos del backend; si no, bienvenida.
     if (widget.connectToApi) {
       _state.screen = 'splash';
-      _state.bootstrap();
+      _starting = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _bootstrap();
+      });
     }
+  }
+
+  Future<void> _bootstrap() async {
+    try {
+      await Future.wait<void>([
+        _initialize(),
+        Future<void>.delayed(const Duration(milliseconds: 1400)),
+      ]);
+    } finally {
+      if (mounted) setState(() => _starting = false);
+    }
+  }
+
+  Future<void> _initialize() async {
+    await AppEnvironment.load();
+    await OfflineTiles.instance.init();
+    if (!mounted) return;
+    await widget.permissions?.initialize();
+    if (mounted) await _state.bootstrap();
   }
 
   @override
@@ -101,13 +120,15 @@ class _NearbyAppState extends State<NearbyApp> {
             ),
             child: child!,
           ),
-          home: Stack(
-            children: [
-              NearbyMasterShell(state: _state, theme: theme),
-              if (widget.permissions?.visible == true)
-                PermissionIntro(permissions: widget.permissions!),
-            ],
-          ),
+          home: _starting
+              ? const StartupScreen()
+              : Stack(
+                  children: [
+                    NearbyMasterShell(state: _state, theme: theme),
+                    if (widget.permissions?.visible == true)
+                      PermissionIntro(permissions: widget.permissions!),
+                  ],
+                ),
         );
       },
     );
@@ -127,6 +148,20 @@ class NearbyMasterShell extends StatelessWidget {
     required this.state,
     required this.theme,
   });
+
+  Color get _pageBackground =>
+      const {
+            'splash',
+            'login',
+            'otp',
+            'registro',
+            'contactos',
+            'permisos',
+          }.contains(state.screen) &&
+          !theme.dark &&
+          !theme.hc
+      ? Colors.white
+      : theme.bg;
 
   @override
   Widget build(BuildContext context) {
@@ -158,7 +193,7 @@ class NearbyMasterShell extends StatelessWidget {
             }
           },
           child: Scaffold(
-            backgroundColor: theme.bg,
+            backgroundColor: _pageBackground,
             endDrawer: AppEnvironment.showDevelopmentTools
                 ? Drawer(
                     width: 320,
@@ -195,7 +230,7 @@ class NearbyMasterShell extends StatelessWidget {
     final meta = _getScreenMeta(state.screen);
     final emUI = state.emergency && meta.bar != null && !meta.noEm;
 
-    Color screenBg = theme.bg;
+    Color screenBg = _pageBackground;
     if (meta.full == 'red') screenBg = NearbyColors.sos;
     if (meta.full == 'navyfull') screenBg = NearbyColors.navy;
 

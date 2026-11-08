@@ -10,10 +10,12 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../state/app_state.dart';
 import '../theme/nearby_theme.dart';
+import '../widgets/neighborhood_painter.dart';
 
 Widget _buildPdots(int currentStep, NearbyThemeData theme) {
+  final style = _SetupStyle(theme);
   return Padding(
-    padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+    padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
     child: Row(
       children: [1, 2, 3].map((step) {
         final isOn = step <= currentStep;
@@ -22,7 +24,7 @@ Widget _buildPdots(int currentStep, NearbyThemeData theme) {
             height: 5,
             margin: const EdgeInsets.symmetric(horizontal: 3),
             decoration: BoxDecoration(
-              color: isOn ? theme.primary : theme.line,
+              color: isOn ? style.accent : style.line,
               borderRadius: BorderRadius.circular(3),
             ),
           ),
@@ -32,17 +34,71 @@ Widget _buildPdots(int currentStep, NearbyThemeData theme) {
   );
 }
 
+class _SetupStyle {
+  const _SetupStyle(this.theme);
+
+  final NearbyThemeData theme;
+  bool get _light => !theme.dark && !theme.hc;
+  Color get ink => _light ? const Color(0xFF263B65) : theme.ink;
+  Color get muted => _light ? const Color(0xFF53627B) : theme.muted;
+  Color get line => _light ? const Color(0xFFE7E4DD) : theme.line;
+  Color get accent => _light ? const Color(0xFFF2C14E) : theme.btnBg;
+  Color get onAccent => _light ? ink : theme.btnInk;
+  Color get soft => _light ? const Color(0xFFEAF0FA) : theme.infoSoft;
+  Color get panel => _light ? ink : theme.surface2;
+  Color get onPanel => _light ? Colors.white : ink;
+
+  ButtonStyle get primaryButton => ElevatedButton.styleFrom(
+    backgroundColor: accent,
+    foregroundColor: onAccent,
+    disabledBackgroundColor: line,
+    disabledForegroundColor: muted,
+    minimumSize: const Size.fromHeight(48),
+    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+    elevation: 0,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    textStyle: const TextStyle(
+      fontFamily: 'Poppins',
+      fontSize: 14,
+      fontWeight: FontWeight.w600,
+    ),
+  );
+
+  ButtonStyle get secondaryButton => OutlinedButton.styleFrom(
+    foregroundColor: ink,
+    side: BorderSide(color: ink, width: 1.5),
+    minimumSize: const Size(0, 44),
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    textStyle: const TextStyle(
+      fontFamily: 'Poppins',
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+    ),
+  );
+
+  TextStyle get title =>
+      TextStyle(color: ink, fontSize: 28, fontWeight: FontWeight.w700);
+}
+
 /// Keep the footer low on tall screens and allow the entire form to scroll
 /// when the keyboard or large text leaves less vertical space.
 class _AccessForm extends StatelessWidget {
   final List<Widget> children;
-  const _AccessForm({required this.children});
+  final double horizontalPadding;
+
+  const _AccessForm({required this.children, this.horizontalPadding = 20});
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, bounds) => SingleChildScrollView(
       key: const ValueKey('access-form-scroll'),
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+      padding: EdgeInsets.fromLTRB(
+        horizontalPadding,
+        10,
+        horizontalPadding,
+        24,
+      ),
       child: ConstrainedBox(
         constraints: BoxConstraints(
           minHeight: (bounds.maxHeight - 34).clamp(0, double.infinity),
@@ -104,149 +160,188 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final theme = widget.theme;
     final state = widget.state;
+    final style = _SetupStyle(theme);
 
     return _AccessForm(
+      horizontalPadding: 24,
       children: [
         Container(
-          width: 58,
-          height: 58,
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
           decoration: BoxDecoration(
-            color: theme.primarySoft,
-            borderRadius: BorderRadius.circular(18),
+            color: style.panel,
+            borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(Icons.smartphone, color: theme.primary, size: 30),
-        ),
-        const SizedBox(height: 14),
-        Text(
-          'Ingresa con tu celular',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w900,
-            color: theme.ink,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Ingresa con tu celular',
+                style: style.title.copyWith(color: style.onPanel),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Te enviaremos un código por SMS. No necesitas correo ni contraseña.',
+                style: TextStyle(color: style.onPanel, fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              ExcludeSemantics(
+                child: CustomPaint(
+                  size: const Size(double.infinity, 96),
+                  painter: NeighborhoodPainter(
+                    sun: style._light ? style.accent : style.onPanel,
+                    houses: style.soft,
+                    roofs: style.onPanel,
+                    windows: style.panel,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 6),
-        Text(
-          'Te enviaremos un código por SMS. No necesitas correo ni contraseña.',
-          style: TextStyle(color: theme.muted, fontSize: 14),
-        ),
-        const SizedBox(height: 24),
-
-        Text(
-          'Número de celular',
-          style: TextStyle(
-            fontWeight: FontWeight.w800,
-            color: theme.ink,
-            fontSize: 13.5,
-          ),
-        ),
-        const SizedBox(height: 8),
-
+        const SizedBox(height: 16),
         Container(
-          height: 58,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: theme.surface,
-            border: Border.all(
-              color: _err.isNotEmpty ? NearbyColors.sos : theme.line,
-              width: 1.5,
-            ),
-            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: style.line),
+            borderRadius: BorderRadius.circular(12),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                children: [
-                  const Text('🇵🇪', style: TextStyle(fontSize: 18)),
-                  const SizedBox(width: 6),
-                  Text(
-                    '+51',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      color: theme.muted,
-                      fontSize: 16,
+              Text(
+                'Número de celular',
+                style: TextStyle(
+                  color: style.ink,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                maxLength: 9,
+                onChanged: _onChanged,
+                style: TextStyle(
+                  color: style.ink,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+                decoration: InputDecoration(
+                  hintText: '987 654 321',
+                  counterText: '',
+                  filled: true,
+                  fillColor: theme.surface,
+                  prefixIcon: Container(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 6,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: style.soft,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Semantics(
+                          label: 'Bandera del Perú',
+                          image: true,
+                          child: const DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(2),
+                              ),
+                              gradient: LinearGradient(
+                                colors: [
+                                  Color(0xFFD91023),
+                                  Color(0xFFD91023),
+                                  Colors.white,
+                                  Colors.white,
+                                  Color(0xFFD91023),
+                                  Color(0xFFD91023),
+                                ],
+                                stops: [0, 1 / 3, 1 / 3, 2 / 3, 2 / 3, 1],
+                              ),
+                            ),
+                            child: SizedBox(width: 18, height: 12),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '+51',
+                          style: TextStyle(
+                            color: style.ink,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-              Container(
-                width: 1.5,
-                height: 24,
-                margin: const EdgeInsets.symmetric(horizontal: 12),
-                color: theme.line,
-              ),
-              Expanded(
-                child: TextField(
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  maxLength: 9,
-                  onChanged: _onChanged,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 18,
-                    color: theme.ink,
-                    letterSpacing: 1.2,
+                  prefixIconConstraints: const BoxConstraints(minHeight: 44),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
                   ),
-                  decoration: const InputDecoration(
-                    hintText: '987 654 321',
-                    border: InputBorder.none,
-                    counterText: '',
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: _err.isEmpty ? style.line : NearbyColors.sos,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: _err.isEmpty ? style.accent : NearbyColors.sos,
+                      width: 2,
+                    ),
                   ),
                 ),
               ),
-            ],
-          ),
-        ),
-        if (_err.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              const Icon(Icons.error, color: NearbyColors.sos, size: 16),
-              const SizedBox(width: 6),
+              if (_err.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  _err,
+                  style: const TextStyle(
+                    color: NearbyColors.sos,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: _isValid && !state.busy && !_busy
+                    ? () async {
+                        setState(() => _busy = true);
+                        try {
+                          if (await state.requestOtp() && mounted)
+                            state.go('otp');
+                        } finally {
+                          if (mounted) setState(() => _busy = false);
+                        }
+                      }
+                    : null,
+                style: style.primaryButton,
+                icon: const Icon(Icons.arrow_forward, size: 18),
+                iconAlignment: IconAlignment.end,
+                label: const Text('Enviar código'),
+              ),
+              const SizedBox(height: 12),
+              Divider(height: 1, color: style.line),
+              const SizedBox(height: 12),
               Text(
-                _err,
-                style: const TextStyle(
-                  color: NearbyColors.sos,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 12.5,
-                ),
+                'Al continuar aceptas los términos y la política de privacidad de Nearby.',
+                style: TextStyle(color: style.muted, fontSize: 11.5),
               ),
             ],
-          ),
-        ],
-
-        const Spacer(),
-        ElevatedButton.icon(
-          onPressed: _isValid && !state.busy && !_busy
-              ? () async {
-                  setState(() => _busy = true);
-                  try {
-                    if (await state.requestOtp() && mounted) state.go('otp');
-                  } finally {
-                    if (mounted) setState(() => _busy = false);
-                  }
-                }
-              : null,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: theme.btnBg,
-            foregroundColor: theme.btnInk,
-            minimumSize: const Size.fromHeight(52),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-          icon: Icon(Icons.sms, color: theme.primary, size: 20),
-          label: const Text(
-            'Enviar código',
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-          ),
-        ),
-        const SizedBox(height: 10),
-        Center(
-          child: Text(
-            'Al continuar aceptas los términos y la política de privacidad de Nearby.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: theme.muted, fontSize: 11.5),
           ),
         ),
       ],
@@ -357,101 +452,168 @@ class _OtpScreenState extends State<OtpScreen> {
   Widget build(BuildContext context) {
     final theme = widget.theme;
     final state = widget.state;
+    final useReferencePalette = !theme.dark && !theme.hc;
+    final ink = useReferencePalette ? const Color(0xFF263B65) : theme.ink;
+    final muted = useReferencePalette ? const Color(0xFF53627B) : theme.muted;
+    final line = useReferencePalette ? const Color(0xFFE7E4DD) : theme.line;
+    final accent = useReferencePalette
+        ? const Color(0xFFF2C14E)
+        : theme.primary;
+    final smsSurface = useReferencePalette
+        ? const Color(0xFFEAF0FA)
+        : theme.infoSoft;
+    final phone = state.phoneDraft.isNotEmpty
+        ? state.phoneDraft
+        : state.userPhone;
+    final displayPhone = phone.replaceFirstMapped(
+      RegExp(r'^(\d{3})(\d{3})(\d{3})$'),
+      (match) => '${match[1]} ${match[2]} ${match[3]}',
+    );
 
     return _AccessForm(
+      horizontalPadding: 24,
       children: [
-        Container(
-          width: 58,
-          height: 58,
-          decoration: BoxDecoration(
-            color: theme.infoSoft,
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Icon(Icons.sms, color: theme.info, size: 30),
-        ),
-        const SizedBox(height: 14),
         Text(
           'Escribe el código',
           style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w900,
-            color: theme.ink,
+            fontSize: 28,
+            fontWeight: FontWeight.w700,
+            color: ink,
           ),
         ),
-        const SizedBox(height: 6),
-        Wrap(
-          spacing: 4,
-          children: [
-            Text(
-              'Lo enviamos por SMS al +51 ${state.phoneDraft.isNotEmpty ? state.phoneDraft : state.userPhone}. ',
-              style: TextStyle(color: theme.muted, fontSize: 13.5),
-            ),
-            InkWell(
-              onTap: () => state.back(),
-              child: Text(
-                'Cambiar',
-                style: TextStyle(
-                  color: theme.primaryDark,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 13.5,
+        const SizedBox(height: 24),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(14, 16, 14, 8),
+          decoration: BoxDecoration(
+            color: smsSurface,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: accent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.sms_outlined,
+                  color: useReferencePalette ? ink : theme.btnInk,
+                  size: 20,
                 ),
               ),
-            ),
-          ],
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'SMS enviado a',
+                      style: TextStyle(
+                        color: muted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '+51 $displayPhone',
+                      style: TextStyle(
+                        color: ink,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => state.back(),
+                      style: TextButton.styleFrom(
+                        foregroundColor: ink,
+                        minimumSize: const Size(0, 36),
+                        padding: EdgeInsets.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        textStyle: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      child: const Text('Cambiar número'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 24),
 
         // 6 OTP boxes
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: List.generate(6, (i) {
-            return SizedBox(
-              width: ((MediaQuery.sizeOf(context).width - 40) / 6).clamp(0, 48),
-              height: 58,
-              child: TextField(
-                controller: _controllers[i],
-                focusNode: _focusNodes[i],
-                keyboardType: TextInputType.number,
-                textAlign: TextAlign.center,
-                autofillHints: const [AutofillHints.oneTimeCode],
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                maxLength: 6,
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: _isSuccess ? theme.primary : theme.ink,
-                ),
-                decoration: InputDecoration(
-                  counterText: '',
-                  filled: true,
-                  fillColor: _isSuccess ? theme.primarySoft : theme.surface,
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(
-                      color: _err.isNotEmpty ? NearbyColors.sos : theme.line,
-                      width: 1.5,
+            return Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(right: i < 5 ? 6 : 0),
+                child: SizedBox(
+                  height: 60,
+                  child: ListenableBuilder(
+                    listenable: _focusNodes[i],
+                    builder: (context, _) => TextField(
+                      controller: _controllers[i],
+                      focusNode: _focusNodes[i],
+                      autofocus: i == 0,
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
+                      textAlignVertical: TextAlignVertical.center,
+                      cursorColor: ink,
+                      autofillHints: const [AutofillHints.oneTimeCode],
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      maxLength: 6,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: _isSuccess ? theme.primary : ink,
+                      ),
+                      decoration: InputDecoration(
+                        counterText: '',
+                        hintText: _focusNodes[i].hasFocus ? null : '–',
+                        hintStyle: TextStyle(color: line, fontSize: 16),
+                        contentPadding: EdgeInsets.zero,
+                        filled: true,
+                        fillColor: _isSuccess
+                            ? theme.primarySoft
+                            : theme.surface,
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: _err.isNotEmpty ? NearbyColors.sos : line,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: accent, width: 2),
+                        ),
+                      ),
+                      onChanged: (val) {
+                        if (val.length == 6) {
+                          _fillCode(val);
+                          return;
+                        }
+                        if (val.length > 1) {
+                          _controllers[i].text = val.substring(val.length - 1);
+                        }
+                        if (val.isNotEmpty && i < 5) {
+                          _focusNodes[i + 1].requestFocus();
+                        } else if (val.isEmpty && i > 0) {
+                          _focusNodes[i - 1].requestFocus();
+                        }
+                        _checkCode();
+                      },
                     ),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(color: theme.primary, width: 2),
-                  ),
                 ),
-                onChanged: (val) {
-                  if (val.length == 6) {
-                    _fillCode(val);
-                    return;
-                  }
-                  if (val.length > 1) {
-                    _controllers[i].text = val.substring(val.length - 1);
-                  }
-                  if (val.isNotEmpty && i < 5) {
-                    _focusNodes[i + 1].requestFocus();
-                  } else if (val.isEmpty && i > 0) {
-                    _focusNodes[i - 1].requestFocus();
-                  }
-                  _checkCode();
-                },
               ),
             );
           }),
@@ -475,11 +637,11 @@ class _OtpScreenState extends State<OtpScreen> {
             ],
           ),
         ],
-        const SizedBox(height: 14),
 
         // Only the code returned by a development backend can be shown.
         if (AppEnvironment.showDevelopmentTools && state.otpDevCode != null)
           Container(
+            margin: const EdgeInsets.only(top: 12),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
               color: theme.infoSoft,
@@ -516,7 +678,23 @@ class _OtpScreenState extends State<OtpScreen> {
           ),
         const SizedBox(height: 12),
 
-        TextButton.icon(
+        TextButton(
+          style: TextButton.styleFrom(
+            foregroundColor: ink,
+            backgroundColor: accent,
+            disabledForegroundColor: muted,
+            disabledBackgroundColor: line,
+            minimumSize: const Size.fromHeight(44),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            textStyle: const TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
           onPressed: _secondsLeft == 0 && !state.busy
               ? () async {
                   if (_verifying) return;
@@ -532,22 +710,27 @@ class _OtpScreenState extends State<OtpScreen> {
                   }
                 }
               : null,
-          icon: const Icon(Icons.refresh, size: 18),
-          label: Text(
+          child: Text(
             _secondsLeft > 0
                 ? 'Reenviar código en 0:${_secondsLeft.toString().padLeft(2, "0")}'
                 : 'Reenviar SMS',
-            style: const TextStyle(fontWeight: FontWeight.w800),
+            textAlign: TextAlign.center,
           ),
         ),
 
-        const Spacer(),
-        Center(
-          child: Text(
-            'Puedes autorizar la lectura de este único SMS para completar el código, o escribirlo manualmente.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: theme.muted, fontSize: 12),
-          ),
+        const SizedBox(height: 20),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.lock_outline, color: ink, size: 16),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Puedes autorizar la lectura de este único SMS para completar el código, o escribirlo manualmente.',
+                style: TextStyle(color: muted, fontSize: 11),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -848,90 +1031,107 @@ class _RegistroScreenState extends State<RegistroScreen> {
   Widget build(BuildContext context) {
     final theme = widget.theme;
     final state = widget.state;
+    final style = _SetupStyle(theme);
 
     return Column(
       children: [
         _buildPdots(1, theme),
         Expanded(
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
             children: [
-              Text(
-                'Cuéntanos de ti',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  color: theme.ink,
-                ),
-              ),
-              const SizedBox(height: 6),
+              Text('Cuéntanos de ti', style: style.title),
+              const SizedBox(height: 8),
               Text(
                 'Así tus vecinos sabrán quién eres.',
-                style: TextStyle(color: theme.muted, fontSize: 14),
+                style: TextStyle(color: style.muted, fontSize: 13),
               ),
-              const SizedBox(height: 20),
-
-              Text(
-                'Tu nombre',
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: theme.ink,
-                  fontSize: 13.5,
-                ),
-              ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 24),
               Container(
-                height: 56,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: theme.surface,
-                  border: Border.all(color: theme.line, width: 1.5),
-                  borderRadius: BorderRadius.circular(16),
+                  color: style.panel,
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.person, color: theme.muted, size: 22),
-                    const SizedBox(width: 12),
+                    CircleAvatar(
+                      radius: 24,
+                      backgroundColor: style.accent,
+                      foregroundColor: style.onAccent,
+                      child: const Icon(Icons.person_outline),
+                    ),
+                    const SizedBox(width: 16),
                     Expanded(
-                      child: TextField(
-                        controller: _nameController,
-                        onChanged: (val) {
-                          state.regName = val;
-                          setState(() {});
-                        },
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          color: theme.ink,
-                          fontSize: 16,
-                        ),
-                        decoration: const InputDecoration(
-                          hintText: 'Ej. María Quispe',
-                          border: InputBorder.none,
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Tu nombre',
+                            style: TextStyle(
+                              color: style.onPanel,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: _nameController,
+                            onChanged: (val) {
+                              state.regName = val;
+                              setState(() {});
+                            },
+                            style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              color: style.ink,
+                              fontSize: 14,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Ej. María Quispe',
+                              filled: true,
+                              fillColor: theme.surface,
+                              constraints: const BoxConstraints(minHeight: 44),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(color: style.line),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: style.accent,
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
-
+              const SizedBox(height: 24),
               Text(
                 '¿Dónde vives?',
                 style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: theme.ink,
-                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  color: style.ink,
+                  fontSize: 19,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
 
               if (state.regLoc == 'loading')
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: theme.surface,
-                    border: Border.all(color: theme.line),
-                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: style.line),
+                    borderRadius: BorderRadius.circular(12),
                     boxShadow: theme.cardShadow,
                   ),
                   child: Row(
@@ -974,8 +1174,8 @@ class _RegistroScreenState extends State<RegistroScreen> {
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: theme.surface,
-                    border: Border.all(color: theme.line),
-                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: style.line),
+                    borderRadius: BorderRadius.circular(12),
                     boxShadow: theme.cardShadow,
                   ),
                   child: Row(
@@ -985,7 +1185,7 @@ class _RegistroScreenState extends State<RegistroScreen> {
                         height: 44,
                         decoration: BoxDecoration(
                           color: const Color(0xFFE8F0FE),
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Icon(
                           Icons.where_to_vote,
@@ -1070,52 +1270,35 @@ class _RegistroScreenState extends State<RegistroScreen> {
                   ),
                 ),
               ] else
-                Column(
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: () => _openLocationPickerModal(context),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF1A73E8),
-                        side: const BorderSide(
-                          color: Color(0xFF1A73E8),
-                          width: 1.5,
-                        ),
-                        minimumSize: const Size.fromHeight(52),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      icon: const Icon(Icons.map, size: 20),
-                      label: const Text(
-                        'Elegir en Google Maps o escribir dirección',
-                        style: TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        await state.locateForRegistration();
-                        if (mounted) setState(() {});
-                      },
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: theme.ink,
-                        side: BorderSide(color: theme.line, width: 1.5),
-                        minimumSize: const Size.fromHeight(52),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: _locationOption(
+                          style: style,
+                          icon: Icons.location_on_outlined,
+                          title: 'Google Maps o dirección',
+                          description: 'Elige o escribe',
+                          highlighted: true,
+                          onPressed: () => _openLocationPickerModal(context),
                         ),
                       ),
-                      icon: Icon(
-                        Icons.my_location,
-                        color: theme.primary,
-                        size: 20,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _locationOption(
+                          style: style,
+                          icon: Icons.my_location,
+                          title: 'GPS actual',
+                          description: 'Detectar ubicación',
+                          onPressed: () async {
+                            await state.locateForRegistration();
+                            if (mounted) setState(() {});
+                          },
+                        ),
                       ),
-                      label: const Text(
-                        'Detectar con GPS actual',
-                        style: TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
 
               const SizedBox(height: 16),
@@ -1124,15 +1307,15 @@ class _RegistroScreenState extends State<RegistroScreen> {
                 decoration: BoxDecoration(
                   color: theme.surface,
                   border: Border.all(
-                    color: theme.line,
+                    color: style.line,
                     style: BorderStyle.solid,
                   ),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.lock, color: theme.info, size: 18),
+                    Icon(Icons.lock_outline, color: style.ink, size: 16),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -1149,12 +1332,12 @@ class _RegistroScreenState extends State<RegistroScreen> {
 
         // Footer button
         Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 22),
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
           decoration: BoxDecoration(
             color: theme.surface,
-            border: Border(top: BorderSide(color: theme.line)),
+            border: Border(top: BorderSide(color: style.line)),
           ),
-          child: ElevatedButton.icon(
+          child: ElevatedButton(
             onPressed: _canContinue && !state.busy
                 ? () async {
                     state.userName = state.regName.trim();
@@ -1170,31 +1353,60 @@ class _RegistroScreenState extends State<RegistroScreen> {
                     state.go('contactos');
                   }
                 : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: theme.btnBg,
-              foregroundColor: theme.btnInk,
-              minimumSize: const Size.fromHeight(52),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            icon: const SizedBox.shrink(),
-            label: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  'Continuar',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-                ),
-                const SizedBox(width: 8),
-                Icon(Icons.arrow_forward, color: theme.primary, size: 20),
-              ],
-            ),
+            style: style.primaryButton,
+            child: const Text('Continuar'),
           ),
         ),
       ],
     );
   }
+
+  Widget _locationOption({
+    required _SetupStyle style,
+    required IconData icon,
+    required String title,
+    required String description,
+    required VoidCallback onPressed,
+    bool highlighted = false,
+  }) => OutlinedButton(
+    onPressed: onPressed,
+    style: style.secondaryButton.copyWith(
+      backgroundColor: WidgetStatePropertyAll(
+        highlighted ? style.soft : style.theme.surface,
+      ),
+      side: WidgetStatePropertyAll(BorderSide(color: style.line)),
+      padding: const WidgetStatePropertyAll(EdgeInsets.all(12)),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: highlighted ? style.accent : style.soft,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                icon,
+                size: 18,
+                color: highlighted ? style.onAccent : style.ink,
+              ),
+            ),
+            const Icon(Icons.arrow_forward, size: 16),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(title),
+        const Spacer(),
+        const SizedBox(height: 8),
+        Text(description, style: TextStyle(color: style.muted, fontSize: 11)),
+      ],
+    ),
+  );
 }
 
 // --- 4. Contactos Screen ---
@@ -1271,43 +1483,155 @@ class _ContactosScreenState extends State<ContactosScreen> {
   Widget build(BuildContext context) {
     final theme = widget.theme;
     final state = widget.state;
+    final style = _SetupStyle(theme);
     final isSetup = state.contactsMode == 'setup';
 
     final filtered = state.contactBook
         .where((c) => c.name.toLowerCase().contains(_search.toLowerCase()))
         .toList();
 
+    final selected = state.contacts
+        .map(
+          (id) => state.contactBook
+              .where((contact) => contact.id == id)
+              .firstOrNull,
+        )
+        .nonNulls
+        .toList();
+    final sosInk = theme.dark ? NearbyColors.darkSosDark : NearbyColors.sosDark;
+
     return Column(
       children: [
         if (isSetup) _buildPdots(2, theme),
         Expanded(
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 6, 20, 20),
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
             children: [
-              Text(
-                '¿A quién avisamos si usas el SOS?',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  color: theme.ink,
-                ),
-              ),
-              const SizedBox(height: 6),
+              Text('¿A quién avisamos si usas el SOS?', style: style.title),
+              const SizedBox(height: 8),
               Text(
                 'Elige hasta 3 personas. Recibirán tu ubicación por SMS, incluso sin internet.',
-                style: TextStyle(color: theme.muted, fontSize: 14),
+                style: TextStyle(color: style.muted, fontSize: 13),
               ),
               const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.sosSoft,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.warning_amber, color: sosInk, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Tu círculo de confianza',
+                            style: TextStyle(
+                              color: sosInk,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: List.generate(3, (index) {
+                        final contact = index < selected.length
+                            ? selected[index]
+                            : null;
+                        return Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: Column(
+                              children: [
+                                if (contact == null)
+                                  CircleAvatar(
+                                    radius: 18,
+                                    backgroundColor: theme.surface,
+                                    foregroundColor: sosInk,
+                                    child: Text(
+                                      '${index + 1}',
+                                      semanticsLabel:
+                                          'Lugar disponible ${index + 1}',
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                  )
+                                else
+                                  ExcludeSemantics(
+                                    child: SizedBox.square(
+                                      dimension: 36,
+                                      child: Stack(
+                                        children: [
+                                          CustomPaint(
+                                            size: const Size.square(36),
+                                            painter: _TrustPortrait(
+                                              longHair: index.isEven,
+                                            ),
+                                          ),
+                                          Positioned(
+                                            right: 0,
+                                            bottom: 0,
+                                            child: CircleAvatar(
+                                              radius: 7,
+                                              backgroundColor: style.accent,
+                                              foregroundColor: style.onAccent,
+                                              child: const Icon(
+                                                Icons.check,
+                                                size: 10,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                if (contact != null) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    contact.name,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: style.ink,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Tu agenda',
+                style: TextStyle(
+                  color: style.ink,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 18,
+                ),
+              ),
+              const SizedBox(height: 8),
 
               // Search bar
               Container(
-                height: 50,
+                constraints: const BoxConstraints(minHeight: 44),
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 decoration: BoxDecoration(
                   color: theme.surface,
-                  border: Border.all(color: theme.line),
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: theme.cardShadow,
+                  border: Border.all(color: style.line),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
@@ -1325,135 +1649,109 @@ class _ContactosScreenState extends State<ContactosScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
-              if (state.connected)
-                OutlinedButton.icon(
-                  onPressed: () => _addContactDialog(context),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: theme.ink,
-                    side: BorderSide(color: theme.line, width: 1.5),
-                    minimumSize: const Size.fromHeight(52),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  icon: Icon(Icons.person_add, color: theme.primary, size: 20),
-                  label: const Text(
-                    'Agregar contacto con su celular',
-                    style: TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                ),
-              const SizedBox(height: 12),
-
-              // Contacts Card List
-              Container(
-                decoration: BoxDecoration(
-                  color: theme.surface,
-                  border: Border.all(color: theme.line),
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: theme.cardShadow,
-                ),
-                child: Column(
-                  children: filtered.map((c) {
-                    final isSelected = state.contacts.contains(c.id);
-                    return InkWell(
-                      onTap: () {
-                        if (isSelected) {
-                          state.contacts.remove(c.id);
-                        } else if (state.contacts.length >= 3) {
-                          state.toast(
-                            'Máximo 3 contactos. Quita uno para elegir otro.',
-                            icon: 'info',
-                          );
-                          return;
-                        } else {
-                          state.contacts.add(c.id);
-                        }
-                        setState(() {});
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 42,
-                              height: 42,
-                              decoration: BoxDecoration(
-                                color: theme.violetSoft,
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Icon(
-                                c.icon,
-                                color: theme.violet,
-                                size: 22,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    c.name,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      color: theme.ink,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  Text(
-                                    c.phone,
-                                    style: TextStyle(
-                                      color: theme.muted,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              width: 26,
-                              height: 26,
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? theme.primary
-                                    : Colors.transparent,
-                                border: Border.all(
-                                  color: isSelected
-                                      ? theme.primary
-                                      : theme.line,
-                                  width: 2,
-                                ),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: isSelected
-                                  ? const Icon(
-                                      Icons.check,
-                                      color: Colors.white,
-                                      size: 18,
-                                    )
-                                  : null,
-                            ),
-                          ],
-                        ),
+              Column(
+                children: filtered.map((c) {
+                  final isSelected = state.contacts.contains(c.id);
+                  return InkWell(
+                    onTap: () {
+                      if (isSelected) {
+                        state.contacts.remove(c.id);
+                      } else if (state.contacts.length >= 3) {
+                        state.toast(
+                          'Máximo 3 contactos. Quita uno para elegir otro.',
+                          icon: 'info',
+                        );
+                        return;
+                      } else {
+                        state.contacts.add(c.id);
+                      }
+                      setState(() {});
+                    },
+                    child: Container(
+                      constraints: const BoxConstraints(minHeight: 48),
+                      decoration: BoxDecoration(
+                        border: Border(bottom: BorderSide(color: style.line)),
                       ),
-                    );
-                  }).toList(),
-                ),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 4,
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  c.name,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: style.ink,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                Text(
+                                  c.phone,
+                                  style: TextStyle(
+                                    color: theme.muted,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            width: 22,
+                            height: 22,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? style.accent
+                                  : Colors.transparent,
+                              border: Border.all(
+                                color: isSelected ? style.accent : style.line,
+                                width: 1,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: isSelected
+                                ? Icon(
+                                    Icons.check,
+                                    color: style.onAccent,
+                                    size: 18,
+                                  )
+                                : null,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
               ),
+              if (state.connected) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () => _addContactDialog(context),
+                    style: TextButton.styleFrom(
+                      foregroundColor: style.ink,
+                      minimumSize: const Size(0, 44),
+                    ),
+                    icon: const Icon(Icons.person_add_outlined, size: 18),
+                    label: const Text('Agregar contacto con su celular'),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
 
         // Footer buttons
         Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 22),
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
           decoration: BoxDecoration(
             color: theme.surface,
-            border: Border(top: BorderSide(color: theme.line)),
+            border: Border(top: BorderSide(color: style.line)),
           ),
           child: Column(
             children: [
@@ -1470,21 +1768,12 @@ class _ContactosScreenState extends State<ContactosScreen> {
                     );
                   }
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.btnBg,
-                  foregroundColor: theme.btnInk,
-                  minimumSize: const Size.fromHeight(52),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                icon: Icon(Icons.check, color: theme.primary, size: 20),
+                style: style.primaryButton,
+                icon: const Icon(Icons.arrow_forward, size: 18),
+                iconAlignment: IconAlignment.end,
                 label: Text(
                   '${isSetup ? "Continuar" : "Guardar"} · ${state.contacts.length} de 3',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
-                  ),
+                  textAlign: TextAlign.center,
                 ),
               ),
               if (isSetup) ...[
@@ -1508,6 +1797,59 @@ class _ContactosScreenState extends State<ContactosScreen> {
   }
 }
 
+// Decorative variants, independent of the contact's identity.
+class _TrustPortrait extends CustomPainter {
+  const _TrustPortrait({required this.longHair});
+
+  final bool longHair;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.scale(size.width / 36, size.height / 36);
+    canvas.clipPath(Path()..addOval(const Rect.fromLTWH(0, 0, 36, 36)));
+    final paint = Paint()..color = Colors.white;
+    canvas.drawCircle(const Offset(18, 18), 18, paint);
+
+    const hair = Color(0xFF263B65);
+    final skin = longHair ? const Color(0xFFE9AC80) : const Color(0xFFB97654);
+    paint.color = hair;
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: const Offset(18, 15),
+        width: 18,
+        height: longHair ? 23 : 18,
+      ),
+      paint,
+    );
+    if (longHair) canvas.drawCircle(const Offset(24, 8), 4, paint);
+    paint.color = longHair ? const Color(0xFF627EA9) : hair;
+    canvas.drawRRect(
+      RRect.fromLTRBR(6, 24, 30, 40, const Radius.circular(9)),
+      paint,
+    );
+    paint.color = skin;
+    canvas.drawRRect(
+      RRect.fromLTRBR(15, 20, 21, 27, const Radius.circular(2)),
+      paint,
+    );
+    canvas.drawOval(const Rect.fromLTWH(11, 8, 14, 16), paint);
+    paint.color = hair;
+    canvas.drawArc(
+      const Rect.fromLTWH(10, 6, 16, 12),
+      3.14,
+      3.14,
+      false,
+      paint,
+    );
+    canvas.drawCircle(const Offset(15.5, 16), 0.7, paint);
+    canvas.drawCircle(const Offset(20.5, 16), 0.7, paint);
+  }
+
+  @override
+  bool shouldRepaint(_TrustPortrait oldDelegate) =>
+      oldDelegate.longHair != longHair;
+}
+
 // --- 5. Permisos Screen ---
 class PermisosScreen extends StatefulWidget {
   final AppState state;
@@ -1524,93 +1866,125 @@ class _PermisosScreenState extends State<PermisosScreen> {
   Widget build(BuildContext context) {
     final theme = widget.theme;
     final state = widget.state;
+    final style = _SetupStyle(theme);
 
     return Column(
       children: [
         _buildPdots(3, theme),
         Expanded(
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 6, 20, 20),
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
             children: [
-              Text(
-                'Para cuidarte mejor',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  color: theme.ink,
-                ),
-              ),
-              const SizedBox(height: 6),
+              Text('Para cuidarte mejor', style: style.title),
+              const SizedBox(height: 8),
               Text(
                 'Nearby necesita estos permisos. Puedes cambiarlos cuando quieras.',
-                style: TextStyle(color: theme.muted, fontSize: 14),
+                style: TextStyle(color: style.muted, fontSize: 13),
               ),
-              const SizedBox(height: 20),
-
-              _permRow(
-                'loc',
-                Icons.my_location,
-                theme.infoSoft,
-                theme.info,
-                'Ubicación',
-                'Para enviar tu ubicación en un SOS y mostrarte lo que hay cerca',
+              const SizedBox(height: 16),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: theme.surface,
+                  border: Border.all(color: style.line),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: style.panel,
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(12),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.warning_amber,
+                            size: 18,
+                            color: style._light ? style.accent : style.onPanel,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Ubicación y avisos de emergencia',
+                              style: TextStyle(
+                                color: style.onPanel,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    _permRow(
+                      style,
+                      'loc',
+                      Icons.location_on_outlined,
+                      'Ubicación',
+                      'Comparte tu ubicación en un SOS y descubre lo que hay cerca.',
+                    ),
+                    Divider(
+                      height: 1,
+                      color: style.line,
+                      indent: 12,
+                      endIndent: 12,
+                    ),
+                    _permRow(
+                      style,
+                      'notif',
+                      Icons.notifications_none,
+                      'Notificaciones',
+                      'Recibe avisos cuando un vecino cercano pide ayuda.',
+                    ),
+                    Divider(
+                      height: 1,
+                      color: style.line,
+                      indent: 12,
+                      endIndent: 12,
+                    ),
+                    _permRow(
+                      style,
+                      'sms',
+                      Icons.sms_outlined,
+                      'Enviar SMS',
+                      'Envía el SOS a tus contactos aunque no tengas internet.',
+                    ),
+                  ],
+                ),
               ),
-              _permRow(
-                'notif',
-                Icons.notifications_active,
-                theme.sosSoft,
-                theme.sos,
-                'Notificaciones',
-                'Para avisarte si un vecino cercano pide ayuda',
-              ),
-              _permRow(
-                'sms',
-                Icons.sms,
-                theme.primarySoft,
-                theme.primary,
-                'Enviar SMS',
-                'Para que el SOS llegue a tus contactos aunque no tengas internet',
-              ),
-              _permRow(
-                'ai',
-                Icons.auto_awesome,
-                theme.violetSoft,
-                theme.violet,
-                'Red de rescate con IA (opcional)',
-                'Usa lo que ofreces en el muro para sugerirte si un vecino necesita ayuda. Puedes verlo y borrarlo en tu perfil',
+              const SizedBox(height: 16),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: style.soft,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: _permRow(
+                  style,
+                  'ai',
+                  Icons.auto_awesome,
+                  'Red de rescate con IA',
+                  'Opcional. Usa tus ofertas para sugerir ayuda. Puedes verlo y borrarlo en Perfil.',
+                ),
               ),
             ],
           ),
         ),
-
-        // Footer
         Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 22),
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
           decoration: BoxDecoration(
             color: theme.surface,
-            border: Border(top: BorderSide(color: theme.line)),
+            border: Border(top: BorderSide(color: style.line)),
           ),
-          child: ElevatedButton(
+          child: ElevatedButton.icon(
             onPressed: () => state.go('listo', reset: true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: theme.btnBg,
-              foregroundColor: theme.btnInk,
-              minimumSize: const Size.fromHeight(52),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  'Continuar',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-                ),
-                const SizedBox(width: 8),
-                Icon(Icons.arrow_forward, color: theme.primary, size: 20),
-              ],
-            ),
+            style: style.primaryButton,
+            icon: const Icon(Icons.arrow_forward, size: 18),
+            iconAlignment: IconAlignment.end,
+            label: const Text('Continuar'),
           ),
         ),
       ],
@@ -1618,38 +1992,33 @@ class _PermisosScreenState extends State<PermisosScreen> {
   }
 
   Widget _permRow(
+    _SetupStyle style,
     String key,
     IconData icon,
-    Color softColor,
-    Color mainColor,
     String title,
-    String desc,
+    String description,
   ) {
-    final isAllowed = widget.state.perms[key] ?? false;
-    final theme = widget.theme;
+    final state = widget.state;
+    final isAllowed = state.perms[key] ?? false;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: theme.surface,
-        border: Border.all(color: theme.line),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: theme.cardShadow,
-      ),
+    return Padding(
+      padding: const EdgeInsets.all(12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: softColor,
-              borderRadius: BorderRadius.circular(14),
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(
+              icon,
+              color: key == 'sms'
+                  ? (style.theme.dark
+                        ? NearbyColors.darkSosDark
+                        : NearbyColors.sosDark)
+                  : style.ink,
+              size: 18,
             ),
-            child: Icon(icon, color: mainColor, size: 22),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1657,61 +2026,47 @@ class _PermisosScreenState extends State<PermisosScreen> {
                 Text(
                   title,
                   style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: theme.ink,
-                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: style.ink,
+                    fontSize: 13,
                   ),
                 ),
-                const SizedBox(height: 3),
-                Text(desc, style: TextStyle(color: theme.muted, fontSize: 12)),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(color: style.muted, fontSize: 11),
+                ),
               ],
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           if (isAllowed)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              constraints: const BoxConstraints(minWidth: 72, minHeight: 44),
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: theme.primarySoft,
-                borderRadius: BorderRadius.circular(999),
+                color: style.soft,
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: Row(
-                children: [
-                  Icon(Icons.check_circle, color: theme.primaryDark, size: 16),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Listo',
-                    style: TextStyle(
-                      color: theme.primaryDark,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
+              child: Text(
+                'Listo',
+                style: TextStyle(
+                  color: style.ink,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
               ),
             )
           else
-            ElevatedButton(
+            OutlinedButton(
               onPressed: () {
-                widget.state.perms[key] = true;
-                if (key == 'ai') widget.state.setAiConsent(true);
+                state.perms[key] = true;
+                if (key == 'ai') state.setAiConsent(true);
                 setState(() {});
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: theme.btnBg,
-                foregroundColor: theme.btnInk,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
-                ),
-              ),
-              child: const Text(
-                'Permitir',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
-              ),
+              style: style.secondaryButton,
+              child: const Text('Permitir'),
             ),
         ],
       ),
