@@ -785,6 +785,14 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  void updatePostStatus(String postId, String status) {
+    if (connected) {
+      _updatePostStatus(postId, status);
+    } else {
+      toast('Conéctate a internet para cambiar el estado');
+    }
+  }
+
   // --- Chat ---
   void openChat(String userName, {String? sysMsg, String? conversationId}) {
     if (!chats.containsKey(userName)) {

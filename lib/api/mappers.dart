@@ -277,6 +277,7 @@ class Api2App {
     incomingResponses: (j['incomingResponses'] as List? ?? [])
         .map((r) => postResponse(r as Map<String, dynamic>))
         .toList(),
+    status: _s(j['status'], 'OPEN'),
   );
 
   static PostResponseItem postResponse(Map<String, dynamic> j) =>

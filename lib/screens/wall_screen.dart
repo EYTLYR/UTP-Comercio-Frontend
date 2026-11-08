@@ -15,6 +15,8 @@ class WallScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final filtered = state.posts.where((p) {
+      // Ignorar automáticamente publicaciones que no estén en estado OPEN en las pestañas Necesitan / Ofrecen
+      if (p.status != 'OPEN' && !p.mine) return false;
       final matchesSeg = state.muroSeg == 'all' || p.type == state.muroSeg;
       final matchesCat = state.muroCat == null || p.cat == state.muroCat;
       return matchesSeg && matchesCat;
@@ -481,6 +483,47 @@ class WallScreen extends StatelessWidget {
                     ),
                     ...p.incomingResponses.map((r) => _buildIncomingResponseRow(p, r)),
                   ],
+                ),
+              const SizedBox(height: 10),
+              if (p.status == 'RESOLVED')
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: theme.primarySoft,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.check_circle, size: 16, color: theme.primaryDark),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Favor resuelto con éxito',
+                        style: TextStyle(
+                          color: theme.primaryDark,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else if (p.status != 'CANCELLED')
+                OutlinedButton.icon(
+                  onPressed: () => state.updatePostStatus(p.id, 'RESOLVED'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: theme.primaryDark,
+                    side: BorderSide(color: theme.primaryDark.withValues(alpha: 0.3)),
+                    minimumSize: const Size.fromHeight(40),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.task_alt, size: 18),
+                  label: const Text(
+                    'Marcar favor como resuelto',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ),
             ] else ...[
               _buildResponderButton(p, isDone),

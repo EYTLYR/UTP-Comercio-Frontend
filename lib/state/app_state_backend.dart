@@ -608,7 +608,7 @@ extension NearbyBackend on AppState {
   });
 
   Future<void> _loadPosts() => _quiet(() async {
-    final page = await api.get('posts', query: {'size': 50, 'radiusM': 5000});
+    final page = await api.get('posts', query: {'size': 50, 'radiusM': 5000, 'status': 'OPEN'});
     final list = (page['content'] as List).cast<Map<String, dynamic>>();
     posts = list.map(Api2App.post).toList();
     helped = {
@@ -920,6 +920,24 @@ extension NearbyBackend on AppState {
       await api.post('posts/$postId/responses/$responseId/reject');
       toast('Solicitud rechazada');
       await _loadPosts();
+    } on ApiException catch (e) {
+      toast(e.message, icon: 'error');
+    }
+  }
+
+  Future<void> _updatePostStatus(String postId, String status) async {
+    try {
+      await api.patch('posts/$postId/status', body: {'status': status});
+      toast(
+        status == 'RESOLVED'
+            ? '¡Favor marcado como resuelto!'
+            : 'Estado actualizado a $status',
+        icon: 'check_circle',
+      );
+      await Future.wait([
+        _loadPosts(),
+        _loadPins(),
+      ]);
     } on ApiException catch (e) {
       toast(e.message, icon: 'error');
     }

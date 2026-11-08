@@ -84,6 +84,9 @@ class PostItem {
   /// Solicitudes recibidas si el post es mío
   final List<PostResponseItem> incomingResponses;
 
+  /// Estado de la publicación ('OPEN', 'IN_PROGRESS', 'RESOLVED', 'CANCELLED')
+  final String status;
+
   PostItem({
     required this.id,
     required this.type,
@@ -99,6 +102,7 @@ class PostItem {
     this.zone = '',
     this.myResponseStatus,
     this.incomingResponses = const [],
+    this.status = 'OPEN',
   });
 }
 
