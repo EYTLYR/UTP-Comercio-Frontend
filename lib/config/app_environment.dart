@@ -9,11 +9,16 @@ abstract final class AppEnvironment {
   static String get apiBaseUrl {
     const defined = String.fromEnvironment('API_BASE_URL');
     if (defined.isNotEmpty) return defined;
-    if (_apiUrl != null && _apiUrl!.isNotEmpty) return _apiUrl!;
-    if (kReleaseMode) return 'https://nearby-api.eytlyr.com';
-    return !kIsWeb && defaultTargetPlatform == TargetPlatform.android
-        ? 'https://nearby-api.eytlyr.com'
-        : 'https://nearby-api.eytlyr.com';
+    if (_apiUrl != null && _apiUrl!.isNotEmpty) {
+      if (kReleaseMode &&
+          (_apiUrl!.contains('localhost') ||
+              _apiUrl!.contains('127.0.0.1') ||
+              _apiUrl!.contains('10.0.2.2'))) {
+        return 'https://nearby-api.eytlyr.com';
+      }
+      return _apiUrl!;
+    }
+    return 'https://nearby-api.eytlyr.com';
   }
 
   static String get name => _definedName.isNotEmpty
