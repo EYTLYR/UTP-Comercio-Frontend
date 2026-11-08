@@ -270,6 +270,8 @@ class AppState extends ChangeNotifier {
   Map<String, dynamic>? sosResult;
   Map<String, dynamic>? sosDetail;
   Map<String, dynamic>? incomingSos;
+  String? activeConversationId;
+  String? activeConversationContext;
   final Map<String, String> convIds = {};
   final Map<String, List<ReviewItem>> reviews = {};
   final Map<String, String> contactDigits = {};
@@ -796,7 +798,14 @@ class AppState extends ChangeNotifier {
   }
 
   // --- Chat ---
-  void openChat(String userName, {String? sysMsg, String? conversationId}) {
+  void openChat(
+    String userName, {
+    String? sysMsg,
+    String? conversationId,
+    String? contextText,
+  }) {
+    activeConversationId = conversationId;
+    activeConversationContext = contextText;
     if (!chats.containsKey(userName)) {
       chats[userName] = [];
     }

@@ -144,3 +144,4 @@ if __name__ == "__main__":
     generate_sos_countdown()
     generate_message_pop()
     print("All sounds generated successfully!")
+

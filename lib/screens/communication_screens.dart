@@ -32,6 +32,7 @@ class MensajesScreen extends StatefulWidget {
 
 class _MensajesScreenState extends State<MensajesScreen> {
   NearbyCommunityStyle get ui => NearbyCommunityStyle(widget.theme);
+  String _filter = 'all';
 
   @override
   void initState() {
@@ -51,11 +52,147 @@ class _MensajesScreenState extends State<MensajesScreen> {
     return '${t.day.toString().padLeft(2, '0')}/${t.month.toString().padLeft(2, '0')}';
   }
 
+  static ({String kind, String label, IconData icon, Color color, Color bg})
+  _categorize(Map<String, dynamic> c) {
+    final contextText = (c['contextText'] as String? ?? '').trim();
+    final serviceTitle = (c['serviceTitle'] as String? ?? '').trim();
+    final postType = (c['postType'] as String? ?? '').trim();
+
+    if (contextText.contains('Emergencia SOS') || contextText.contains('SOS')) {
+      final clean = contextText.replaceFirst(
+        RegExp(r'^Emergencia\s*SOS:\s*', caseSensitive: false),
+        '',
+      );
+      return (
+        kind: 'sos',
+        label: clean.isNotEmpty ? 'SOS · $clean' : 'Emergencia SOS',
+        icon: Icons.crisis_alert,
+        color: NearbyColors.sos,
+        bg: NearbyColors.sos.withValues(alpha: 0.12),
+      );
+    }
+    if (serviceTitle.isNotEmpty ||
+        contextText.toLowerCase().startsWith('sobre:') ||
+        contextText.toLowerCase().startsWith('servicio:')) {
+      String clean = serviceTitle.isNotEmpty
+          ? serviceTitle
+          : contextText.replaceFirst(
+            RegExp(r'^(sobre|servicio):\s*', caseSensitive: false),
+            '',
+          );
+      return (
+        kind: 'services',
+        label: clean.isNotEmpty ? 'Servicio: $clean' : 'Servicio vecinal',
+        icon: Icons.handyman_outlined,
+        color: const Color(0xFF1E5BB0),
+        bg: const Color(0xFFEBF3FF),
+      );
+    }
+    if (contextText.toLowerCase().contains('préstamo') ||
+        contextText.toLowerCase().contains('prestamo')) {
+      return (
+        kind: 'resources',
+        label: contextText,
+        icon: Icons.inventory_2_outlined,
+        color: const Color(0xFF007A5E),
+        bg: const Color(0xFFE6F7F2),
+      );
+    }
+    if (postType.isNotEmpty ||
+        contextText.toLowerCase().contains('publicación') ||
+        contextText.toLowerCase().contains('publicacion') ||
+        contextText.toLowerCase().contains('favor') ||
+        contextText.toLowerCase().contains('ayuda')) {
+      String clean = contextText.replaceFirst(
+        RegExp(r'^publicaci[oó]n:\s*', caseSensitive: false),
+        '',
+      );
+      if (clean.isEmpty) clean = 'Favor del muro';
+      return (
+        kind: 'posts',
+        label: clean,
+        icon: Icons.volunteer_activism_outlined,
+        color: const Color(0xFF945B00),
+        bg: const Color(0xFFFFF7E6),
+      );
+    }
+    if (contextText.isNotEmpty) {
+      return (
+        kind: 'other',
+        label: contextText,
+        icon: Icons.chat_bubble_outline,
+        color: const Color(0xFF4A5568),
+        bg: const Color(0xFFF1F5F9),
+      );
+    }
+    return (
+      kind: 'direct',
+      label: 'Mensaje directo',
+      icon: Icons.chat_outlined,
+      color: const Color(0xFF64748B),
+      bg: const Color(0xFFF1F5F9),
+    );
+  }
+
+  Widget _filterChip(String id, String label, IconData icon, int count) {
+    final selected = _filter == id;
+    return InkWell(
+      onTap: () => setState(() => _filter = id),
+      borderRadius: BorderRadius.circular(20),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? ui.ink : ui.ivory,
+          border: Border.all(color: selected ? ui.ink : ui.line),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: selected ? Colors.white : ui.muted),
+            const SizedBox(width: 6),
+            Text(
+              '$label ($count)',
+              style: TextStyle(
+                color: selected ? Colors.white : ui.ink,
+                fontSize: 12.5,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = widget.state;
     final theme = widget.theme;
     final list = state.conversations;
+
+    final servicesCount =
+        list.where((c) => _categorize(c).kind == 'services').length;
+    final postsCount =
+        list.where((c) {
+          final k = _categorize(c).kind;
+          return k == 'posts' || k == 'resources';
+        }).length;
+    final sosCount = list.where((c) => _categorize(c).kind == 'sos').length;
+
+    final filteredList = switch (_filter) {
+      'services' =>
+        list.where((c) => _categorize(c).kind == 'services').toList(),
+      'posts' =>
+        list.where((c) {
+          final k = _categorize(c).kind;
+          return k == 'posts' || k == 'resources';
+        }).toList(),
+      'sos' => list.where((c) => _categorize(c).kind == 'sos').toList(),
+      _ => list,
+    };
+
     return ColoredBox(
       color: theme.surface,
       child: LayoutBuilder(
@@ -82,7 +219,47 @@ class _MensajesScreenState extends State<MensajesScreen> {
                   'Aquí aparecen también las que empezó otro vecino.',
                   style: TextStyle(color: ui.muted, fontSize: 14),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
+
+                // Filtros de categoría rápida
+                if (list.isNotEmpty) ...[
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _filterChip(
+                          'all',
+                          'Todos',
+                          Icons.all_inbox,
+                          list.length,
+                        ),
+                        const SizedBox(width: 8),
+                        _filterChip(
+                          'services',
+                          'Servicios',
+                          Icons.handyman_outlined,
+                          servicesCount,
+                        ),
+                        const SizedBox(width: 8),
+                        _filterChip(
+                          'posts',
+                          'Favores',
+                          Icons.volunteer_activism_outlined,
+                          postsCount,
+                        ),
+                        const SizedBox(width: 8),
+                        _filterChip(
+                          'sos',
+                          'SOS',
+                          Icons.crisis_alert,
+                          sosCount,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
                 if (list.isEmpty)
                   Container(
                     padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
@@ -124,6 +301,28 @@ class _MensajesScreenState extends State<MensajesScreen> {
                       ],
                     ),
                   )
+                else if (filteredList.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+                    decoration: BoxDecoration(
+                      color: ui.ivory,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(Icons.filter_list, size: 28, color: ui.muted),
+                        const SizedBox(height: 10),
+                        Text(
+                          'No hay chats en esta categoría',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: ui.ink,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
                 else
                   Container(
                     decoration: BoxDecoration(
@@ -134,9 +333,9 @@ class _MensajesScreenState extends State<MensajesScreen> {
                     clipBehavior: Clip.antiAlias,
                     child: Column(
                       children: [
-                        for (var i = 0; i < list.length; i++) ...[
+                        for (var i = 0; i < filteredList.length; i++) ...[
                           if (i > 0) Divider(height: 1, color: ui.line),
-                          _conversationRow(list[i]),
+                          _conversationRow(filteredList[i]),
                         ],
                       ],
                     ),
@@ -151,6 +350,15 @@ class _MensajesScreenState extends State<MensajesScreen> {
 
   Widget _conversationRow(Map<String, dynamic> c) {
     final unread = ((c['unread'] as num?) ?? 0) > 0;
+    final cat = _categorize(c);
+    final lastMsg = (c['lastMessage'] as String?)?.trim();
+    final isSystemLast =
+        lastMsg != null &&
+        (lastMsg.startsWith('Aceptaste') ||
+            lastMsg.startsWith('Le ofreciste') ||
+            lastMsg.startsWith('Te interesa') ||
+            lastMsg.startsWith('Emergencia'));
+
     return Material(
       type: MaterialType.transparency,
       child: InkWell(
@@ -158,87 +366,166 @@ class _MensajesScreenState extends State<MensajesScreen> {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: ui.blueSoft,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  (c['otherInitials'] as String?) ?? '?',
-                  style: TextStyle(
-                    color: ui.ink,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
+              // Avatar con indicador de categoría en la esquina
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color:
+                          unread
+                              ? ui.accent.withValues(alpha: 0.16)
+                              : ui.blueSoft,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      (c['otherInitials'] as String?) ?? '?',
+                      style: TextStyle(
+                        color: ui.ink,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
                   ),
-                ),
+                  Positioned(
+                    right: -2,
+                    bottom: -2,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        color: cat.color,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: widget.theme.surface,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Icon(cat.icon, size: 9, color: Colors.white),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      (c['otherUserName'] as String?) ?? 'Vecino',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: ui.ink,
-                        fontSize: 14.5,
-                        fontWeight: unread ? FontWeight.w700 : FontWeight.w600,
-                      ),
+                    // Fila 1: Nombre + Hora
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            (c['otherUserName'] as String?) ?? 'Vecino',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: ui.ink,
+                              fontSize: 14.5,
+                              fontWeight:
+                                  unread ? FontWeight.w700 : FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _when(c['lastAt'] as String?),
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: unread ? ui.ink : ui.muted,
+                            fontWeight:
+                                unread ? FontWeight.w600 : FontWeight.normal,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      (c['lastMessage'] as String?) ??
-                          (c['contextText'] as String?) ??
-                          '',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: unread ? ui.ink : ui.muted,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    _when(c['lastAt'] as String?),
-                    style: TextStyle(fontSize: 11, color: ui.muted),
-                  ),
-                  if (unread) ...[
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 3),
+
+                    // Fila 2: CHIP DESTACADO DEL SERVICIO / TEMA
                     Container(
-                      constraints: const BoxConstraints(minWidth: 22),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
+                        horizontal: 7,
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: ui.accent,
-                        borderRadius: BorderRadius.circular(8),
+                        color: cat.bg,
+                        borderRadius: BorderRadius.circular(6),
                       ),
-                      child: Text(
-                        '${c['unread']}',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: ui.onAccent,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(cat.icon, size: 11, color: cat.color),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              cat.label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: cat.color,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+                    const SizedBox(height: 4),
+
+                    // Fila 3: Último mensaje + badge de no leídos
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            (lastMsg != null && lastMsg.isNotEmpty)
+                                ? lastMsg
+                                : 'Toca para abrir la conversación',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: unread ? ui.ink : ui.muted,
+                              fontSize: 12.5,
+                              fontStyle:
+                                  isSystemLast
+                                      ? FontStyle.italic
+                                      : FontStyle.normal,
+                              fontWeight:
+                                  unread ? FontWeight.w600 : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                        if (unread) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            constraints: const BoxConstraints(minWidth: 20),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: ui.accent,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '${c['unread']}',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: ui.onAccent,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ],
-                ],
+                ),
               ),
             ],
           ),
@@ -337,11 +624,13 @@ class _ChatScreenState extends State<ChatScreen> {
         .map((w) => w[0])
         .take(2)
         .join();
-    final convId = state.convIds[name];
-    final context0 = state.conversations
-        .where((c) => c['id'] == convId)
-        .map((c) => c['contextText'] as String?)
-        .firstOrNull;
+    final convId = state.activeConversationId ?? state.convIds[name];
+    final activeConv =
+        state.conversations.where((c) => c['id'] == convId).firstOrNull;
+    final context0 =
+        (activeConv?['contextText'] as String?) ??
+        (activeConv?['serviceTitle'] as String?) ??
+        state.activeConversationContext;
 
     // Burbuja propia: tinta con texto blanco (en oscuro, colores del botón).
     final mineBg = ui.light ? ui.ink : theme.btnBg;
@@ -451,6 +740,56 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ),
               ),
+
+              // Banner del servicio o motivo de la conversación
+              if (context0 != null && context0.isNotEmpty) ...[
+                Padding(
+                  padding: EdgeInsets.fromLTRB(side, 0, side, 6),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: ui.ivory,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: ui.line),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          context0.contains('SOS')
+                              ? Icons.crisis_alert
+                              : (context0.toLowerCase().contains('servicio') ||
+                                      context0.toLowerCase().contains('sobre')
+                                  ? Icons.handyman_outlined
+                                  : Icons.chat_bubble_outline),
+                          size: 16,
+                          color: context0.contains('SOS')
+                              ? NearbyColors.sos
+                              : ui.ink,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            context0.startsWith('Sobre:') ||
+                                    context0.startsWith('Servicio:')
+                                ? 'Tema: ${context0.replaceFirst(RegExp(r'^(Sobre|Servicio):\s*', caseSensitive: false), '')}'
+                                : context0,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: ui.ink,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
 
               // Aviso de seguridad
               Padding(

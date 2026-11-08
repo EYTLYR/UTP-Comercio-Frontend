@@ -2133,7 +2133,13 @@ extension NearbyBackend on AppState {
   void openConversation(Map<String, dynamic> c) {
     final name = (c['otherUserName'] as String?) ?? 'Vecino';
     c['unread'] = 0;
-    openChat(name, conversationId: c['id'] as String?);
+    final contextText =
+        (c['contextText'] as String?) ?? (c['serviceTitle'] as String?);
+    openChat(
+      name,
+      conversationId: c['id'] as String?,
+      contextText: contextText,
+    );
   }
 
   /// Barrio (urbanización) y distrito de un punto, según OpenStreetMap. null sin internet.
