@@ -70,6 +70,12 @@ def rule(top):
 
 
 def footer(n):
+    logo_path=ROOT/'docs/presentation/assets/eytlyr-logo-dark.png'
+    with Image.open(logo_path) as logo:
+        logo_width=130
+        logo_height=logo_width*logo.height/logo.width
+    c.drawImage(ImageReader(str(logo_path)),W-M-logo_width,H-22-logo_height,
+                width=logo_width,height=logo_height,mask='auto')
     rule(H-44)
     para('NEARBY  /  RECURSOS PARA EL JURADO',M,H-34,420,8,MUTED)
     para(f'{n} / 3',W-M-40,H-34,40,8,MUTED)
@@ -180,7 +186,6 @@ for i,(title,key,description) in enumerate(repos):
 
 rule(491)
 para('Equipo Nearby',M,511,W-2*M,17,NAVY,True)
-para('Orden alfabético por apellido',M,541,W-2*M,9.5,MUTED)
 people=[
     ('Christian Daniel Campaña Díaz','U23224351'),
     ('Ronal James Llapapasca Montes','U22221880'),
