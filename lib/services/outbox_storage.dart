@@ -16,6 +16,10 @@ class OutboxEntry {
 
   /// Milisegundos desde 1970: define el orden FIFO.
   final int createdAt;
+
+  /// Milisegundos desde 1970 en que este elemento caduca (TTL).
+  final int? expiresAt;
+
   int retryCount;
 
   OutboxEntry({
@@ -25,6 +29,7 @@ class OutboxEntry {
     this.endpoint = 'sync/outbox',
     this.method = 'POST',
     int? createdAt,
+    this.expiresAt,
     this.retryCount = 0,
   }) : createdAt = createdAt ?? DateTime.now().millisecondsSinceEpoch;
 
@@ -38,20 +43,27 @@ class OutboxEntry {
     'method': method,
     'payload_json': jsonEncode(payload),
     'created_at': createdAt,
+    'expires_at': expiresAt ?? (payload['expiresAt'] as num?)?.toInt(),
     'retry_count': retryCount,
   };
 
-  static OutboxEntry fromRow(Map<String, Object?> r) => OutboxEntry(
-    id: r['id'] as String,
-    type: r['type'] as String,
-    endpoint: r['endpoint'] as String,
-    method: r['method'] as String,
-    payload: Map<String, Object?>.from(
+  static OutboxEntry fromRow(Map<String, Object?> r) {
+    final payload = Map<String, Object?>.from(
       jsonDecode(r['payload_json'] as String) as Map,
-    ),
-    createdAt: r['created_at'] as int,
-    retryCount: r['retry_count'] as int,
-  );
+    );
+    final rowExpiresAt = (r['expires_at'] as num?)?.toInt();
+    final payloadExpiresAt = (payload['expiresAt'] as num?)?.toInt();
+    return OutboxEntry(
+      id: r['id'] as String,
+      type: r['type'] as String,
+      endpoint: r['endpoint'] as String,
+      method: r['method'] as String,
+      payload: payload,
+      createdAt: r['created_at'] as int,
+      expiresAt: rowExpiresAt ?? payloadExpiresAt,
+      retryCount: r['retry_count'] as int,
+    );
+  }
 }
 
 /// Cola offline persistida en SQLite (tabla outbox_queue), para que un SOS o un reporte hecho
@@ -74,7 +86,7 @@ class OutboxStorage {
     try {
       _db = await openDatabase(
         p.join(await getDatabasesPath(), fileName),
-        version: 1,
+        version: 2,
         onCreate: (db, _) => db.execute('''
           CREATE TABLE $table (
             id TEXT PRIMARY KEY,
@@ -83,8 +95,18 @@ class OutboxStorage {
             method TEXT NOT NULL,
             payload_json TEXT NOT NULL,
             created_at INTEGER NOT NULL,
+            expires_at INTEGER,
             retry_count INTEGER NOT NULL DEFAULT 0
           )'''),
+        onUpgrade: (db, oldVersion, newVersion) async {
+          if (oldVersion < 2) {
+            try {
+              await db.execute(
+                'ALTER TABLE $table ADD COLUMN expires_at INTEGER',
+              );
+            } catch (_) {}
+          }
+        },
       );
       return _db;
     } catch (e) {

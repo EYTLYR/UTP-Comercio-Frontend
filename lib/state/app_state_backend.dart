@@ -1078,6 +1078,10 @@ extension NearbyBackend on AppState {
         case 'need':
         case 'offer':
           {
+            final ttlHours = type == 'need' ? 24 : 48;
+            final expiresAt = DateTime.now()
+                .add(Duration(hours: ttlHours))
+                .millisecondsSinceEpoch;
             final payload = {
               'clientId': clientId,
               'type': type == 'need' ? 'NEED' : 'OFFER',
@@ -1086,15 +1090,29 @@ extension NearbyBackend on AppState {
               if (text.isNotEmpty) 'text': text,
               'lat': ?effLat,
               'lng': ?effLng,
+              'expiresAt': expiresAt,
+              'ttl': Duration(hours: ttlHours).inSeconds,
             };
             if (offline) {
-              await _enqueue('POST', payload);
+              await _enqueue('POST', payload, expiresAt: expiresAt);
             } else {
-              await api.post('posts', body: payload);
-              await Future.wait([
-                _loadPosts(),
-                _loadPins(),
-              ]);
+              try {
+                await api.post('posts', body: payload);
+                await Future.wait([
+                  _loadPosts(),
+                  _loadPins(),
+                ]);
+              } on ApiException catch (e) {
+                if (e.isNetwork) {
+                  await _enqueue('POST', payload, expiresAt: expiresAt);
+                  toast(
+                    'Sin internet: tu publicación se enviará cuando vuelva la señal',
+                    icon: 'cloud_off',
+                  );
+                } else {
+                  rethrow;
+                }
+              }
             }
           }
         case 'vulnerable':
@@ -1186,11 +1204,18 @@ extension NearbyBackend on AppState {
 
   /// Encola un envío hecho sin internet: primero en SQLite (en una transacción) y recién después
   /// en la cola en memoria y la pantalla, para que no se pierda si el sistema cierra la app.
-  Future<void> _enqueue(String kind, Map<String, Object?> payload) async {
+  Future<void> _enqueue(
+    String kind,
+    Map<String, Object?> payload, {
+    int? expiresAt,
+  }) async {
+    final effectiveExpiresAt =
+        expiresAt ?? (payload['expiresAt'] as num?)?.toInt();
     final entry = OutboxEntry(
       id: (payload['clientId'] as String?) ?? newClientId(),
       type: kind,
       payload: payload,
+      expiresAt: effectiveExpiresAt,
     );
     await outboxStorage.insert(entry);
     if (_disposed) return;
@@ -1198,12 +1223,42 @@ extension NearbyBackend on AppState {
     refresh();
   }
 
-  /// Al abrir la app: recupera lo que quedó pendiente en SQLite.
+  /// Evalúa si un elemento en la cola offline ha superado su tiempo de vida (TTL).
+  bool _isEntryExpired(OutboxEntry entry, [int? nowMs]) {
+    final now = nowMs ?? DateTime.now().millisecondsSinceEpoch;
+    if (entry.expiresAt != null) {
+      return now >= entry.expiresAt!;
+    }
+    final payloadExpiresAt = (entry.payload['expiresAt'] as num?)?.toInt();
+    if (payloadExpiresAt != null) {
+      return now >= payloadExpiresAt;
+    }
+    final ageMs = now - entry.createdAt;
+    switch (entry.type) {
+      case 'POST':
+        // Favores: caducan a las 24 horas por defecto
+        return ageMs >= const Duration(hours: 24).inMilliseconds;
+      case 'SOS':
+        // Emergencias en tiempo real: caducan a las 12 horas
+        return ageMs >= const Duration(hours: 12).inMilliseconds;
+      default:
+        // Límite general de seguridad: 48 horas
+        return ageMs >= const Duration(hours: 48).inMilliseconds;
+    }
+  }
+
+  /// Al abrir la app: recupera lo que quedó pendiente en SQLite limpiando los ya caducados.
   Future<void> _restoreOutbox() async {
     final saved = await outboxStorage.loadAll();
     if (_disposed || saved.isEmpty) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final expired = saved.where((e) => _isEntryExpired(e, now)).toList();
+    if (expired.isNotEmpty) {
+      await outboxStorage.delete(expired.map((e) => e.id));
+    }
+    final valid = saved.where((e) => !_isEntryExpired(e, now)).toList();
     final known = _outbox.map((e) => e.id).toSet();
-    _outbox.insertAll(0, saved.where((e) => !known.contains(e.id)));
+    _outbox.insertAll(0, valid.where((e) => !known.contains(e.id)));
   }
 
   /// Escucha los cambios de red. Sin red, la app pasa sola a "sin conexión" (los envíos se
@@ -1265,7 +1320,49 @@ extension NearbyBackend on AppState {
     _isFlushing = true;
     try {
       if (_outbox.isNotEmpty) {
-        final batch = List<OutboxEntry>.from(_outbox);
+        final now = DateTime.now().millisecondsSinceEpoch;
+        final expired = <OutboxEntry>[];
+        final active = <OutboxEntry>[];
+
+        for (final entry in _outbox) {
+          if (_isEntryExpired(entry, now)) {
+            expired.add(entry);
+          } else {
+            active.add(entry);
+          }
+        }
+
+        // Si expiraron publicaciones o alertas mientras no había red, se descartan automáticamente
+        if (expired.isNotEmpty) {
+          await outboxStorage.delete(expired.map((e) => e.id));
+          final expiredIds = expired.map((e) => e.id).toSet();
+          _outbox.removeWhere((e) => expiredIds.contains(e.id));
+          for (final e in expired) {
+            if (e.type == 'POST') {
+              final text = (e.payload['text'] as String?) ?? '';
+              final cat = (e.payload['category'] as String?) ?? 'favor';
+              final topic = text.isNotEmpty
+                  ? (text.length > 25 ? '${text.substring(0, 25)}...' : text)
+                  : cat;
+              toast(
+                'Publicación descartada: "$topic" expiró tras más de 24h sin conexión.',
+                icon: 'schedule',
+              );
+            } else if (e.type == 'SOS') {
+              toast(
+                'Alerta SOS descartada por antigüedad (>12h).',
+                icon: 'warning',
+              );
+            }
+          }
+          refresh();
+        }
+
+        if (active.isEmpty) {
+          return;
+        }
+
+        final batch = List<OutboxEntry>.from(active);
         try {
           final results = await api.post(
             'sync/outbox',
@@ -1279,6 +1376,14 @@ extension NearbyBackend on AppState {
             final r = i < results.length ? results[i] : null;
             if (r is! Map) continue; // sin resultado: se reintenta tal cual
             if (r['status'] == 'ERROR') {
+              if (r['code'] == 'EXPIRED') {
+                done.add(batch[i]);
+                toast(
+                  'Publicación descartada por caducidad en el servidor',
+                  icon: 'schedule',
+                );
+                continue;
+              }
               final e = batch[i]..retryCount += 1;
               if (e.retryCount >= _maxOutboxRetries) {
                 rejected++;
