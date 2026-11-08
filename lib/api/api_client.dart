@@ -68,6 +68,48 @@ class ApiClient {
 
   Future<dynamic> delete(String path) => _send('DELETE', path);
 
+  /// Envío multipart (fotos). [parts] se vuelven a crear en cada intento: un MultipartFile
+  /// solo se puede enviar una vez, y tras renovar el token hay que repetir la petición.
+  Future<dynamic> upload(
+    String method,
+    String path, {
+    required List<http.MultipartFile> Function() parts,
+    bool retry = true,
+  }) async {
+    final request = http.MultipartRequest(method, _uri(path, null))
+      ..headers['Accept'] = 'application/json'
+      ..files.addAll(parts());
+    if (accessToken != null) {
+      request.headers['Authorization'] = 'Bearer $accessToken';
+    }
+    http.Response res;
+    try {
+      final streamed = await _http
+          .send(request)
+          .timeout(const Duration(seconds: 40));
+      res = await http.Response.fromStream(streamed).timeout(ApiConfig.timeout);
+    } on TimeoutException {
+      throw const ApiException(
+        0,
+        'NETWORK',
+        'La foto tardó demasiado en subir. Revisa tu conexión.',
+      );
+    } catch (_) {
+      throw const ApiException(
+        0,
+        'NETWORK',
+        'Sin conexión con Nearby. Revisa tu internet.',
+      );
+    }
+    if (res.statusCode == 401 && retry && refreshToken != null) {
+      if (await _refresh()) {
+        return upload(method, path, parts: parts, retry: false);
+      }
+      onSessionExpired?.call();
+    }
+    return _decode(res);
+  }
+
   // ------------------------------------------------------------- interno
 
   Uri _uri(String path, Map<String, Object?>? query) {
@@ -140,6 +182,11 @@ class ApiClient {
       onSessionExpired?.call();
     }
 
+    return _decode(res);
+  }
+
+  /// Respuesta 2xx → JSON (o texto); si no, ApiException con el detail del ProblemDetail.
+  dynamic _decode(http.Response res) {
     final text = utf8.decode(res.bodyBytes, allowMalformed: true);
     if (res.statusCode >= 200 && res.statusCode < 300) {
       if (text.isEmpty) return null;

@@ -5,8 +5,10 @@ import 'dart:math' as math;
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import '../api/api_client.dart';
+import '../api/api_config.dart';
 import '../api/mappers.dart';
 import '../models/models.dart';
 import '../services/location_service.dart';
@@ -130,6 +132,21 @@ class AppState extends ChangeNotifier {
   bool regPending = false;
   String? userId;
   String role = 'NEIGHBOR';
+
+  /// Foto de perfil (URL absoluta) o null para mostrar las iniciales.
+  String? photoUrl;
+
+  /// Mi solicitud para ser brigadista: NONE, PENDING, APPROVED o REJECTED.
+  String brigadeRequest = 'NONE';
+
+  /// Panel de Municipalidad: solicitudes de brigadista pendientes.
+  List<Map<String, dynamic>> adminRequests = [];
+
+  /// Modo real de la zona (NORMAL, PREVENTION o EMERGENCY), aunque yo haya vuelto a normal en mi app.
+  String zoneMode = 'NORMAL';
+
+  /// Reportes de riesgo recientes de mi zona (modo Prevención El Niño).
+  List<Map<String, dynamic>> riskReports = [];
   String? zoneId;
   String zoneName = 'Zona 3 · Las Flores';
   double? homeZoneLat, homeZoneLng;
@@ -218,6 +235,12 @@ class AppState extends ChangeNotifier {
   Timer? _chatTimer;
   Timer? _outboxRetryTimer;
   bool _isSendingSos = false;
+
+  /// Municipalidad o delegado: ven el panel para cambiar el modo de la zona y aprobar brigadistas.
+  bool get isAdmin => connected && const {'ADMIN', 'DELEGATE'}.contains(role);
+
+  /// La app muestra el modo Prevención (Fenómeno El Niño).
+  bool get prevention => effectiveMode == 'PREVENTION';
 
   /// Brigada, delegado o Municipalidad. Sin sesión (demo) se muestra todo.
   bool get isBrigade =>
@@ -509,6 +532,10 @@ class AppState extends ChangeNotifier {
     toastIcon = null;
     if (!isBrigade && const {'tablero', 'red', 'puente'}.contains(name)) {
       toast('Esta vista es solo para la brigada de tu zona', icon: 'lock');
+      return;
+    }
+    if (!isAdmin && name == 'municipalidad') {
+      toast('Esta vista es solo para la Municipalidad', icon: 'lock');
       return;
     }
     if (reset) {

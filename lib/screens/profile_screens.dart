@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../widgets/common_widgets.dart';
 import '../widgets/navigation_chrome.dart';
 import 'profile/widgets/edit_address_sheet.dart';
+import 'roles_screens.dart';
 
 import '../models/models.dart';
 import '../services/offline_tiles.dart';
@@ -315,20 +316,10 @@ class PerfilScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
-                      CircleAvatar(
-                        radius: 30,
-                        backgroundColor: NearbyColors.brandTurquoise,
-                        child: Center(
-                          child: Text(
-                            state.initials,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: NearbyColors.onPrimary,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
+                      ProfilePhotoAvatar(
+                        state: state,
+                        size: 64,
+                        editable: true,
                       ),
                       const SizedBox(width: 14),
                       Expanded(
@@ -658,6 +649,39 @@ class PerfilScreen extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(height: 16),
+
+          // Rol en el barrio: pedir ser brigadista o entrar al panel de Municipalidad.
+          const _SectionHeader(title: 'Mi rol en el barrio'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: NeighborhoodRoleCard(state: state),
+          ),
+          if (state.prevention || state.zoneMode == 'PREVENTION') ...[
+            const SizedBox(height: 10),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Card(
+                child: ListTile(
+                  leading: const Icon(
+                    Icons.flood,
+                    color: NearbyColors.accentInk,
+                  ),
+                  title: const Text(
+                    'Prevención El Niño',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    state.prevention
+                        ? 'Activo en tu app'
+                        : 'Tu zona sigue en prevención; tú volviste a normal',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => state.go('prevencion'),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
 
           // Red de rescate con IA

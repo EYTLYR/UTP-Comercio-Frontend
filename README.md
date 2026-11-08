@@ -152,3 +152,10 @@ El tutorial desplaza automáticamente la vista hasta la acción de cada paso, in
 Los filtros del mapa se muestran en una fila con desplazamiento horizontal cuando no caben y «Mi ubicación» queda en el borde inferior derecho, por encima de la navegación. El mapa no muestra un panel informativo permanente: la ficha aparece solo al tocar un punto y se cierra al tocar el mapa. La atribución cartográfica permanece en una esquina.
 
 Los controles del mapa tienen un margen de 4 px respecto al área visible entre las barras. Solo la cartografía se desvanece bajo la navegación; los botones permanecen opacos y accesibles.
+
+## Casa en el mapa, foto, roles y Prevención El Niño
+
+- **Mi casa:** Perfil › Mi dirección abre un mapa con el pin fijo al centro. Mueves el mapa hasta tu puerta, la dirección se completa sola y «Usar mi GPS» centra el mapa en tu ubicación.
+- **Foto de perfil:** tocas tu foto en Perfil y eliges cámara o galería (`image_picker`). La foto se reduce a unos 800 px y se comprime antes de subirla. Aparece en Perfil y en el avatar de la barra superior; si no hay foto, se ven las iniciales.
+- **Brigadista:** en Perfil › Mi rol en el barrio pides ser brigadista y ves el estado de tu solicitud. La Municipalidad (ADMIN o DELEGATE) tiene su panel en la ruta `municipalidad`. Desde ahí cambia el modo de la zona (Normal, Prevención El Niño o Emergencia, con confirmación), aprueba o rechaza solicitudes y, si es ADMIN, cambia el rol de un vecino.
+- **Prevención El Niño:** cuando la Municipalidad lo activa, aparece un banner ámbar en las pantallas principales. Abre la ruta `prevencion`, donde reportas un riesgo con foto opcional, ves los reportes de las últimas 48 h y puedes «Volver al modo normal en mi app».

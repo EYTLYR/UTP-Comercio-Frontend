@@ -12,6 +12,7 @@ import 'screens/home_screen.dart';
 import 'screens/map_screens.dart';
 import 'screens/profile_screens.dart';
 import 'screens/publish_screen.dart';
+import 'screens/roles_screens.dart';
 import 'screens/services_screens.dart';
 import 'screens/splash_screen.dart';
 import 'screens/wall_screen.dart';
@@ -280,6 +281,8 @@ class NearbyMasterShell extends StatelessWidget {
             title: _getScreenTitle(state.screen, state),
           ),
         if (emUI) NearbyEmergencyBanner(state: state),
+        if (state.prevention && meta.bar == 'main')
+          NearbyPreventionBanner(state: state),
         if (meta.bar != null && state.offline)
           NearbyOfflineBanner(state: state),
         // Floating sync pill indicator
@@ -381,6 +384,10 @@ class NearbyMasterShell extends StatelessWidget {
         return SmsMapScreen(state: state, theme: theme);
       case 'perfil':
         return PerfilScreen(state: state, theme: theme);
+      case 'municipalidad':
+        return MunicipalidadScreen(state: state, theme: theme);
+      case 'prevencion':
+        return PrevencionScreen(state: state, theme: theme);
 
       default:
         return HomeScreen(state: state, theme: theme);
@@ -425,6 +432,10 @@ class NearbyMasterShell extends StatelessWidget {
         return 'Ubicación del SMS';
       case 'perfil':
         return 'Mi perfil';
+      case 'municipalidad':
+        return 'Municipalidad';
+      case 'prevencion':
+        return 'Prevención El Niño';
       default:
         return '';
     }
@@ -469,6 +480,8 @@ const Map<String, ScreenMeta> _screensMeta = {
   'red': ScreenMeta(bar: 'back'),
   'puente': ScreenMeta(bar: 'back', noEm: true),
   'perfil': ScreenMeta(bar: 'back'),
+  'municipalidad': ScreenMeta(bar: 'back'),
+  'prevencion': ScreenMeta(bar: 'back', nav: true),
 };
 
 class _DevelopmentToolsButton extends StatefulWidget {

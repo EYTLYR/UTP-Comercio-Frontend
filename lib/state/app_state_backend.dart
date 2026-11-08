@@ -163,6 +163,8 @@ extension NearbyBackend on AppState {
     if (name != null && name.isNotEmpty) userName = name;
     userPhone = (u['phone'] as String?) ?? userPhone;
     role = (u['role'] as String?) ?? 'NEIGHBOR';
+    final photo = u['photoUrl'] as String?;
+    photoUrl = photo == null || photo.isEmpty ? null : ApiConfig.fileUrl(photo);
     aiConsent = u['aiConsent'] != false;
     final zone = u['zone'] as Map<String, dynamic>?;
     final previousZone = zoneId;
@@ -177,7 +179,16 @@ extension NearbyBackend on AppState {
     final zoneMode = zone?['mode'] as String?;
     final mode = (u['effectiveMode'] as String?) ?? 'NORMAL';
     final wasEmergency = emergency;
+    final wasPrevention = prevention;
+    this.zoneMode = zoneMode ?? 'NORMAL';
     effectiveMode = mode;
+    if (connected && prevention && !wasPrevention && screen != 'splash') {
+      toast(
+        'Prevención El Niño: la Municipalidad pide reportar riesgos',
+        icon: 'flood',
+      );
+      unawaited(loadRiskReports());
+    }
     emergency = mode == 'EMERGENCY';
     zoneEm = zoneMode == 'EMERGENCY';
     emSource = emergency && !zoneEm ? 'yo' : 'zona';
@@ -490,6 +501,9 @@ extension NearbyBackend on AppState {
       _loadPins(),
       _loadInventory(),
       _loadContacts(),
+      _loadBrigadeRequest(),
+      if (prevention) loadRiskReports(),
+      if (isAdmin) loadAdminRequests(),
       // La ficha médica no se carga aquí: solo al abrirla (openMedicalCard).
     ]);
     refresh();
@@ -1534,6 +1548,257 @@ extension NearbyBackend on AppState {
       refresh();
     } on ApiException catch (e) {
       toast(e.message, icon: 'error');
+    }
+  }
+
+  // ============================================== foto, roles y modo Prevención
+
+  static http.MultipartFile _photoPart(
+    String field,
+    List<int> bytes,
+    String filename,
+  ) {
+    final png = filename.toLowerCase().endsWith('.png');
+    return http.MultipartFile.fromBytes(
+      field,
+      bytes,
+      filename: png ? 'foto.png' : 'foto.jpg',
+      contentType: MediaType('image', png ? 'png' : 'jpeg'),
+    );
+  }
+
+  /// Sube la foto de perfil (ya comprimida por el selector). true si quedó guardada.
+  Future<bool> uploadProfilePhoto(List<int> bytes, String filename) async {
+    if (!connected) {
+      toast('Necesitas iniciar sesión para cambiar tu foto', icon: 'lock');
+      return false;
+    }
+    try {
+      final me = await api.upload(
+        'PUT',
+        'me/photo',
+        parts: () => [_photoPart('photo', bytes, filename)],
+      );
+      _applyUser(me as Map<String, dynamic>);
+      refresh();
+      toast('Tu foto quedó lista', icon: 'check_circle');
+      return true;
+    } on ApiException catch (e) {
+      toast(e.message, icon: 'error');
+      return false;
+    }
+  }
+
+  Future<void> removeProfilePhoto() async {
+    if (!connected) return;
+    try {
+      final me = await api.delete('me/photo');
+      _applyUser(me as Map<String, dynamic>);
+      refresh();
+      toast('Quitamos tu foto', icon: 'check_circle');
+    } on ApiException catch (e) {
+      toast(e.message, icon: 'error');
+    }
+  }
+
+  Future<void> _loadBrigadeRequest() => _quiet(() async {
+    if (role != 'NEIGHBOR') return;
+    final r = await api.get('me/brigade-request') as Map<String, dynamic>;
+    brigadeRequest = (r['status'] as String?) ?? 'NONE';
+  });
+
+  /// El vecino pide ser brigadista. La Municipalidad lo aprueba desde su panel.
+  Future<bool> requestBrigade(String skills) async {
+    if (!connected) {
+      toast('Necesitas iniciar sesión', icon: 'lock');
+      return false;
+    }
+    try {
+      final r =
+          await api.post(
+                'me/brigade-request',
+                body: {'skills': skills.trim().isEmpty ? null : skills.trim()},
+              )
+              as Map<String, dynamic>;
+      brigadeRequest = (r['status'] as String?) ?? 'PENDING';
+      refresh();
+      toast(
+        'Enviamos tu solicitud. Te avisaremos cuando la Municipalidad responda.',
+        icon: 'shield_person',
+      );
+      return true;
+    } on ApiException catch (e) {
+      toast(e.message, icon: 'error');
+      return false;
+    }
+  }
+
+  Future<void> loadAdminRequests() => _quiet(() async {
+    if (!isAdmin) return;
+    final list = await api.get('admin/brigade-requests') as List;
+    adminRequests = list.cast<Map<String, dynamic>>();
+    refresh();
+  });
+
+  /// Aprobar o rechazar una solicitud de brigadista.
+  Future<void> decideBrigadeRequest(String id, {required bool approve}) async {
+    try {
+      await api.post(
+        'admin/brigade-requests/$id/${approve ? 'approve' : 'reject'}',
+      );
+      adminRequests.removeWhere((r) => r['id'] == id);
+      refresh();
+      toast(
+        approve ? 'Ahora es brigadista' : 'Solicitud rechazada',
+        icon: approve ? 'verified_user' : 'close',
+      );
+    } on ApiException catch (e) {
+      toast(e.message, icon: 'error');
+      unawaited(loadAdminRequests());
+    }
+  }
+
+  /// Busca un vecino por celular para cambiarle el rol (solo Municipalidad).
+  Future<Map<String, dynamic>?> findUserByPhone(String phone) async {
+    try {
+      return await api.get('admin/users', query: {'phone': phone})
+          as Map<String, dynamic>;
+    } on ApiException catch (e) {
+      toast(e.message, icon: 'error');
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> changeUserRole(
+    String userId,
+    String newRole,
+  ) async {
+    try {
+      final u =
+          await api.put('admin/users/$userId/role', body: {'role': newRole})
+              as Map<String, dynamic>;
+      toast('Rol actualizado', icon: 'check_circle');
+      return u;
+    } on ApiException catch (e) {
+      toast(e.message, icon: 'error');
+      return null;
+    }
+  }
+
+  /// Municipalidad: cambia el modo de toda la zona (NORMAL, PREVENTION o EMERGENCY) y avisa.
+  Future<bool> setZoneMode(String mode, String reason) async {
+    if (!isAdmin || zoneId == null) {
+      toast(
+        'Solo la Municipalidad puede cambiar el modo de la zona',
+        icon: 'lock',
+      );
+      return false;
+    }
+    try {
+      await api.post(
+        'admin/zones/$zoneId/mode',
+        body: {
+          'mode': mode,
+          'reason': reason.trim().isEmpty ? null : reason.trim(),
+        },
+      );
+      await _loadMe();
+      if (prevention) await loadRiskReports();
+      refresh();
+      toast(switch (mode) {
+        'PREVENTION' => 'Activamos Prevención El Niño en $zoneName',
+        'EMERGENCY' => 'Activamos el modo emergencia en $zoneName',
+        _ => '$zoneName volvió al modo normal',
+      }, icon: 'campaign');
+      return true;
+    } on ApiException catch (e) {
+      toast(e.message, icon: 'error');
+      return false;
+    }
+  }
+
+  /// El vecino vuelve al modo normal solo en su app (la zona sigue en su modo).
+  Future<void> dismissZoneMode() async {
+    if (!connected) {
+      effectiveMode = 'NORMAL';
+      if (screen == 'prevencion') go('home', reset: true);
+      refresh();
+      return;
+    }
+    try {
+      final me = await api.post('me/mode', body: {'action': 'DISMISS'});
+      _applyUser(me as Map<String, dynamic>);
+      if (screen == 'prevencion') go('home', reset: true);
+      refresh();
+      toast('Volviste al modo normal en tu app', icon: 'check_circle');
+    } on ApiException catch (e) {
+      toast(e.message, icon: 'error');
+    }
+  }
+
+  Future<void> loadRiskReports() => _quiet(() async {
+    if (!connected) return;
+    final list = await api.get('risk-reports', query: {'hours': 48}) as List;
+    riskReports = list.cast<Map<String, dynamic>>();
+    refresh();
+  });
+
+  /// Reporte de riesgo (El Niño) con foto opcional. Usa la ubicación actual si hay GPS.
+  Future<bool> reportRisk({
+    required String category,
+    required String text,
+    List<int>? photo,
+    String? photoName,
+  }) async {
+    if (!connected) {
+      toast('Necesitas iniciar sesión para reportar', icon: 'lock');
+      return false;
+    }
+    double? lat = regLat, lng = regLng;
+    try {
+      final pos = await location.current();
+      lat = pos.lat;
+      lng = pos.lng;
+    } catch (_) {}
+    final data = <String, Object?>{
+      'clientId': newClientId(),
+      'category': category,
+      'text': text.trim().isEmpty ? null : text.trim(),
+      'lat': lat,
+      'lng': lng,
+    };
+    try {
+      final Map<String, dynamic> created;
+      if (photo != null) {
+        created =
+            await api.upload(
+                  'POST',
+                  'risk-reports',
+                  parts: () => [
+                    http.MultipartFile.fromString(
+                      'data',
+                      jsonEncode(data),
+                      contentType: MediaType('application', 'json'),
+                    ),
+                    _photoPart('photo', photo, photoName ?? 'riesgo.jpg'),
+                  ],
+                )
+                as Map<String, dynamic>;
+      } else {
+        created =
+            await api.post('risk-reports', body: data) as Map<String, dynamic>;
+      }
+      toast(
+        created['escalated'] == true
+            ? 'Gracias. Varios vecinos reportaron lo mismo: avisamos a la brigada.'
+            : 'Gracias. Tu reporte ayuda a actuar antes.',
+        icon: 'check_circle',
+      );
+      await loadRiskReports();
+      return true;
+    } on ApiException catch (e) {
+      toast(e.message, icon: 'error');
+      return false;
     }
   }
 }

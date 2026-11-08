@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../state/app_state.dart';
 import '../theme/nearby_theme.dart';
+import '../screens/roles_screens.dart';
 import 'nearby_logo.dart';
 import 'zone_picker.dart';
 
@@ -343,24 +344,7 @@ class NearbyTopBar extends StatelessWidget {
           PressableScale(
             key: state.tourTarget('profile'),
             onTap: () => state.go('perfil'),
-            child: Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: theme.violetSoft,
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Text(
-                  state.initials,
-                  style: TextStyle(
-                    color: theme.violet,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
+            child: ProfilePhotoAvatar(state: state, size: 42),
           ),
         ],
       ),
@@ -1090,6 +1074,9 @@ class _NearbyToastWidgetState extends State<NearbyToastWidget>
     'verified': Icons.verified,
     'verified_user': Icons.verified,
     'crisis_alert': Icons.crisis_alert,
+    'flood': Icons.flood,
+    'shield_person': Icons.shield,
+    'close': Icons.close,
     'cloud_off': Icons.cloud_off,
     'cloud_done': Icons.cloud_done,
     'auto_awesome': Icons.auto_awesome,
@@ -1109,6 +1096,8 @@ class _NearbyToastWidgetState extends State<NearbyToastWidget>
     'directions_run': Icons.directions_run,
     'notifications_active': Icons.notifications_active,
     'add_location': Icons.add_location,
+    'check_circle': Icons.check_circle,
+    'warning': Icons.warning_amber,
   };
   @override
   Widget build(BuildContext context) => Positioned(
