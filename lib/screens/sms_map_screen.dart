@@ -37,14 +37,36 @@ class _SmsMapScreenState extends State<SmsMapScreen> {
   Widget build(BuildContext context) {
     final point = widget.state.smsPoint;
     final theme = widget.theme;
+    final ui = NearbyCommunityStyle(theme);
     if (point == null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            'No hay coordenadas para mostrar. Pega un SMS con GPS en el modo brigadista.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: theme.muted),
+      return ColoredBox(
+        color: theme.surface,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: ui.blueSoft,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(Icons.sms_outlined, color: ui.ink, size: 28),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    'No hay coordenadas para mostrar. Pega un SMS con GPS en el modo brigadista.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: ui.muted, fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       );
@@ -141,9 +163,9 @@ class _SmsMapScreenState extends State<SmsMapScreen> {
               ),
             ),
             Positioned(
-              top: insets.top + 8,
-              left: 8,
-              right: 8,
+              top: insets.top + 12,
+              left: 12,
+              right: 12,
               child: _Banner(
                 theme: theme,
                 offline: offline,
@@ -152,88 +174,116 @@ class _SmsMapScreenState extends State<SmsMapScreen> {
               ),
             ),
             Positioned(
-              left: 8,
-              right: 8,
-              bottom: insets.bottom + 8,
-              child: Material(
-                color: theme.surface,
-                elevation: 4,
-                borderRadius: BorderRadius.circular(16),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 12, 8, 10),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.sms, color: NearbyColors.sos),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              point.title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                color: theme.ink,
+              left: 12,
+              right: 12,
+              bottom: insets.bottom + 12,
+              child: Align(
+                alignment: Alignment.bottomLeft,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 520),
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 12, 10),
+                    decoration: BoxDecoration(
+                      color: theme.surface,
+                      border: Border.all(color: ui.line),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: theme.cardShadow,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: theme.sosSoft,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.sms_outlined,
+                                color: NearbyColors.sos,
+                                size: 20,
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        [
-                          if (point.sub.isNotEmpty) point.sub,
-                          '${point.lat.toStringAsFixed(5)}, ${point.lng.toStringAsFixed(5)}',
-                          if (distKm != null) _distanceText(distKm),
-                        ].join(' · '),
-                        style: TextStyle(fontSize: 12, color: theme.muted),
-                      ),
-                      Row(
-                        children: [
-                          TextButton.icon(
-                            onPressed: () => _map.move(sos, 17),
-                            icon: const Icon(Icons.center_focus_strong),
-                            label: const Text('Centrar'),
-                          ),
-                          if (home != null)
-                            TextButton.icon(
-                              onPressed: () => _map.fitCamera(
-                                CameraFit.coordinates(
-                                  coordinates: [home, sos],
-                                  padding: const EdgeInsets.fromLTRB(
-                                    48,
-                                    140,
-                                    48,
-                                    200,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                point.title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
+                                  color: ui.ink,
+                                ),
+                              ),
+                            ),
+                            if (!offline)
+                              IconButton(
+                                tooltip: 'Abrir en otra app de mapas',
+                                onPressed: () => launchUrl(
+                                  Uri.parse(
+                                    'https://www.openstreetmap.org/?mlat=${point.lat}&mlon=${point.lng}#map=17/${point.lat}/${point.lng}',
                                   ),
-                                  maxZoom: 17,
+                                  mode: LaunchMode.externalApplication,
                                 ),
+                                icon: Icon(Icons.open_in_new, color: ui.ink),
                               ),
-                              icon: const Icon(Icons.home_rounded),
-                              label: const Text('Ver con mi casa'),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          [
+                            if (point.sub.isNotEmpty) point.sub,
+                            '${point.lat.toStringAsFixed(5)}, ${point.lng.toStringAsFixed(5)}',
+                            if (distKm != null) _distanceText(distKm),
+                          ].join(' · '),
+                          style: TextStyle(fontSize: 12, color: ui.muted),
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: () => _map.move(sos, 17),
+                              style: _small(ui),
+                              icon: const Icon(
+                                Icons.center_focus_strong,
+                                size: 18,
+                              ),
+                              label: const Text('Centrar'),
                             ),
-                          const Spacer(),
-                          if (!offline)
-                            IconButton(
-                              tooltip: 'Abrir en otra app de mapas',
-                              onPressed: () => launchUrl(
-                                Uri.parse(
-                                  'https://www.openstreetmap.org/?mlat=${point.lat}&mlon=${point.lng}#map=17/${point.lat}/${point.lng}',
+                            if (home != null)
+                              OutlinedButton.icon(
+                                onPressed: () => _map.fitCamera(
+                                  CameraFit.coordinates(
+                                    coordinates: [home, sos],
+                                    padding: const EdgeInsets.fromLTRB(
+                                      48,
+                                      140,
+                                      48,
+                                      200,
+                                    ),
+                                    maxZoom: 17,
+                                  ),
                                 ),
-                                mode: LaunchMode.externalApplication,
+                                style: _small(ui),
+                                icon: const Icon(Icons.home_outlined, size: 18),
+                                label: const Text('Ver con mi casa'),
                               ),
-                              icon: const Icon(Icons.open_in_new),
-                            ),
-                        ],
-                      ),
-                      const Text(
-                        '© OpenStreetMap contributors',
-                        style: TextStyle(fontSize: 10),
-                      ),
-                    ],
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '© OpenStreetMap contributors',
+                          style: TextStyle(fontSize: 10, color: ui.muted),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -243,6 +293,14 @@ class _SmsMapScreenState extends State<SmsMapScreen> {
       },
     );
   }
+
+  /// Botón secundario compacto (contorno, radio 8).
+  static ButtonStyle _small(NearbyCommunityStyle ui) => ui
+      .action(filled: false)
+      .copyWith(
+        minimumSize: const WidgetStatePropertyAll(Size(0, 40)),
+        side: WidgetStatePropertyAll(BorderSide(color: ui.line)),
+      );
 
   static String _distanceText(double km) => km < 1
       ? 'a ${(km * 1000).round()} m de tu casa'
@@ -261,42 +319,60 @@ class _Banner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (IconData icon, Color color, String text) = !offline
-        ? (Icons.wifi, NearbyColors.primary, 'En línea · mapa actualizado')
+    final ui = NearbyCommunityStyle(theme);
+    final (IconData icon, Color color, Color soft, String text) = !offline
+        ? (Icons.wifi, ui.ink, ui.blueSoft, 'En línea · mapa actualizado')
         : covered
         ? (
-            Icons.offline_pin,
-            NearbyColors.accent,
+            Icons.offline_pin_outlined,
+            theme.accentInk,
+            theme.accentSoft,
             'Sin internet · mapa guardado de tu zona',
           )
         : (
             Icons.cloud_off,
-            NearbyColors.sos,
+            theme.sos,
+            theme.sosSoft,
             hasCache
                 ? 'Sin internet y este punto está fuera del mapa guardado: guíate por el marcador y las coordenadas.'
                 : 'Sin internet y sin mapa guardado: descarga tu zona en Perfil › Sin conexión.',
           );
-    return Material(
-      color: theme.surface,
-      elevation: 3,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Row(
-          children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                text,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: theme.ink,
+    return Align(
+      alignment: Alignment.topLeft,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: theme.surface,
+            border: Border.all(color: ui.line),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: theme.cardShadow,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: soft,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color, size: 18),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  text,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: ui.ink,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

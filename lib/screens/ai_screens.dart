@@ -7,6 +7,149 @@ import '../state/app_state.dart';
 import '../theme/nearby_theme.dart';
 import '../widgets/map_view.dart';
 
+// --- Utilidades de diseño ---
+
+/// Margen lateral de página: 24 (16 en anchos muy estrechos).
+double _gutter(double width) => width < 360 ? 16 : 24;
+
+/// Columnas para listas de tarjetas: 1 en móvil, 2 desde 700, 3 desde 1050.
+int _columns(double width) => width >= 1050 ? 3 : (width >= 700 ? 2 : 1);
+
+/// Contenido a ancho de lectura (máx. 640), alineado a la izquierda como Inicio.
+Widget _readable(Widget child, {double maxWidth = 640}) => Align(
+  alignment: Alignment.topLeft,
+  child: ConstrainedBox(
+    constraints: BoxConstraints(maxWidth: maxWidth),
+    child: SizedBox(width: double.infinity, child: child),
+  ),
+);
+
+/// Cuadrito de ícono (radio 8).
+Widget _iconSquare(
+  IconData icon, {
+  required Color bg,
+  required Color fg,
+  double size = 40,
+}) => Container(
+  width: size,
+  height: size,
+  decoration: BoxDecoration(
+    color: bg,
+    borderRadius: BorderRadius.circular(8),
+  ),
+  child: Icon(icon, color: fg, size: size * 0.5),
+);
+
+/// Etiqueta pequeña de radio 8 con ícono.
+Widget _badge(
+  IconData icon,
+  String label, {
+  required Color bg,
+  required Color fg,
+}) => Container(
+  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+  decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
+  child: Text.rich(
+    TextSpan(
+      children: [
+        WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Icon(icon, size: 14, color: fg),
+        ),
+        const TextSpan(text: ' '),
+        TextSpan(text: label),
+      ],
+    ),
+    style: TextStyle(color: fg, fontSize: 11.5, fontWeight: FontWeight.w600),
+  ),
+);
+
+/// Encabezado de pantalla: etiqueta, título grande y descripción.
+Widget _header(
+  NearbyCommunityStyle ui, {
+  required Widget badge,
+  required String title,
+  required String subtitle,
+}) => Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    badge,
+    const SizedBox(height: 12),
+    Text(
+      title,
+      style: TextStyle(
+        fontSize: 28,
+        fontWeight: FontWeight.w700,
+        color: ui.ink,
+        letterSpacing: -0.5,
+        height: 1.2,
+      ),
+    ),
+    const SizedBox(height: 6),
+    Text(
+      subtitle,
+      style: TextStyle(fontSize: 14, color: ui.muted, height: 1.45),
+    ),
+  ],
+);
+
+/// Rejilla de tarjetas con altura natural; en cada fila las tarjetas se igualan.
+class _CardGrid extends StatelessWidget {
+  final List<Widget> children;
+  final int columns;
+  static const double spacing = 12;
+
+  const _CardGrid({required this.children, required this.columns});
+
+  @override
+  Widget build(BuildContext context) {
+    if (columns <= 1) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < children.length; i++)
+            Padding(
+              padding: EdgeInsets.only(top: i == 0 ? 0 : spacing),
+              child: children[i],
+            ),
+        ],
+      );
+    }
+    final rows = <List<Widget>>[];
+    for (var i = 0; i < children.length; i += columns) {
+      rows.add(
+        children.sublist(
+          i,
+          i + columns > children.length ? children.length : i + columns,
+        ),
+      );
+    }
+    return Column(
+      children: [
+        for (var r = 0; r < rows.length; r++)
+          Padding(
+            padding: EdgeInsets.only(top: r == 0 ? 0 : spacing),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var j = 0; j < columns; j++) ...[
+                    if (j > 0) SizedBox(width: spacing),
+                    Expanded(
+                      child: j < rows[r].length
+                          ? rows[r][j]
+                          : const SizedBox(),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class RedScreen extends StatefulWidget {
   final AppState state;
   final NearbyThemeData? theme;
@@ -27,6 +170,7 @@ class _RedScreenState extends State<RedScreen> {
           hc: widget.state.hc,
           emergency: widget.state.emergency,
         );
+    final ui = NearbyCommunityStyle(theme);
     final inv = widget.state.buildInventory();
     final resCount = inv.where((e) => kAiTags[e.tag]?.kind == 'res').length;
     final skillCount = inv.where((e) => kAiTags[e.tag]?.kind == 'skill').length;
@@ -37,421 +181,400 @@ class _RedScreenState extends State<RedScreen> {
       return kAiTags[e.tag]?.kind == widget.state.redFilter;
     }).toList();
 
-    return SingleChildScrollView(
-      padding: NavigationInsets.of(context),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
+    return LayoutBuilder(
+      builder: (context, bounds) {
+        final w = bounds.maxWidth;
+        final g = _gutter(w);
+        final showTabIcons = w >= 480;
+        return SingleChildScrollView(
+          padding: NavigationInsets.of(context),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(g, 12, g, 16),
+                child: _header(
+                  ui,
+                  badge: _badge(
+                    Icons.auto_awesome,
+                    'IA Nearby · Protocolo Lázaro',
+                    bg: ui.blueSoft,
+                    fg: ui.ink,
                   ),
+                  title: 'Tu barrio ya está preparado',
+                  subtitle:
+                      'La IA aprende de la solidaridad de cada día: quién presta una escalera, quién sabe primeros auxilios o dónde vive alguien que necesitará ayuda. Así, cuando llega un desastre, no hay que llenar formularios.',
+                ),
+              ),
+              // Resumen
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: g),
+                child: _StatsPanel(
+                  ui: ui,
+                  wide: w >= 600,
+                  stats: [
+                    ('$resCount', 'Recursos de rescate'),
+                    ('$skillCount', 'Habilidades útiles'),
+                    ('$vulnCount', 'Alertas preventivas'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Filtros como pestañas subrayadas
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: g),
+                child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: theme.violet.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: theme.violet.withValues(alpha: 0.3),
-                    ),
+                    border: Border(bottom: BorderSide(color: ui.line)),
                   ),
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.auto_awesome, size: 14, color: theme.violet),
-                      const SizedBox(width: 4),
-                      Text(
-                        'IA Nearby · Protocolo Lázaro',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: theme.violet,
-                        ),
+                      _ChipOption(
+                        ui: ui,
+                        id: 'all',
+                        label: 'Todo',
+                        icon: Icons.layers_outlined,
+                        showIcon: showTabIcons,
+                        isSelected: widget.state.redFilter == 'all',
+                        onTap: () {
+                          widget.state.redFilter = 'all';
+                          widget.state.refresh();
+                        },
+                      ),
+                      _ChipOption(
+                        ui: ui,
+                        id: 'res',
+                        label: 'Recursos',
+                        icon: Icons.construction,
+                        showIcon: showTabIcons,
+                        isSelected: widget.state.redFilter == 'res',
+                        onTap: () =>
+                            setState(() => widget.state.redFilter = 'res'),
+                      ),
+                      _ChipOption(
+                        ui: ui,
+                        id: 'skill',
+                        label: 'Habilidades',
+                        icon: Icons.medical_services_outlined,
+                        showIcon: showTabIcons,
+                        isSelected: widget.state.redFilter == 'skill',
+                        onTap: () =>
+                            setState(() => widget.state.redFilter = 'skill'),
+                      ),
+                      _ChipOption(
+                        ui: ui,
+                        id: 'vuln',
+                        label: 'Preventivas',
+                        icon: Icons.elderly,
+                        showIcon: showTabIcons,
+                        isSelected: widget.state.redFilter == 'vuln',
+                        onTap: () =>
+                            setState(() => widget.state.redFilter = 'vuln'),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  'Tu barrio ya está preparado',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 16),
+              // Tarjetas: 1, 2 o 3 columnas según el ancho
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: g),
+                child: _CardGrid(
+                  columns: _columns(w),
+                  children: filteredList
+                      .map((item) => _inventoryCard(theme, ui, item))
+                      .toList(),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  'La IA aprende de la solidaridad de cada día: quién presta una escalera, quién sabe primeros auxilios o dónde vive alguien que necesitará ayuda. Así, cuando llega un desastre, no hay que llenar formularios.',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: theme.muted,
-                    height: 1.4,
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: g),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: ui.blueSoft,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ),
-              ],
-            ),
-          ),
-          // Stats row
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _StatCard(
-                    theme: theme,
-                    value: '$resCount',
-                    label: 'Recursos de rescate',
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _StatCard(
-                    theme: theme,
-                    value: '$skillCount',
-                    label: 'Habilidades útiles',
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _StatCard(
-                    theme: theme,
-                    value: '$vulnCount',
-                    label: 'Alertas preventivas',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          // Filter chips
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                _ChipOption(
-                  theme: theme,
-                  id: 'all',
-                  label: 'Todo',
-                  icon: Icons.layers,
-                  isSelected: widget.state.redFilter == 'all',
-                  onTap: () {
-                    widget.state.redFilter = 'all';
-                    widget.state.refresh();
-                  },
-                ),
-                _ChipOption(
-                  theme: theme,
-                  id: 'res',
-                  label: 'Recursos',
-                  icon: Icons.construction,
-                  isSelected: widget.state.redFilter == 'res',
-                  onTap: () => setState(() => widget.state.redFilter = 'res'),
-                ),
-                _ChipOption(
-                  theme: theme,
-                  id: 'skill',
-                  label: 'Habilidades',
-                  icon: Icons.medical_services,
-                  isSelected: widget.state.redFilter == 'skill',
-                  onTap: () => setState(() => widget.state.redFilter = 'skill'),
-                ),
-                _ChipOption(
-                  theme: theme,
-                  id: 'vuln',
-                  label: 'Preventivas',
-                  icon: Icons.elderly,
-                  isSelected: widget.state.redFilter == 'vuln',
-                  onTap: () => setState(() => widget.state.redFilter = 'vuln'),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          // List of cards
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: filteredList.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 10),
-            itemBuilder: (context, index) {
-              final item = filteredList[index];
-              final tag =
-                  kAiTags[item.tag] ??
-                  AiTag(
-                    l: item.tag ?? 'Recurso',
-                    i: Icons.auto_awesome,
-                    tone: 'ai',
-                    kind: 'res',
-                    kw: const [],
-                  );
-              final isVuln = tag.kind == 'vuln';
-
-              Color iconColor = theme.violet;
-              Color iconBg = theme.violet.withValues(alpha: 0.12);
-              if (tag.tone == 'sos') {
-                iconColor = NearbyColors.sos;
-                iconBg = NearbyColors.sos.withValues(alpha: 0.12);
-              } else if (tag.tone == 'acc') {
-                iconColor = NearbyColors.accent;
-                iconBg = NearbyColors.accent.withValues(alpha: 0.12);
-              }
-
-              return Card(
-                color: theme.surface,
-                margin: EdgeInsets.zero,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  side: BorderSide(color: theme.line),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 52,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          color: iconBg,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Icon(tag.i, color: iconColor, size: 22),
+                      Icon(
+                        Icons.verified_user_outlined,
+                        size: 20,
+                        color: ui.ink,
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: theme.violet.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.auto_awesome,
-                                    size: 12,
-                                    color: theme.violet,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    tag.l,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: theme.violet,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              isVuln ? 'Vecino de ${item.zona}' : item.who,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            if (isVuln)
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.lock,
-                                    size: 12,
-                                    color: NearbyColors.muted,
-                                  ),
-                                  SizedBox(width: 4),
-                                  Expanded(
-                                    child: Text(
-                                      'Detalle visible solo para brigadistas',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: theme.muted,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              )
-                            else
-                              Text(
-                                'Aprendido del ${item.src.toLowerCase()} · ${item.when} · ${item.zona}',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: theme.muted,
-                                ),
-                              ),
-                            if (!isVuln && item.txt.isNotEmpty) ...[
-                              const SizedBox(height: 6),
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: NearbyColors.muted.withValues(alpha: 0.08),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  '«${item.txt}»',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontStyle: FontStyle.italic,
-                                    color: theme.ink,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
+                        child: Text(
+                          'Solo con consentimiento. Cada vecino ve en su perfil lo que la IA aprendió de él y puede borrarlo. Los datos de personas vulnerables solo los ven brigadistas verificados.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: ui.ink,
+                            height: 1.45,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-              );
-            },
-          ),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: NearbyColors.muted.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: theme.line),
               ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.verified_user,
-                    size: 20,
-                    color: NearbyColors.accent,
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _inventoryCard(
+    NearbyThemeData theme,
+    NearbyCommunityStyle ui,
+    HistoryItem item,
+  ) {
+    final tag =
+        kAiTags[item.tag] ??
+        AiTag(
+          l: item.tag ?? 'Recurso',
+          i: Icons.auto_awesome,
+          tone: 'ai',
+          kind: 'res',
+          kw: const [],
+        );
+    final isVuln = tag.kind == 'vuln';
+
+    // El tono solo cambia en avisos sensibles (rojo) o de atención (ámbar).
+    Color iconColor = ui.ink;
+    Color iconBg = ui.blueSoft;
+    if (tag.tone == 'sos') {
+      iconColor = theme.sos;
+      iconBg = theme.sosSoft;
+    } else if (tag.tone == 'acc') {
+      iconColor = theme.accentInk;
+      iconBg = theme.accentSoft;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: theme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: ui.line),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _iconSquare(tag.i, bg: iconBg, fg: iconColor, size: 44),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _badge(Icons.auto_awesome, tag.l, bg: ui.ivory, fg: ui.ink),
+                const SizedBox(height: 8),
+                Text(
+                  isVuln ? 'Vecino de ${item.zona}' : item.who,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: ui.ink,
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
+                ),
+                const SizedBox(height: 2),
+                if (isVuln)
+                  Row(
+                    children: [
+                      Icon(Icons.lock_outline, size: 12, color: ui.muted),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          'Detalle visible solo para brigadistas',
+                          style: TextStyle(fontSize: 11.5, color: ui.muted),
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  Text(
+                    'Aprendido del ${item.src.toLowerCase()} · ${item.when} · ${item.zona}',
+                    style: TextStyle(fontSize: 11.5, color: ui.muted),
+                  ),
+                if (!isVuln && item.txt.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: ui.ivory,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     child: Text(
-                      'Solo con consentimiento. Cada vecino ve en su perfil lo que la IA aprendió de él y puede borrarlo. Los datos de personas vulnerables solo los ven brigadistas verificados.',
+                      '«${item.txt}»',
                       style: TextStyle(
-                        fontSize: 11,
-                        color: theme.muted,
-                        height: 1.3,
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                        color: ui.ink,
                       ),
                     ),
                   ),
                 ],
-              ),
+              ],
             ),
           ),
-          const SizedBox(height: 24),
         ],
       ),
     );
   }
 }
 
-class _StatCard extends StatelessWidget {
-  final NearbyThemeData theme;
-  final String value;
-  final String label;
-  const _StatCard({
-    required this.theme,
-    required this.value,
-    required this.label,
+/// Resumen en marfil: panel compacto en móvil, tres bloques en ancho.
+class _StatsPanel extends StatelessWidget {
+  final NearbyCommunityStyle ui;
+  final List<(String, String)> stats;
+  final bool wide;
+
+  const _StatsPanel({
+    required this.ui,
+    required this.stats,
+    required this.wide,
   });
+
+  Widget _stat((String, String) s, {required bool big}) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text(
+        s.$1,
+        style: TextStyle(
+          fontSize: big ? 26 : 22,
+          fontWeight: FontWeight.w700,
+          color: ui.ink,
+          height: 1.1,
+        ),
+      ),
+      const SizedBox(height: 2),
+      Text(
+        s.$2,
+        style: TextStyle(
+          fontSize: big ? 12 : 11,
+          color: ui.muted,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    ],
+  );
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-      decoration: BoxDecoration(
-        color: theme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.line),
-        boxShadow: theme.cardShadow,
-      ),
-      child: Column(
+    if (wide) {
+      return Row(
         children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: theme.violet,
+          for (var i = 0; i < stats.length; i++) ...[
+            if (i > 0) const SizedBox(width: 12),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: ui.ivory,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: _stat(stats[i], big: true),
+              ),
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 10,
-              color: theme.muted,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
+          ],
         ],
+      );
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 14),
+      decoration: BoxDecoration(
+        color: ui.ivory,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var i = 0; i < stats.length; i++) ...[
+              if (i > 0) Container(width: 1, color: ui.line),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: _stat(stats[i], big: false),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
 }
 
+/// Pestaña subrayada del filtro de la red de rescate.
 class _ChipOption extends StatelessWidget {
-  final NearbyThemeData theme;
+  final NearbyCommunityStyle ui;
   final String id;
   final String label;
   final IconData icon;
+  final bool showIcon;
   final bool isSelected;
   final VoidCallback onTap;
 
   const _ChipOption({
-    required this.theme,
+    required this.ui,
     required this.id,
     required this.label,
     required this.icon,
+    required this.showIcon,
     required this.isSelected,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: isSelected ? theme.btnBg : theme.surface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: isSelected ? theme.btnBg : theme.line),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                size: 16,
-                color: isSelected ? theme.btnInk : theme.muted,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: isSelected ? theme.btnInk : theme.ink,
+    final color = isSelected ? ui.ink : ui.muted;
+    return Expanded(
+      child: Semantics(
+        key: ValueKey('red-filter-$id'),
+        button: true,
+        selected: isSelected,
+        child: InkWell(
+          onTap: onTap,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 44),
+            padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 2),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: isSelected ? ui.accent : Colors.transparent,
+                  width: 3,
                 ),
               ),
-            ],
+            ),
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (showIcon) ...[
+                      Icon(icon, size: 16, color: color),
+                      const SizedBox(width: 6),
+                    ],
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: isSelected
+                            ? FontWeight.w800
+                            : FontWeight.w600,
+                        color: color,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -494,6 +617,15 @@ class _PuenteScreenState extends State<PuenteScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme =
+        widget.theme ??
+        NearbyThemeData.build(
+          dark: widget.state.dark,
+          lg: widget.state.lg,
+          hc: widget.state.hc,
+          emergency: widget.state.emergency,
+        );
+    final ui = NearbyCommunityStyle(theme);
     final live = widget.state.connected;
     final code = _codeController.text;
     final hasCode = code.trim().isNotEmpty;
@@ -502,243 +634,200 @@ class _PuenteScreenState extends State<PuenteScreen> {
     final gpsLat = decompressed?['lat'] as double?;
     final gpsLng = decompressed?['lng'] as double?;
 
-    return SingleChildScrollView(
-      padding: NavigationInsets.of(context),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: NearbyColors.accent.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: NearbyColors.accent.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
+    final card = BoxDecoration(
+      color: theme.surface,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: ui.line),
+    );
+
+    return LayoutBuilder(
+      builder: (context, bounds) {
+        final g = _gutter(bounds.maxWidth);
+        return SingleChildScrollView(
+          padding: NavigationInsets.of(context),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(g, 12, g, 24),
+            child: _readable(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _header(
+                    ui,
+                    badge: Align(
+                      alignment: Alignment.centerLeft,
+                      child: _badge(
                         Icons.cell_tower,
-                        size: 14,
-                        color: NearbyColors.accent,
-                      ),
-                      const SizedBox(width: 4),
-                      const Text(
                         'Sin internet · solo SMS y sonido',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: NearbyColors.accent,
+                        bg: theme.accentSoft,
+                        fg: theme.accentInk,
+                      ),
+                    ),
+                    title: 'Mensaje entrante',
+                    subtitle:
+                        'El teléfono del brigadista recibe el código y la IA lo descomprime en el mismo teléfono.',
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Mensaje recibido
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: ui.ivory,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          live
+                              ? 'Código SOS recibido'
+                              : 'SMS · +51 987 *** 321 · ${widget.state.nowTime()}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: ui.muted,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Mensaje entrante',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'El teléfono del brigadista recibe el código y la IA lo descomprime en el mismo teléfono.',
-                  style: TextStyle(fontSize: 13, color: NearbyColors.muted),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              children: [
-                // SMS Bubble
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: NearbyColors.muted.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: NearbyColors.muted.withValues(alpha: 0.2),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        live
-                            ? 'Código SOS recibido'
-                            : 'SMS · +51 987 *** 321 · ${widget.state.nowTime()}',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: NearbyColors.muted,
+                        const SizedBox(height: 8),
+                        Text(
+                          hasCode
+                              ? code
+                              : 'Aún no recibiste ningún código. Pega abajo el SMS que te llegó.',
+                          style: hasCode
+                              ? TextStyle(
+                                  fontFamily: 'monospace',
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: theme.sos,
+                                  letterSpacing: 1.1,
+                                )
+                              : TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: ui.muted,
+                                ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        hasCode
-                            ? code
-                            : 'Aún no recibiste ningún código. Pega abajo el SMS que te llegó.',
-                        style: hasCode
-                            ? const TextStyle(
-                                fontFamily: 'monospace',
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                color: NearbyColors.sos,
-                                letterSpacing: 1.1,
-                              )
-                            : const TextStyle(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w600,
-                                color: NearbyColors.muted,
-                              ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                // Sin código no hay nada que descomprimir
-                if (!hasCode)
-                  const SizedBox.shrink()
-                else if (!isDecoded)
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: NearbyColors.ai,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size.fromHeight(52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    icon: const Icon(Icons.auto_awesome),
-                    label: const Text(
-                      'Descomprimir con IA',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        widget.state.decoded = true;
-                      });
-                    },
-                  )
-                else if (decompressed != null) ...[
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                      side: BorderSide(
-                        color: NearbyColors.muted.withValues(alpha: 0.2),
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
+                  const SizedBox(height: 12),
+                  // Sin código no hay nada que descomprimir
+                  if (!hasCode)
+                    const SizedBox.shrink()
+                  else if (!isDecoded)
+                    ElevatedButton.icon(
+                      style: ui.action(),
+                      icon: const Icon(Icons.auto_awesome, size: 18),
+                      label: const Text('Descomprimir con IA'),
+                      onPressed: () {
+                        setState(() {
+                          widget.state.decoded = true;
+                        });
+                      },
+                    )
+                  else if (decompressed != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: card,
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Row(
                             children: [
-                              const Icon(
+                              _iconSquare(
                                 Icons.auto_awesome,
-                                size: 16,
-                                color: NearbyColors.ai,
+                                bg: ui.blueSoft,
+                                fg: ui.ink,
+                                size: 32,
                               ),
-                              const SizedBox(width: 6),
-                              const Text(
-                                'Reporte descomprimido',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  color: NearbyColors.ai,
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Reporte descomprimido',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: ui.ink,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
-                          // Details grid
+                          const SizedBox(height: 8),
+                          // Detalle
                           _DecodedRow(
+                            ui: ui,
                             label: 'Tipo',
                             value:
                                 '${decompressed['type']}${decompressed['injured'] != null && (decompressed['injured'] as int) > 0 ? " · ${decompressed['injured']} persona${(decompressed['injured'] as int) > 1 ? "s" : ""}" : ""}',
                           ),
+                          Divider(height: 1, color: ui.line),
                           _DecodedRow(
+                            ui: ui,
                             label: 'Lugar',
                             value: decompressed['where'] ?? '',
                           ),
+                          Divider(height: 1, color: ui.line),
                           _DecodedRow(
+                            ui: ui,
                             label: 'Prioridad',
                             value: decompressed['prio'] ?? '',
                             valueColor: decompressed['prio'] == 'Alta'
-                                ? NearbyColors.sos
-                                : NearbyColors.accent,
+                                ? theme.sos
+                                : theme.accentInk,
                           ),
-                          const _DecodedRow(
+                          Divider(height: 1, color: ui.line),
+                          _DecodedRow(
+                            ui: ui,
                             label: 'Canal',
                             value: 'SMS, sin internet',
                           ),
                           // Mini mapa ilustrativo solo en la demo; con sesión
                           // se usa "Ver en el mapa" con el GPS real del código.
                           if (!live) ...[
-                          const SizedBox(height: 14),
-                          // Mini map container
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: SizedBox(
-                              height: 160,
-                              width: double.infinity,
-                              child: NearbyMapView(
-                                theme:
-                                    widget.theme ??
-                                    NearbyThemeData.build(
-                                      dark: false,
-                                      lg: false,
-                                      hc: false,
-                                      emergency: true,
+                            const SizedBox(height: 12),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: SizedBox(
+                                height: 160,
+                                width: double.infinity,
+                                child: NearbyMapView(
+                                  theme:
+                                      widget.theme ??
+                                      NearbyThemeData.build(
+                                        dark: false,
+                                        lg: false,
+                                        hc: false,
+                                        emergency: true,
+                                      ),
+                                  emergency: true,
+                                  pins: const [
+                                    MapPin(
+                                      id: 'mini-vuln',
+                                      kind: 'vuln',
+                                      title: 'Emergencia',
+                                      sub: 'Reporte recibido por SMS',
+                                      x: 66,
+                                      y: 58,
+                                      icon: Icons.emergency,
                                     ),
-                                emergency: true,
-                                pins: const [
-                                  MapPin(
-                                    id: 'mini-vuln',
-                                    kind: 'vuln',
-                                    title: 'Emergencia',
-                                    sub: 'Reporte recibido por SMS',
-                                    x: 66,
-                                    y: 58,
-                                    icon: Icons.emergency,
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
                           ],
-                          const SizedBox(height: 14),
+                          const SizedBox(height: 16),
                           Row(
                             children: [
                               Expanded(
                                 child: ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: NearbyColors.sos,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
+                                  style: ui.action(),
+                                  icon: const Icon(
+                                    Icons.directions_run,
+                                    size: 18,
                                   ),
-                                  icon: const Icon(Icons.directions_run),
-                                  label: const Text(
-                                    'Ir ahora',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
+                                  label: const Text('Ir ahora'),
                                   onPressed: () {
                                     widget.state.routeTo = {
                                       'title':
@@ -765,18 +854,12 @@ class _PuenteScreenState extends State<PuenteScreen> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: OutlinedButton.icon(
-                                  style: OutlinedButton.styleFrom(
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
+                                  style: ui.action(filled: false),
+                                  icon: const Icon(
+                                    Icons.add_location_alt_outlined,
+                                    size: 18,
                                   ),
-                                  icon: const Icon(Icons.add_location),
-                                  label: const Text(
-                                    'Al tablero',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
+                                  label: const Text('Al tablero'),
                                   onPressed: () {
                                     widget.state.addReportFromPuente(
                                       decompressed,
@@ -791,107 +874,93 @@ class _PuenteScreenState extends State<PuenteScreen> {
                           if (decompressed['lat'] is double &&
                               decompressed['lng'] is double) ...[
                             const SizedBox(height: 8),
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                style: OutlinedButton.styleFrom(
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                ),
-                                icon: const Icon(Icons.map),
-                                label: const Text(
-                                  'Ver en el mapa (funciona sin internet)',
-                                  style: TextStyle(fontWeight: FontWeight.w700),
-                                ),
-                                onPressed: () => widget.state.openSmsMap(
-                                  decompressed['lat'] as double,
-                                  decompressed['lng'] as double,
-                                  title:
-                                      '${decompressed['type']} · ${decompressed['where']}',
-                                  sub: 'Prioridad ${decompressed['prio']}',
-                                ),
+                            OutlinedButton.icon(
+                              style: ui.action(filled: false),
+                              icon: const Icon(Icons.map_outlined, size: 18),
+                              label: const Text(
+                                'Ver en el mapa (funciona sin internet)',
+                              ),
+                              onPressed: () => widget.state.openSmsMap(
+                                decompressed['lat'] as double,
+                                decompressed['lng'] as double,
+                                title:
+                                    '${decompressed['type']} · ${decompressed['where']}',
+                                sub: 'Prioridad ${decompressed['prio']}',
                               ),
                             ),
                           ],
                         ],
                       ),
                     ),
-                  ),
-                ] else
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: NearbyColors.sos.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.error, color: NearbyColors.sos),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Código no válido. Revisa el formato.',
-                            style: TextStyle(
-                              color: NearbyColors.sos,
-                              fontWeight: FontWeight.w700,
+                  ] else
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: theme.sosSoft,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.error_outline, color: theme.sosDark),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Código no válido. Revisa el formato.',
+                              style: TextStyle(
+                                color: theme.sosDark,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                const SizedBox(height: 14),
-                // Input to test other code
-                Card(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                    side: BorderSide(color: NearbyColors.muted.withValues(alpha: 0.2)),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(14),
+                  const SizedBox(height: 16),
+                  // Probar otro código
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: card,
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Text(
+                        Text(
                           'Probar otro código',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 16,
                             fontWeight: FontWeight.w700,
+                            color: ui.ink,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 10),
                         TextField(
                           controller: _codeController,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 13,
+                            color: ui.ink,
                           ),
                           decoration: InputDecoration(
                             filled: true,
-                            fillColor: NearbyColors.muted.withValues(alpha: 0.08),
+                            fillColor: ui.ivory,
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: ui.line),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: ui.ink, width: 1.5),
+                            ),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(
-                                color: NearbyColors.muted.withValues(alpha: 0.3),
-                              ),
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: ui.line),
                             ),
                           ),
                         ),
                         const SizedBox(height: 10),
                         OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(48),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          icon: const Icon(Icons.key),
-                          label: const Text(
-                            'Descomprimir este código',
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          ),
+                          style: ui.action(filled: false),
+                          icon: const Icon(Icons.key_outlined, size: 18),
+                          label: const Text('Descomprimir este código'),
                           onPressed: () {
                             setState(() {
                               widget.state.lastCode = _codeController.text;
@@ -899,34 +968,36 @@ class _PuenteScreenState extends State<PuenteScreen> {
                             });
                           },
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 10),
                         Text(
                           'Formato: NB#SOS!{tipo}{personas}@{lugar}\$P:{prioridad}[#G:lat,lng]. Ej. NB#SOS!A2@MC12\$P:ALTA#G:-11.97900,-77.00300. También puedes pegar el SMS completo.',
                           style: TextStyle(
-                            fontSize: 10,
-                            color: NearbyColors.muted,
+                            fontSize: 11,
+                            color: ui.muted,
+                            height: 1.4,
                           ),
                         ),
                       ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 24),
-              ],
+                ],
+              ),
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
 class _DecodedRow extends StatelessWidget {
+  final NearbyCommunityStyle ui;
   final String label;
   final String value;
   final Color? valueColor;
 
   const _DecodedRow({
+    required this.ui,
     required this.label,
     required this.value,
     this.valueColor,
@@ -935,20 +1006,21 @@ class _DecodedRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: TextStyle(fontSize: 12, color: NearbyColors.muted),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: valueColor,
+          Text(label, style: TextStyle(fontSize: 12.5, color: ui.muted)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: valueColor ?? ui.ink,
+              ),
             ),
           ),
         ],

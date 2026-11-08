@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -6,6 +7,16 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../state/app_state.dart';
 import '../theme/nearby_theme.dart';
+
+/// Ancho máximo de mensajes y chat en escritorio.
+const double _kMaxWidth = 720;
+
+/// Margen lateral que centra el contenido hasta [maxWidth].
+double _sideFor(double width, [double maxWidth = _kMaxWidth]) {
+  final base = width < 360 ? 16.0 : 24.0;
+  final centered = (width - maxWidth) / 2;
+  return centered > base ? centered : base;
+}
 
 // --- Bandeja de mensajes ---
 
@@ -20,6 +31,8 @@ class MensajesScreen extends StatefulWidget {
 }
 
 class _MensajesScreenState extends State<MensajesScreen> {
+  NearbyCommunityStyle get ui => NearbyCommunityStyle(widget.theme);
+
   @override
   void initState() {
     super.initState();
@@ -43,89 +56,193 @@ class _MensajesScreenState extends State<MensajesScreen> {
     final state = widget.state;
     final theme = widget.theme;
     final list = state.conversations;
-    return RefreshIndicator(
-      onRefresh: state.loadConversations,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 120),
-        children: [
-          if (list.isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 60),
-              child: Column(
-                children: [
-                  Icon(Icons.forum_outlined, size: 56, color: theme.muted),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Aún no tienes mensajes',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      color: theme.ink,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Cuando respondas un favor o escribas a un oficio, la conversación aparece aquí.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: theme.muted, fontSize: 13.5),
-                  ),
-                ],
-              ),
-            ),
-          for (final c in list)
-            Card(
-              margin: const EdgeInsets.only(bottom: 10),
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 6,
-                ),
-                leading: CircleAvatar(
-                  backgroundColor: theme.violetSoft,
-                  child: Text(
-                    (c['otherInitials'] as String?) ?? '?',
-                    style: TextStyle(
-                      color: theme.violet,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                title: Text(
-                  (c['otherUserName'] as String?) ?? 'Vecino',
+    return ColoredBox(
+      color: theme.surface,
+      child: LayoutBuilder(
+        builder: (context, box) {
+          final side = _sideFor(box.maxWidth, double.infinity);
+          return RefreshIndicator(
+            onRefresh: state.loadConversations,
+            color: ui.ink,
+            child: ListView(
+              padding: EdgeInsets.fromLTRB(side, 8, side, 120),
+              children: [
+                Text(
+                  'Tus conversaciones',
                   style: TextStyle(
-                    fontWeight: ((c['unread'] as num?) ?? 0) > 0
-                        ? FontWeight.w800
-                        : FontWeight.w600,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    color: ui.ink,
+                    letterSpacing: -0.5,
+                    height: 1.15,
                   ),
                 ),
-                subtitle: Text(
-                  (c['lastMessage'] as String?) ??
-                      (c['contextText'] as String?) ??
-                      '',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                const SizedBox(height: 6),
+                Text(
+                  'Aquí aparecen también las que empezó otro vecino.',
+                  style: TextStyle(color: ui.muted, fontSize: 14),
                 ),
-                trailing: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                const SizedBox(height: 20),
+                if (list.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
+                    decoration: BoxDecoration(
+                      color: ui.ivory,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: ui.blueSoft,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.forum_outlined,
+                            size: 28,
+                            color: ui.ink,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          'Aún no tienes mensajes',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: ui.ink,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Cuando respondas un favor o escribas a un oficio, la conversación aparece aquí.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: ui.muted, fontSize: 13.5),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  Container(
+                    decoration: BoxDecoration(
+                      color: theme.surface,
+                      border: Border.all(color: ui.line),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      children: [
+                        for (var i = 0; i < list.length; i++) ...[
+                          if (i > 0) Divider(height: 1, color: ui.line),
+                          _conversationRow(list[i]),
+                        ],
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _conversationRow(Map<String, dynamic> c) {
+    final unread = ((c['unread'] as num?) ?? 0) > 0;
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        onTap: () => widget.state.openConversation(c),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: ui.blueSoft,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  (c['otherInitials'] as String?) ?? '?',
+                  style: TextStyle(
+                    color: ui.ink,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _when(c['lastAt'] as String?),
-                      style: TextStyle(fontSize: 11.5, color: theme.muted),
-                    ),
-                    if (((c['unread'] as num?) ?? 0) > 0) ...[
-                      const SizedBox(height: 4),
-                      Badge(
-                        label: Text('${c['unread']}'),
-                        backgroundColor: NearbyColors.sos,
+                      (c['otherUserName'] as String?) ?? 'Vecino',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: ui.ink,
+                        fontSize: 14.5,
+                        fontWeight: unread ? FontWeight.w700 : FontWeight.w600,
                       ),
-                    ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      (c['lastMessage'] as String?) ??
+                          (c['contextText'] as String?) ??
+                          '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: unread ? ui.ink : ui.muted,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
-                onTap: () => state.openConversation(c),
               ),
-            ),
-        ],
+              const SizedBox(width: 10),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    _when(c['lastAt'] as String?),
+                    style: TextStyle(fontSize: 11, color: ui.muted),
+                  ),
+                  if (unread) ...[
+                    const SizedBox(height: 6),
+                    Container(
+                      constraints: const BoxConstraints(minWidth: 22),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: ui.accent,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '${c['unread']}',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: ui.onAccent,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -146,6 +263,8 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _msgController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   late final _voice = widget.state.voice;
+
+  NearbyCommunityStyle get ui => NearbyCommunityStyle(widget.theme);
 
   @override
   void initState() {
@@ -224,315 +343,381 @@ class _ChatScreenState extends State<ChatScreen> {
         .map((c) => c['contextText'] as String?)
         .firstOrNull;
 
-    return Column(
-      children: [
-        // Chat Header Card
-        Container(
-          margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: theme.surface,
-            border: Border.all(color: theme.line),
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: theme.cardShadow,
-          ),
-          child: Row(
+    // Burbuja propia: tinta con texto blanco (en oscuro, colores del botón).
+    final mineBg = ui.light ? ui.ink : theme.btnBg;
+    final mineInk = ui.light ? Colors.white : theme.btnInk;
+
+    return ColoredBox(
+      color: theme.surface,
+      child: LayoutBuilder(
+        builder: (context, box) {
+          final side = _sideFor(box.maxWidth, double.infinity);
+          final bubbleMax = math.min((box.maxWidth - side * 2) * 0.78, 460.0);
+          return Column(
             children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: theme.violetSoft,
-                child: Text(
-                  initials,
-                  style: TextStyle(
-                    color: theme.violet,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13,
+              // Cabecera del chat
+              Padding(
+                padding: EdgeInsets.fromLTRB(side, 4, side, 8),
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+                  decoration: BoxDecoration(
+                    color: theme.surface,
+                    border: Border.all(color: ui.line),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: ui.blueSoft,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          initials,
+                          style: TextStyle(
+                            color: ui.ink,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: ui.ink,
+                                fontSize: 15,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.verified_outlined,
+                                  color: ui.ink,
+                                  size: 14,
+                                ),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    context0 != null && context0.isNotEmpty
+                                        ? context0
+                                        : 'Vecino de ${state.zoneName}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: ui.muted,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      OutlinedButton(
+                        onPressed: () => state.startCall(name),
+                        style: ui
+                            .action(filled: false)
+                            .copyWith(
+                              minimumSize: const WidgetStatePropertyAll(
+                                Size(44, 44),
+                              ),
+                              padding: const WidgetStatePropertyAll(
+                                EdgeInsets.zero,
+                              ),
+                              side: WidgetStatePropertyAll(
+                                BorderSide(color: ui.line),
+                              ),
+                            ),
+                        child: Tooltip(
+                          message: 'Llamar',
+                          child: Icon(Icons.call_outlined, color: ui.ink),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+
+              // Aviso de seguridad
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: side),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: ui.blueSoft,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.shield_outlined, color: ui.ink, size: 18),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Por tu seguridad, reúnanse en un lugar visible y no compartas datos bancarios.',
+                          style: TextStyle(color: ui.ink, fontSize: 11.5),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Mensajes
               Expanded(
+                child: msgs.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: side),
+                          child: Text(
+                            'Escribe un mensaje para coordinar con ${name.split(" ").first}.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: ui.muted, fontSize: 13),
+                          ),
+                        ),
+                      )
+                    : ListView.builder(
+                        controller: _scrollController,
+                        padding: EdgeInsets.fromLTRB(side, 12, side, 12),
+                        itemCount: msgs.length,
+                        itemBuilder: (context, i) {
+                          final m = msgs[i];
+                          if (m.from == 'sys') {
+                            return Center(
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(vertical: 6),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: ui.blueSoft,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  m.text,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: ui.ink,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+
+                          final isMine = m.from == 'me';
+                          final fg = isMine ? mineInk : ui.ink;
+                          return Align(
+                            alignment: isMine
+                                ? Alignment.centerRight
+                                : Alignment.centerLeft,
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                              constraints: BoxConstraints(maxWidth: bubbleMax),
+                              decoration: BoxDecoration(
+                                color: isMine ? mineBg : ui.ivory,
+                                borderRadius: BorderRadius.only(
+                                  topLeft: const Radius.circular(14),
+                                  topRight: const Radius.circular(14),
+                                  bottomLeft: Radius.circular(isMine ? 14 : 4),
+                                  bottomRight: Radius.circular(isMine ? 4 : 14),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    m.text,
+                                    style: TextStyle(
+                                      color: fg,
+                                      fontSize: 14,
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        m.time,
+                                        style: TextStyle(
+                                          color: isMine
+                                              ? fg.withValues(alpha: 0.75)
+                                              : ui.muted,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                      if (isMine) ...[
+                                        const SizedBox(width: 4),
+                                        Icon(
+                                          m.pending
+                                              ? Icons.schedule
+                                              : Icons.done_all,
+                                          size: 14,
+                                          color: fg.withValues(alpha: 0.75),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+
+              // Respuestas rápidas y caja de texto
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.fromLTRB(side, 10, side, 16),
+                decoration: BoxDecoration(
+                  color: theme.surface,
+                  border: Border(top: BorderSide(color: ui.line)),
+                ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      name,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        color: theme.ink,
-                        fontSize: 14,
+                    SizedBox(
+                      height: 36,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        children:
+                            [
+                              '¿A qué hora te queda bien?',
+                              'Voy en 10 minutos',
+                              '¡Muchas gracias, vecino!',
+                            ].map((q) {
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: OutlinedButton(
+                                  onPressed: () {
+                                    state.sendChat(q);
+                                    _scrollToBottom();
+                                  },
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: ui.ink,
+                                    backgroundColor: theme.surface,
+                                    side: BorderSide(color: ui.line),
+                                    minimumSize: const Size(0, 36),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    textStyle: const TextStyle(
+                                      fontFamily: 'Poppins',
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  child: Text(q),
+                                ),
+                              );
+                            }).toList(),
                       ),
                     ),
+                    const SizedBox(height: 10),
                     Row(
                       children: [
-                        Icon(Icons.verified, color: theme.primary, size: 14),
-                        const SizedBox(width: 4),
                         Expanded(
-                          child: Text(
-                            context0 != null && context0.isNotEmpty
-                                ? context0
-                                : 'Vecino de ${state.zoneName}',
-                            style: TextStyle(
-                              color: theme.muted,
-                              fontSize: 11.5,
+                          child: Container(
+                            height: 48,
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            alignment: Alignment.centerLeft,
+                            decoration: BoxDecoration(
+                              color: theme.surface,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: ui.line),
+                            ),
+                            child: TextField(
+                              controller: _msgController,
+                              onSubmitted: (_) => _send(),
+                              style: TextStyle(color: ui.ink, fontSize: 14),
+                              decoration: const InputDecoration(
+                                hintText: 'Escribe un mensaje',
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                isDense: true,
+                              ),
                             ),
                           ),
+                        ),
+                        const SizedBox(width: 8),
+                        _squareButton(
+                          icon: _voice.listening ? Icons.stop : Icons.mic,
+                          tooltip: _voice.listening
+                              ? 'Detener dictado'
+                              : 'Dictar mensaje',
+                          bg: _voice.listening ? theme.sosSoft : ui.blueSoft,
+                          fg: _voice.listening ? NearbyColors.sos : ui.ink,
+                          onTap: _toggleVoice,
+                        ),
+                        const SizedBox(width: 8),
+                        _squareButton(
+                          icon: Icons.send,
+                          tooltip: 'Enviar',
+                          bg: ui.accent,
+                          fg: ui.onAccent,
+                          onTap: _send,
                         ),
                       ],
                     ),
                   ],
                 ),
               ),
-              IconButton(
-                onPressed: () => state.startCall(name),
-                icon: Icon(Icons.call, color: theme.primary),
-              ),
             ],
-          ),
-        ),
-
-        // Safety warning
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: theme.surface,
-              border: Border.all(color: theme.line),
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: theme.cardShadow,
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.shield, color: theme.info, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Por tu seguridad, reúnanse en un lugar visible y no compartas datos bancarios.',
-                    style: TextStyle(color: theme.muted, fontSize: 11.5),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        // Messages list
-        Expanded(
-          child: msgs.isEmpty
-              ? Center(
-                  child: Text(
-                    'Escribe un mensaje para coordinar con ${name.split(" ").first}.',
-                    style: TextStyle(color: theme.muted, fontSize: 13),
-                  ),
-                )
-              : ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-                  itemCount: msgs.length,
-                  itemBuilder: (context, i) {
-                    final m = msgs[i];
-                    if (m.from == 'sys') {
-                      return Center(
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(vertical: 6),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.primarySoft,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            m.text,
-                            style: TextStyle(
-                              color: theme.primaryDark,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                      );
-                    }
-
-                    final isMine = m.from == 'me';
-                    return Align(
-                      alignment: isMine
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
-                        constraints: const BoxConstraints(maxWidth: 280),
-                        decoration: BoxDecoration(
-                          color: isMine ? theme.btnBg : theme.surface,
-                          border: isMine ? null : Border.all(color: theme.line),
-                          borderRadius: BorderRadius.only(
-                            topLeft: const Radius.circular(18),
-                            topRight: const Radius.circular(18),
-                            bottomLeft: Radius.circular(isMine ? 18 : 6),
-                            bottomRight: Radius.circular(isMine ? 6 : 18),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              m.text,
-                              style: TextStyle(
-                                color: isMine ? theme.btnInk : theme.ink,
-                                fontSize: 14,
-                                height: 1.35,
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  m.time,
-                                  style: TextStyle(
-                                    color: (isMine ? theme.btnInk : theme.muted)
-                                        .withValues(alpha: 0.7),
-                                    fontSize: 11,
-                                  ),
-                                ),
-                                if (isMine) ...[
-                                  const SizedBox(width: 4),
-                                  Icon(
-                                    m.pending ? Icons.schedule : Icons.done_all,
-                                    size: 14,
-                                    color: (isMine ? theme.btnInk : theme.muted)
-                                        .withValues(alpha: 0.7),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-        ),
-
-        // Quick responses & composer
-        Container(
-          padding: const EdgeInsets.fromLTRB(16, 6, 16, 20),
-          decoration: BoxDecoration(
-            color: theme.surface,
-            border: Border(top: BorderSide(color: theme.line)),
-          ),
-          child: Column(
-            children: [
-              // Quick responses scroll
-              SizedBox(
-                height: 36,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children:
-                      [
-                        '¿A qué hora te queda bien?',
-                        'Voy en 10 minutos',
-                        '¡Muchas gracias, vecino!',
-                      ].map((q) {
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: ActionChip(
-                            label: Text(
-                              q,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: theme.ink,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            backgroundColor: theme.surface2,
-                            padding: EdgeInsets.zero,
-                            onPressed: () {
-                              state.sendChat(q);
-                              _scrollToBottom();
-                            },
-                          ),
-                        );
-                      }).toList(),
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              // Composer
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      height: 50,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: theme.surface2,
-                        borderRadius: BorderRadius.circular(25),
-                        border: Border.all(color: theme.line),
-                      ),
-                      child: TextField(
-                        controller: _msgController,
-                        onSubmitted: (_) => _send(),
-                        style: TextStyle(color: theme.ink, fontSize: 14),
-                        decoration: const InputDecoration(
-                          hintText: 'Escribe un mensaje',
-                          border: InputBorder.none,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  InkWell(
-                    onTap: _toggleVoice,
-                    borderRadius: BorderRadius.circular(25),
-                    child: Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: theme.surface2,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        _voice.listening ? Icons.stop : Icons.mic,
-                        color: _voice.listening
-                            ? NearbyColors.sos
-                            : theme.primaryDark,
-                        size: 22,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  InkWell(
-                    onTap: _send,
-                    borderRadius: BorderRadius.circular(25),
-                    child: Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: NearbyColors.brandTurquoise,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.send,
-                        color: NearbyColors.onPrimary,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
+          );
+        },
+      ),
     );
   }
+
+  Widget _squareButton({
+    required IconData icon,
+    required String tooltip,
+    required Color bg,
+    required Color fg,
+    required VoidCallback onTap,
+  }) => Tooltip(
+    message: tooltip,
+    child: Material(
+      color: bg,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: SizedBox(
+          width: 48,
+          height: 48,
+          child: Icon(icon, color: fg, size: 20),
+        ),
+      ),
+    ),
+  );
 }
 
 // --- Call Screen ---
@@ -540,6 +725,43 @@ class CallScreen extends StatelessWidget {
   final AppState state;
   final NearbyThemeData theme;
   const CallScreen({super.key, required this.state, required this.theme});
+
+  NearbyCommunityStyle get ui => NearbyCommunityStyle(theme);
+
+  ButtonStyle _full(ButtonStyle s) => s.copyWith(
+    minimumSize: const WidgetStatePropertyAll(Size.fromHeight(48)),
+  );
+
+  /// Rojo solo para colgar o llamar a emergencias.
+  ButtonStyle get _redStyle => _full(
+    ui.action().copyWith(
+      backgroundColor: WidgetStateProperty.resolveWith(
+        (s) => s.contains(WidgetState.disabled) ? ui.line : NearbyColors.sos,
+      ),
+      foregroundColor: WidgetStateProperty.resolveWith(
+        (s) => s.contains(WidgetState.disabled) ? ui.muted : Colors.white,
+      ),
+    ),
+  );
+
+  Widget _note(String text) => Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: ui.blueSoft,
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.info_outline, color: ui.ink, size: 18),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(text, style: TextStyle(color: ui.ink, fontSize: 12.5)),
+        ),
+      ],
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final call = state.internetCall;
@@ -557,141 +779,236 @@ class CallScreen extends StatelessWidget {
       _ => 'Elige cómo quieres llamar',
     };
     return ColoredBox(
-      color: NearbyColors.navy,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const SizedBox(height: 32),
-            const Icon(Icons.phone_in_talk, color: Colors.white, size: 72),
-            const SizedBox(height: 24),
-            Text(
-              state.callWith?['name'] as String? ?? 'Teléfono',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 26,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white70, fontSize: 16),
-            ),
-            if (call.error != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Text(
-                  call.error!,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
-            const SizedBox(height: 24),
-            if (call.phase == 'incoming')
-              FilledButton.icon(
-                onPressed: call.accept,
-                icon: const Icon(Icons.call),
-                label: const Text('Contestar en Nearby'),
-              ),
-            if (call.phase == 'connected')
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  FilledButton.tonalIcon(
-                    onPressed: call.toggleMute,
-                    icon: Icon(call.muted ? Icons.mic_off : Icons.mic),
-                    label: Text(call.muted ? 'Activar micrófono' : 'Silenciar'),
+      color: theme.surface,
+      child: LayoutBuilder(
+        builder: (context, box) {
+          final side = _sideFor(box.maxWidth, 560);
+          return SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(side, 24, side, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  emergency ? 'LLAMADA DE EMERGENCIA' : 'LLAMADA',
+                  style: TextStyle(
+                    color: ui.ink,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1,
                   ),
-                  if (!kIsWeb)
-                    FilledButton.tonalIcon(
-                      onPressed: call.toggleSpeaker,
-                      icon: Icon(
-                        call.speaker ? Icons.volume_up : Icons.hearing,
-                      ),
-                      label: Text(call.speaker ? 'Auricular' : 'Altavoz'),
-                    ),
-                ],
-              ),
-            if (inApp) ...[
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  backgroundColor: NearbyColors.sos,
-                ),
-                onPressed: () => call.end(),
-                icon: const Icon(Icons.call_end),
-                label: Text(call.phase == 'incoming' ? 'Rechazar' : 'Colgar'),
-              ),
-            ] else ...[
-              if (!emergency) ...[
-                FilledButton.icon(
-                  key: const ValueKey('nearby-internet-call'),
-                  onPressed: state.startInternetCall,
-                  icon: const Icon(Icons.wifi_calling_3),
-                  label: const Text('Llamar dentro de Nearby'),
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  'Por internet · Ambos usuarios deben tener Nearby abierto.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white70),
+
+                // Panel tinta con el contacto y el estado
+                Container(
+                  padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+                  decoration: BoxDecoration(
+                    color: ui.panel,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: emergency ? NearbyColors.sos : ui.accent,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.phone_in_talk,
+                          color: emergency ? Colors.white : ui.onAccent,
+                          size: 32,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        state.callWith?['name'] as String? ?? 'Teléfono',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: ui.onPanel,
+                          fontSize: 26,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        label,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: ui.onPanel.withValues(alpha: 0.8),
+                          fontSize: 14,
+                        ),
+                      ),
+                      if (call.error != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Text(
+                            call.error!,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: ui.onPanel,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
+
+                if (call.phase == 'incoming') ...[
+                  ElevatedButton.icon(
+                    onPressed: call.accept,
+                    style: _full(ui.action()),
+                    icon: const Icon(Icons.call),
+                    label: const Text('Contestar en Nearby'),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (call.phase == 'connected') ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: call.toggleMute,
+                          style: ui.action(filled: false),
+                          icon: Icon(call.muted ? Icons.mic_off : Icons.mic),
+                          label: Text(
+                            call.muted ? 'Activar micrófono' : 'Silenciar',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                      if (!kIsWeb) ...[
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: call.toggleSpeaker,
+                            style: ui.action(filled: false),
+                            icon: Icon(
+                              call.speaker ? Icons.volume_up : Icons.hearing,
+                            ),
+                            label: Text(
+                              call.speaker ? 'Auricular' : 'Altavoz',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (inApp) ...[
+                  ElevatedButton.icon(
+                    style: _redStyle,
+                    onPressed: () => call.end(),
+                    icon: const Icon(Icons.call_end),
+                    label: Text(
+                      call.phase == 'incoming' ? 'Rechazar' : 'Colgar',
+                    ),
+                  ),
+                ] else ...[
+                  if (!emergency) ...[
+                    ElevatedButton.icon(
+                      key: const ValueKey('nearby-internet-call'),
+                      onPressed: state.startInternetCall,
+                      style: _full(ui.action()),
+                      icon: const Icon(Icons.wifi_calling_3),
+                      label: const Text('Llamar dentro de Nearby'),
+                    ),
+                    const SizedBox(height: 10),
+                    _note(
+                      'Por internet · Ambos usuarios deben tener Nearby abierto.',
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(child: Divider(color: ui.line)),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            'o',
+                            style: TextStyle(color: ui.muted, fontSize: 12),
+                          ),
+                        ),
+                        Expanded(child: Divider(color: ui.line)),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                  if (emergency)
+                    ElevatedButton.icon(
+                      key: const ValueKey('nearby-cellular-call'),
+                      onPressed: state.callLaunching
+                          ? null
+                          : () => state.launchCurrentCall(),
+                      style: _redStyle,
+                      icon: const Icon(Icons.call),
+                      label: const Text('Llamar al servicio de emergencia'),
+                    )
+                  else
+                    OutlinedButton.icon(
+                      key: const ValueKey('nearby-cellular-call'),
+                      onPressed: state.callLaunching
+                          ? null
+                          : () => state.launchCurrentCall(),
+                      style: _full(ui.action(filled: false)),
+                      icon: const Icon(Icons.call),
+                      label: const Text('Llamar por línea celular'),
+                    ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    key: const ValueKey('nearby-open-dialer'),
+                    style: _full(
+                      ui
+                          .action(filled: false)
+                          .copyWith(
+                            side: WidgetStatePropertyAll(
+                              BorderSide(color: ui.line),
+                            ),
+                          ),
+                    ),
+                    onPressed: state.callLaunching
+                        ? null
+                        : () => state.launchCurrentCall(dialOnly: true),
+                    icon: const Icon(Icons.dialpad),
+                    label: const Text('Abrir marcador del teléfono'),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    emergency
+                        ? 'Las emergencias se confirman en el marcador del sistema.'
+                        : 'La llamada celular utiliza tu operador y el permiso de llamadas del dispositivo.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: ui.muted, fontSize: 12.5),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                Center(
+                  child: TextButton.icon(
+                    onPressed: state.back,
+                    style: TextButton.styleFrom(foregroundColor: ui.ink),
+                    icon: const Icon(Icons.arrow_back, size: 18),
+                    label: const Text('Volver a Nearby'),
+                  ),
+                ),
+                if (call.rendererReady)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: SizedBox(
+                      width: 1,
+                      height: 1,
+                      child: RTCVideoView(call.remoteAudio),
+                    ),
+                  ),
               ],
-              FilledButton.icon(
-                key: const ValueKey('nearby-cellular-call'),
-                onPressed: state.callLaunching
-                    ? null
-                    : () => state.launchCurrentCall(),
-                icon: const Icon(Icons.call),
-                label: Text(
-                  emergency
-                      ? 'Llamar al servicio de emergencia'
-                      : 'Llamar por línea celular',
-                ),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                key: const ValueKey('nearby-open-dialer'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  side: const BorderSide(color: Colors.white54),
-                ),
-                onPressed: state.callLaunching
-                    ? null
-                    : () => state.launchCurrentCall(dialOnly: true),
-                icon: const Icon(Icons.dialpad),
-                label: const Text('Abrir marcador del teléfono'),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                emergency
-                    ? 'Las emergencias se confirman en el marcador del sistema.'
-                    : 'La llamada celular utiliza tu operador y el permiso de llamadas del dispositivo.',
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white70),
-              ),
-            ],
-            const SizedBox(height: 20),
-            TextButton(
-              onPressed: state.back,
-              child: const Text(
-                'Volver a Nearby',
-                style: TextStyle(color: Colors.white),
-              ),
             ),
-            if (call.rendererReady)
-              SizedBox(
-                width: 1,
-                height: 1,
-                child: RTCVideoView(call.remoteAudio),
-              ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

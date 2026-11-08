@@ -8,6 +8,152 @@ import '../theme/nearby_theme.dart';
 import '../widgets/common_widgets.dart';
 import 'emergency/widgets/sos_countdown_button.dart';
 
+// --- Utilidades de diseño compartidas por las pantallas de emergencia ---
+
+/// Margen lateral de página: 24 (16 en anchos muy estrechos).
+double _gutter(double width) => width < 360 ? 16 : 24;
+
+/// Contenido a ancho de lectura (máx. 640) centrado en escritorio.
+Widget _readable(Widget child, {double maxWidth = 640}) => Align(
+  alignment: Alignment.topCenter,
+  child: ConstrainedBox(
+    constraints: BoxConstraints(maxWidth: maxWidth),
+    child: SizedBox(width: double.infinity, child: child),
+  ),
+);
+
+/// Cuadrito de ícono (radio 8) de las filas de opciones.
+Widget _iconSquare(
+  IconData icon, {
+  required Color bg,
+  required Color fg,
+  double size = 40,
+}) => Container(
+  width: size,
+  height: size,
+  decoration: BoxDecoration(
+    color: bg,
+    borderRadius: BorderRadius.circular(8),
+  ),
+  child: Icon(icon, color: fg, size: size * 0.5),
+);
+
+/// Botón principal ámbar, un poco más alto en los momentos de emergencia.
+ButtonStyle _primary(NearbyCommunityStyle ui) => ui.action().copyWith(
+  minimumSize: const WidgetStatePropertyAll(Size.fromHeight(52)),
+  textStyle: const WidgetStatePropertyAll(
+    TextStyle(fontFamily: 'Poppins', fontSize: 14, fontWeight: FontWeight.w700),
+  ),
+);
+
+/// Botón de contorno blanco sobre fondo rojo.
+ButtonStyle _onRedOutline() => OutlinedButton.styleFrom(
+  foregroundColor: Colors.white,
+  side: const BorderSide(color: Colors.white70, width: 1.5),
+  minimumSize: const Size.fromHeight(52),
+  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+  textStyle: const TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 13,
+    fontWeight: FontWeight.w700,
+  ),
+);
+
+/// Botón relleno blanco sobre fondo rojo (acción principal del momento SOS).
+ButtonStyle _onRedFilled() => ElevatedButton.styleFrom(
+  backgroundColor: Colors.white,
+  foregroundColor: NearbyColors.sosDark,
+  elevation: 0,
+  minimumSize: const Size.fromHeight(52),
+  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+  textStyle: const TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+  ),
+);
+
+/// Accesos directos a los números de emergencia: 2 columnas en móvil, 4 en ancho.
+class _CallGrid extends StatelessWidget {
+  final AppState state;
+  final NearbyThemeData theme;
+  final bool onRed;
+
+  const _CallGrid({
+    required this.state,
+    required this.theme,
+    this.onRed = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final ui = NearbyCommunityStyle(theme);
+    return LayoutBuilder(
+      builder: (context, constraints) => GridView.count(
+        crossAxisCount: constraints.maxWidth >= 560 ? 4 : 2,
+        shrinkWrap: true,
+        padding: EdgeInsets.zero,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+        mainAxisExtent: MediaQuery.textScalerOf(context).scale(66),
+        children: kCalls.map((c) {
+          return Material(
+            color: theme.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: onRed ? BorderSide.none : BorderSide(color: ui.line),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () => state.startCall(c.num),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Row(
+                  children: [
+                    _iconSquare(
+                      c.icon,
+                      bg: theme.sosSoft,
+                      fg: theme.sos,
+                      size: 36,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            c.num,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                              color: ui.ink,
+                              height: 1.15,
+                            ),
+                          ),
+                          Text(
+                            c.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: ui.muted, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
 // --- Dedicated SOS Screen ---
 class SosScreen extends StatelessWidget {
   final AppState state;
@@ -22,217 +168,166 @@ class SosScreen extends StatelessWidget {
       child: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
+            final g = _gutter(constraints.maxWidth);
             return SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight - 34,
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Top bar + Header
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            PressableScale(
-                              scale: 0.92,
-                              onTap: () => state.back(),
-                              child: Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.18),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.close, color: Colors.white),
-                              ),
-                            ),
-                            Row(
-                              children: [
-                                Icon(
-                                  state.offline ? Icons.sms : Icons.my_location,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  state.offline ? 'Modo SMS' : 'Ubicación lista',
-                                  style: const TextStyle(
+              padding: EdgeInsets.fromLTRB(g, 12, g, 24),
+              child: _readable(
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: (constraints.maxHeight - 36).clamp(
+                      0.0,
+                      double.infinity,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Barra superior + encabezado
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              PressableScale(
+                                scale: 0.92,
+                                onTap: () => state.back(),
+                                child: Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.18),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.close,
                                     color: Colors.white,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 13,
                                   ),
                                 ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        const Text(
-                          'Emergencia',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Mantén presionado el botón 2 segundos.',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    // Big Center Hold Button
-                    Center(
-                      child: SosHoldButton(
-                        size: constraints.maxHeight < 680 ? 172 : 196,
-                        isLarge: true,
-                        onComplete: () {
-                          state.sosType = null;
-                          state.go('sos-countdown');
-                        },
-                        onCancelShort: () {
-                          state.toast(
-                            'Mantén presionado 2 segundos para enviar la alerta',
-                            icon: 'touch_app',
-                          );
-                        },
-                      ),
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    // Info pills
-                    Column(
-                      children: [
-                        _whatRow(
-                          Icons.groups,
-                          'Alerta a los vecinos y la brigada en 500 m',
-                        ),
-                        const SizedBox(height: 8),
-                        _whatRow(
-                          Icons.share_location,
-                          state.connected && state.contacts.isEmpty
-                              ? 'Agrega contactos para compartir tu ubicación'
-                              : 'Tu ubicación a ${state.contacts.length} contactos ${state.offline ? "por SMS" : "(en vivo)"}',
-                        ),
-                        const SizedBox(height: 8),
-                        _whatRow(
-                          Icons.crisis_alert,
-                          'Puedes activar el modo emergencia',
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    // Direct Emergency Call Buttons
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const Text(
-                          'O llama directo',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        GridView.count(
-                          crossAxisCount: 2,
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
-                          childAspectRatio: 2.45,
-                          children: kCalls.map((c) {
-                            return PressableScale(
-                              scale: 0.96,
-                              onTap: () => state.startCall(c.num),
-                              child: Container(
+                              ),
+                              Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 10,
-                                  vertical: 8,
+                                  vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: theme.surface,
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.08),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                  ],
+                                  color: Colors.white.withValues(alpha: 0.16),
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Container(
-                                      width: 38,
-                                      height: 38,
-                                      decoration: BoxDecoration(
-                                        color: theme.sosSoft,
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Icon(
-                                        c.icon,
-                                        color: NearbyColors.sos,
-                                        size: 20,
-                                      ),
+                                    Icon(
+                                      state.offline
+                                          ? Icons.sms
+                                          : Icons.my_location,
+                                      color: Colors.white,
+                                      size: 16,
                                     ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            c.num,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w900,
-                                              fontSize: 16,
-                                              color: theme.ink,
-                                              height: 1.1,
-                                            ),
-                                          ),
-                                          Text(
-                                            c.label,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              color: theme.muted,
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w400,
-                                            ),
-                                          ),
-                                        ],
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      state.offline
+                                          ? 'Modo SMS'
+                                          : 'Ubicación lista',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 12,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Emergencia',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Mantén presionado el botón 2 segundos.',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Botón central de mantener presionado
+                      Center(
+                        child: SosHoldButton(
+                          size: constraints.maxHeight < 680 ? 172 : 196,
+                          isLarge: true,
+                          onComplete: () {
+                            state.sosType = null;
+                            state.go('sos-countdown');
+                          },
+                          onCancelShort: () {
+                            state.toast(
+                              'Mantén presionado 2 segundos para enviar la alerta',
+                              icon: 'touch_app',
                             );
-                          }).toList(),
+                          },
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Qué pasa al enviar
+                      Column(
+                        children: [
+                          _whatRow(
+                            Icons.groups,
+                            'Alerta a los vecinos y la brigada en 500 m',
+                          ),
+                          const SizedBox(height: 8),
+                          _whatRow(
+                            Icons.share_location,
+                            state.connected && state.contacts.isEmpty
+                                ? 'Agrega contactos para compartir tu ubicación'
+                                : 'Tu ubicación a ${state.contacts.length} contactos ${state.offline ? "por SMS" : "(en vivo)"}',
+                          ),
+                          const SizedBox(height: 8),
+                          _whatRow(
+                            Icons.crisis_alert,
+                            'Puedes activar el modo emergencia',
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Llamadas directas
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Text(
+                            'O llama directo',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          _CallGrid(state: state, theme: theme, onRed: true),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -244,15 +339,20 @@ class SosScreen extends StatelessWidget {
 
   Widget _whatRow(IconData icon, String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          Icon(icon, color: Colors.white, size: 20),
-          const SizedBox(width: 10),
+          _iconSquare(
+            icon,
+            bg: Colors.white.withValues(alpha: 0.18),
+            fg: Colors.white,
+            size: 32,
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               text,
@@ -329,159 +429,165 @@ class _SosCountdownScreenState extends State<SosCountdownScreen>
   @override
   Widget build(BuildContext context) => ColoredBox(
     color: NearbyColors.sos,
-    child: Column(
-      children: [
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-            child: Column(
-              children: [
-                const Text(
-                  'Enviando alerta en',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SosCountdownButton(
-                  countdown: _countdown,
-                  onCancel: () {
-                    _deadline?.cancel();
-                    _countdown.stop();
-                    widget.state.back();
-                  },
-                  onComplete: _send,
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  '¿Qué está pasando? (opcional)',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                LayoutBuilder(
-                  builder: (context, constraints) => Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: types.map((type) {
-                      final selected = widget.state.sosType == type.$1;
-                      final color = selected
-                          ? NearbyColors.sosDark
-                          : Colors.white;
-                      return SizedBox(
-                        width: (constraints.maxWidth - 16) / 3,
-                        child: Semantics(
-                          button: true,
-                          selected: selected,
-                          child: InkWell(
-                            onTap: () =>
-                                setState(() => widget.state.sosType = type.$1),
-                            borderRadius: BorderRadius.circular(16),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 160),
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 12,
-                                horizontal: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: selected
-                                    ? Colors.white
-                                    : Colors.white.withValues(alpha: .14),
-                                border: Border.all(
-                                  color: selected
-                                      ? Colors.white
-                                      : Colors.transparent,
-                                  width: 2,
-                                ),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Column(
-                                children: [
-                                  Icon(type.$3, color: color, size: 26),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    type.$2,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: color,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w800,
+    child: LayoutBuilder(
+      builder: (context, bounds) {
+        final g = _gutter(bounds.maxWidth);
+        return Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(g, 24, g, 16),
+                child: _readable(
+                  Column(
+                    children: [
+                      const Text(
+                        'Enviando alerta en',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.4,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SosCountdownButton(
+                        countdown: _countdown,
+                        onCancel: () {
+                          _deadline?.cancel();
+                          _countdown.stop();
+                          widget.state.back();
+                        },
+                        onComplete: _send,
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        '¿Qué está pasando? (opcional)',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          // 3 columnas en móvil, una sola fila de 6 en ancho.
+                          final cols = constraints.maxWidth >= 520 ? 6 : 3;
+                          return Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: types.map((type) {
+                              final selected =
+                                  widget.state.sosType == type.$1;
+                              final color = selected
+                                  ? NearbyColors.sosDark
+                                  : Colors.white;
+                              return SizedBox(
+                                width:
+                                    (constraints.maxWidth - 8 * (cols - 1)) /
+                                    cols,
+                                child: Semantics(
+                                  button: true,
+                                  selected: selected,
+                                  child: InkWell(
+                                    onTap: () => setState(
+                                      () => widget.state.sosType = type.$1,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 160,
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 12,
+                                        horizontal: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: selected
+                                            ? Colors.white
+                                            : Colors.white.withValues(
+                                                alpha: .14,
+                                              ),
+                                        border: Border.all(
+                                          color: selected
+                                              ? Colors.white
+                                              : Colors.white.withValues(
+                                                  alpha: .22,
+                                                ),
+                                          width: 1.5,
+                                        ),
+                                        borderRadius: BorderRadius.circular(
+                                          12,
+                                        ),
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          Icon(type.$3, color: color, size: 24),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            type.$2,
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              color: color,
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                                ),
+                              );
+                            }).toList(),
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
-        Padding(
-          key: const ValueKey('sos-countdown-actions'),
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ElevatedButton.icon(
-                onPressed: _send,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: NearbyColors.sosDark,
-                  minimumSize: const Size.fromHeight(52),
-                  padding: const EdgeInsets.all(14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                icon: const Icon(Icons.send, size: 20),
-                label: const Text(
-                  'Enviar ya',
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
-                ),
-              ),
-              const SizedBox(height: 10),
-              OutlinedButton.icon(
-                onPressed: () {
-                  _deadline?.cancel();
-                  _countdown.stop();
-                  widget.state.go('home', reset: true);
-                  widget.state.toast(
-                    'Alerta cancelada. No se envió nada.',
-                    icon: 'cancel',
-                  );
-                },
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  side: const BorderSide(color: Colors.white70, width: 2),
-                  minimumSize: const Size.fromHeight(52),
-                  padding: const EdgeInsets.all(14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                icon: const Icon(Icons.close, size: 20),
-                label: const Text(
-                  'Cancelar, fue un error',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontWeight: FontWeight.w800),
+            Padding(
+              key: const ValueKey('sos-countdown-actions'),
+              padding: EdgeInsets.fromLTRB(g, 12, g, 24),
+              child: _readable(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: _send,
+                      style: _onRedFilled(),
+                      icon: const Icon(Icons.send, size: 20),
+                      label: const Text('Enviar ya'),
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        _deadline?.cancel();
+                        _countdown.stop();
+                        widget.state.go('home', reset: true);
+                        widget.state.toast(
+                          'Alerta cancelada. No se envió nada.',
+                          icon: 'cancel',
+                        );
+                      },
+                      style: _onRedOutline(),
+                      icon: const Icon(Icons.close, size: 20),
+                      label: const Text(
+                        'Cancelar, fue un error',
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ),
-      ],
+            ),
+          ],
+        );
+      },
     ),
   );
 }
@@ -490,6 +596,7 @@ class _SosCountdownScreenState extends State<SosCountdownScreen>
 class SosSentScreen extends StatelessWidget {
   final AppState state;
   final NearbyThemeData theme;
+  NearbyCommunityStyle get ui => NearbyCommunityStyle(theme);
 
   const SosSentScreen({super.key, required this.state, required this.theme});
 
@@ -551,407 +658,314 @@ class SosSentScreen extends StatelessWidget {
         .where((x) => x['status'] != 'DECLINED')
         .toList();
 
-    return ListView(
-      key: const ValueKey('sos-sent-scroll'),
-      padding: EdgeInsets.zero,
-      children: [
-        // Red Top Header
-        Container(
-          key: const ValueKey('sos-sent-header'),
-          color: NearbyColors.sos,
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Text(
-                    state.connected ? state.nowTime() : '10:47',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                width: 64,
-                height: 64,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.check,
-                  color: NearbyColors.sos,
-                  size: 40,
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Alerta enviada',
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                state.connected
-                    ? 'Tipo: $typeLabel · tu ubicación actual'
-                    : 'Tipo: $typeLabel · ${state.publishWhere}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
+    final check = Icon(Icons.check_circle, color: theme.primary, size: 20);
 
-        // Body Content
-        Container(
-          key: const ValueKey('sos-sent-details'),
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: theme.bg,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.surface,
-                    border: Border.all(color: theme.line),
-                    borderRadius: BorderRadius.circular(18),
-                    boxShadow: theme.cardShadow,
-                  ),
-                  child: Column(
-                    children: off
-                        ? [
-                            _statusRow(
-                              icon: Icons.sms,
-                              color: theme.primary,
-                              softColor: theme.primarySoft,
-                              title: !live
-                                  ? 'SMS enviado a 3 contactos y a la brigada'
-                                  : state.contacts.isEmpty
-                                  ? 'Código SMS listo para la brigada'
-                                  : 'Código SMS listo para tus ${state.contacts.length} contactos',
-                              subtitle:
-                                  'Sin internet: código comprimido de ${state.lastCode?.length ?? 22} caracteres',
-                              trailing: Icon(
-                                Icons.check_circle,
-                                color: theme.primary,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            _statusRow(
-                              icon: Icons.graphic_eq,
-                              color: theme.violet,
-                              softColor: theme.violetSoft,
-                              title: 'Puente de sonido listo',
-                              subtitle: 'Pasa el código a celulares cercanos sin señal',
-                              trailing: Icon(
-                                Icons.check_circle,
-                                color: theme.primary,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            _statusRow(
-                              icon: Icons.sync,
-                              color: theme.accent,
-                              softColor: theme.accentSoft,
-                              title: 'Alerta completa en cola',
-                              subtitle: 'Se envía apenas vuelva la señal',
-                              trailing: Icon(
-                                Icons.schedule,
-                                color: theme.accentInk,
-                              ),
-                            ),
-                          ]
-                        : [
-                            _statusRow(
-                              icon: Icons.groups,
-                              color: NearbyColors.sos,
-                              softColor: theme.sosSoft,
-                              title: neighborsTitle,
-                              subtitle: 'En un radio de 500 m',
-                              trailing: Icon(
-                                Icons.check_circle,
-                                color: theme.primary,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            _statusRow(
-                              icon: Icons.share_location,
-                              color: theme.info,
-                              softColor: theme.infoSoft,
-                              title: contactsTitle,
-                              subtitle: contactsSub,
-                              trailing: Icon(
-                                Icons.check_circle,
-                                color: theme.primary,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            _statusRow(
-                              icon: Icons.medical_services,
-                              color: theme.violet,
-                              softColor: theme.violetSoft,
-                              title: live
-                                  ? 'Brigada de tu zona notificada'
-                                  : 'Brigada Zona 3 notificada',
-                              subtitle: brigadeSub,
-                              trailing: Icon(
-                                Icons.check_circle,
-                                color: theme.primary,
-                              ),
-                            ),
-                          ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // If offline: code card
-                if (off && state.lastCode != null) ...[
-                  _buildCodeCard(state.lastCode!),
-                  const SizedBox(height: 12),
-                ] else ...[
-                  // En camino cards
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.surface,
-                      border: Border.all(color: theme.line),
-                      borderRadius: BorderRadius.circular(18),
-                      boxShadow: theme.cardShadow,
-                    ),
-                    child: Column(
-                      children: live
-                          ? [
-                              if (responders.isEmpty)
-                                _statusRow(
-                                  icon: Icons.hourglass_top,
-                                  color: theme.violet,
-                                  softColor: theme.violetSoft,
-                                  title: 'Esperando a tus vecinos',
-                                  subtitle: 'Te avisamos apenas alguien vaya en camino',
-                                  trailing: Icon(
-                                    Icons.schedule,
-                                    color: theme.muted,
-                                  ),
-                                ),
-                              for (final x in responders) ...[
-                                _statusRow(
-                                  icon: Icons.person,
-                                  color: theme.violet,
-                                  softColor: theme.violetSoft,
-                                  title: x['status'] == 'ARRIVED'
-                                      ? '${x['name'] ?? 'Un vecino'} llegó'
-                                      : '${x['name'] ?? 'Un vecino'} va en camino',
-                                  // Solo distancia y tiempo si el backend los dio
-                                  subtitle: [
-                                    if (x['distanceM'] != null)
-                                      'A ${x['distanceM']} m',
-                                    if (x['etaMinutes'] != null)
-                                      'llega en ${x['etaMinutes']} min',
-                                  ].join(' · '),
-                                  trailing: Icon(
-                                    Icons.directions_walk,
-                                    color: theme.primary,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                              ],
-                            ]
-                          : [
-                              _statusRow(
-                                icon: Icons.person,
-                                color: theme.violet,
-                                softColor: theme.violetSoft,
-                                title: 'Rosa Flores va en camino',
-                                subtitle: 'A 150 m · llega en 2 min',
-                                trailing: Icon(
-                                  Icons.directions_walk,
-                                  color: theme.primary,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              _statusRow(
-                                icon: Icons.medical_services,
-                                color: NearbyColors.sos,
-                                softColor: theme.sosSoft,
-                                title: 'Brigada de primeros auxilios',
-                                subtitle: 'Llega en 5 min',
-                                trailing: Icon(
-                                  Icons.directions_run,
-                                  color: theme.primary,
-                                ),
-                              ),
-                            ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-
-                Text(
-                  'Llamar a emergencias',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: theme.ink,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
-                  mainAxisExtent: MediaQuery.textScalerOf(context).scale(78),
-                  children: kCalls.map((c) {
-                    return InkWell(
-                      onTap: () => state.startCall(c.num),
-                      borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: theme.surface,
-                          border: Border.all(color: theme.line),
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: theme.cardShadow,
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 38,
-                              height: 38,
-                              decoration: BoxDecoration(
-                                color: theme.sosSoft,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(
-                                c.icon,
-                                color: NearbyColors.sos,
-                                size: 20,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    c.num,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      color: theme.ink,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                  Text(
-                                    c.label,
-                                    style: TextStyle(
-                                      color: theme.muted,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-
-                const SizedBox(height: 16),
-                if (!state.emergency) ...[
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      state.activateLocalEmergency();
-                      state.go('home', reset: true);
-                      state.toast(
-                        'Modo emergencia activado en tu app',
-                        icon: 'crisis_alert',
-                      );
-                    },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: NearbyColors.sos,
-                      side: const BorderSide(
-                        color: NearbyColors.sos,
-                        width: 1.5,
-                      ),
-                      minimumSize: const Size.fromHeight(52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    icon: const Icon(Icons.crisis_alert, size: 20),
-                    label: const Text(
-                      'Activar modo emergencia',
-                      style: TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                ],
-
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    // Cerrar un SOS activo pide huella, rostro o PIN: nadie más puede apagar tu alerta.
-                    if (!await state.confirmIdentity(
-                      'Confirma que estás a salvo para cerrar la alerta',
-                    )) {
-                      return;
-                    }
-                    state.sosSafe();
-                    state.go('home', reset: true);
-                    state.toast(
-                      'Avisamos a todos que estás a salvo',
-                      icon: 'verified_user',
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.btnBg,
-                    foregroundColor: theme.btnInk,
-                    minimumSize: const Size.fromHeight(52),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  icon: Icon(
-                    Icons.verified_user,
-                    color: theme.primary,
-                    size: 20,
-                  ),
-                  label: const Text(
-                    'Estoy a salvo · cerrar alerta',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
-                  ),
-                ),
-              ],
+    final statusRows = off
+        ? [
+            _statusRow(
+              icon: Icons.sms,
+              color: ui.ink,
+              softColor: ui.blueSoft,
+              title: !live
+                  ? 'SMS enviado a 3 contactos y a la brigada'
+                  : state.contacts.isEmpty
+                  ? 'Código SMS listo para la brigada'
+                  : 'Código SMS listo para tus ${state.contacts.length} contactos',
+              subtitle:
+                  'Sin internet: código comprimido de ${state.lastCode?.length ?? 22} caracteres',
+              trailing: check,
             ),
-          ),
-        ),
-      ],
+            _statusRow(
+              icon: Icons.graphic_eq,
+              color: ui.ink,
+              softColor: ui.blueSoft,
+              title: 'Puente de sonido listo',
+              subtitle: 'Pasa el código a celulares cercanos sin señal',
+              trailing: check,
+            ),
+            _statusRow(
+              icon: Icons.sync,
+              color: theme.accentInk,
+              softColor: theme.accentSoft,
+              title: 'Alerta completa en cola',
+              subtitle: 'Se envía apenas vuelva la señal',
+              trailing: Icon(Icons.schedule, color: theme.accentInk, size: 20),
+            ),
+          ]
+        : [
+            _statusRow(
+              icon: Icons.groups,
+              color: theme.sos,
+              softColor: theme.sosSoft,
+              title: neighborsTitle,
+              subtitle: 'En un radio de 500 m',
+              trailing: check,
+            ),
+            _statusRow(
+              icon: Icons.share_location,
+              color: ui.ink,
+              softColor: ui.blueSoft,
+              title: contactsTitle,
+              subtitle: contactsSub,
+              trailing: check,
+            ),
+            _statusRow(
+              icon: Icons.medical_services,
+              color: ui.ink,
+              softColor: ui.blueSoft,
+              title: live
+                  ? 'Brigada de tu zona notificada'
+                  : 'Brigada Zona 3 notificada',
+              subtitle: brigadeSub,
+              trailing: check,
+            ),
+          ];
+
+    final onTheWayRows = live
+        ? [
+            if (responders.isEmpty)
+              _statusRow(
+                icon: Icons.hourglass_top,
+                color: ui.ink,
+                softColor: ui.blueSoft,
+                title: 'Esperando a tus vecinos',
+                subtitle: 'Te avisamos apenas alguien vaya en camino',
+                trailing: Icon(Icons.schedule, color: ui.muted, size: 20),
+              ),
+            for (final x in responders)
+              _statusRow(
+                icon: Icons.person,
+                color: ui.ink,
+                softColor: ui.blueSoft,
+                title: x['status'] == 'ARRIVED'
+                    ? '${x['name'] ?? 'Un vecino'} llegó'
+                    : '${x['name'] ?? 'Un vecino'} va en camino',
+                // Solo distancia y tiempo si el backend los dio
+                subtitle: [
+                  if (x['distanceM'] != null) 'A ${x['distanceM']} m',
+                  if (x['etaMinutes'] != null)
+                    'llega en ${x['etaMinutes']} min',
+                ].join(' · '),
+                trailing: Icon(
+                  Icons.directions_walk,
+                  color: theme.primary,
+                  size: 20,
+                ),
+              ),
+          ]
+        : [
+            _statusRow(
+              icon: Icons.person,
+              color: ui.ink,
+              softColor: ui.blueSoft,
+              title: 'Rosa Flores va en camino',
+              subtitle: 'A 150 m · llega en 2 min',
+              trailing: Icon(
+                Icons.directions_walk,
+                color: theme.primary,
+                size: 20,
+              ),
+            ),
+            _statusRow(
+              icon: Icons.medical_services,
+              color: theme.sos,
+              softColor: theme.sosSoft,
+              title: 'Brigada de primeros auxilios',
+              subtitle: 'Llega en 5 min',
+              trailing: Icon(
+                Icons.directions_run,
+                color: theme.primary,
+                size: 20,
+              ),
+            ),
+          ];
+
+    return LayoutBuilder(
+      builder: (context, bounds) {
+        final g = _gutter(bounds.maxWidth);
+        return ListView(
+          key: const ValueKey('sos-sent-scroll'),
+          padding: EdgeInsets.zero,
+          children: [
+            // Cabecera roja
+            Container(
+              key: const ValueKey('sos-sent-header'),
+              color: NearbyColors.sos,
+              padding: EdgeInsets.fromLTRB(g, 12, g, 32),
+              child: _readable(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          state.connected ? state.nowTime() : '10:47',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.check,
+                        color: NearbyColors.sos,
+                        size: 36,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    const Text(
+                      'Alerta enviada',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      state.connected
+                          ? 'Tipo: $typeLabel · tu ubicación actual'
+                          : 'Tipo: $typeLabel · ${state.publishWhere}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Detalle sobre página blanca
+            Container(
+              key: const ValueKey('sos-sent-details'),
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: theme.surface,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
+              ),
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(g, 20, g, 32),
+                child: _readable(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _listCard(statusRows),
+                      const SizedBox(height: 12),
+
+                      // Sin internet: tarjeta del código
+                      if (off && state.lastCode != null) ...[
+                        _buildCodeCard(state.lastCode!),
+                        const SizedBox(height: 12),
+                      ] else ...[
+                        // Quién va en camino
+                        _listCard(onTheWayRows),
+                        const SizedBox(height: 12),
+                      ],
+
+                      const SizedBox(height: 8),
+                      Text(
+                        'Llamar a emergencias',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: ui.ink,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      _CallGrid(state: state, theme: theme),
+
+                      const SizedBox(height: 20),
+                      if (!state.emergency) ...[
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            state.activateLocalEmergency();
+                            state.go('home', reset: true);
+                            state.toast(
+                              'Modo emergencia activado en tu app',
+                              icon: 'crisis_alert',
+                            );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: theme.sos,
+                            side: BorderSide(color: theme.sos, width: 1.5),
+                            minimumSize: const Size.fromHeight(52),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            textStyle: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          icon: const Icon(Icons.crisis_alert, size: 20),
+                          label: const Text('Activar modo emergencia'),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          // Cerrar un SOS activo pide huella, rostro o PIN: nadie más puede apagar tu alerta.
+                          if (!await state.confirmIdentity(
+                            'Confirma que estás a salvo para cerrar la alerta',
+                          )) {
+                            return;
+                          }
+                          state.sosSafe();
+                          state.go('home', reset: true);
+                          state.toast(
+                            'Avisamos a todos que estás a salvo',
+                            icon: 'verified_user',
+                          );
+                        },
+                        style: _primary(ui),
+                        icon: const Icon(Icons.verified_user, size: 20),
+                        label: const Text('Estoy a salvo · cerrar alerta'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Tarjeta con borde y filas separadas por líneas finas.
+  Widget _listCard(List<Widget> rows) {
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.surface,
+        border: Border.all(color: ui.line),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          for (var i = 0; i < rows.length; i++) ...[
+            if (i > 0)
+              Divider(height: 1, color: ui.line, indent: 12, endIndent: 12),
+            rows[i],
+          ],
+        ],
+      ),
     );
   }
 
@@ -963,23 +977,11 @@ class SosSentScreen extends StatelessWidget {
     required String subtitle,
     required Widget trailing,
   }) {
-    return Container(
+    return Padding(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.surface2,
-        borderRadius: BorderRadius.circular(16),
-      ),
       child: Row(
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: softColor,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: color, size: 22),
-          ),
+          _iconSquare(icon, bg: softColor, fg: color),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -988,18 +990,20 @@ class SosSentScreen extends StatelessWidget {
                 Text(
                   title,
                   style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: theme.ink,
-                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: ui.ink,
+                    fontSize: 14,
                   ),
                 ),
-                Text(
-                  subtitle,
-                  style: TextStyle(color: theme.muted, fontSize: 12),
-                ),
+                if (subtitle.isNotEmpty)
+                  Text(
+                    subtitle,
+                    style: TextStyle(color: ui.muted, fontSize: 12),
+                  ),
               ],
             ),
           ),
+          const SizedBox(width: 8),
           trailing,
         ],
       ),
@@ -1011,24 +1015,24 @@ class SosSentScreen extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: theme.surface,
-        border: Border.all(color: theme.line),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: theme.cardShadow,
+        border: Border.all(color: ui.line),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.auto_awesome, color: theme.violet, size: 18),
-              const SizedBox(width: 6),
-              Text(
-                'Comprimido por IA para SMS',
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 12,
-                  color: theme.violet,
-                  letterSpacing: 0.5,
+              Icon(Icons.auto_awesome, color: ui.ink, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Comprimido por IA para SMS',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: ui.ink,
+                  ),
                 ),
               ),
             ],
@@ -1038,16 +1042,16 @@ class SosSentScreen extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFF041128),
-              borderRadius: BorderRadius.circular(12),
+              color: NearbyColors.darkNavy,
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               code,
               style: const TextStyle(
                 fontFamily: 'monospace',
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w700,
                 fontSize: 14.5,
-                color: Color(0xFF6FE6D6),
+                color: NearbyColors.darkPrimaryDark,
               ),
             ),
           ),
@@ -1057,19 +1061,11 @@ class SosSentScreen extends StatelessWidget {
             children: [
               Text(
                 '${code.length} de 25 caracteres',
-                style: TextStyle(
-                  color: theme.muted,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(color: ui.muted, fontSize: 11.5),
               ),
               Text(
                 'Cabe en 1 SMS',
-                style: TextStyle(
-                  color: theme.muted,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(color: ui.muted, fontSize: 11.5),
               ),
             ],
           ),
@@ -1079,19 +1075,9 @@ class SosSentScreen extends StatelessWidget {
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () => state.openSheet('sonic'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: NearbyColors.violet,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                  ),
+                  style: ui.action(),
                   icon: const Icon(Icons.graphic_eq, size: 16),
-                  label: const Text(
-                    'Enviar por sonido',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
-                  ),
+                  label: const Text('Enviar por sonido'),
                 ),
               ),
               const SizedBox(width: 8),
@@ -1102,19 +1088,9 @@ class SosSentScreen extends StatelessWidget {
                     state.lastCode = code;
                     state.go('puente');
                   },
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: theme.ink,
-                    side: BorderSide(color: theme.line),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                  ),
+                  style: ui.action(filled: false),
                   icon: const Icon(Icons.visibility, size: 16),
-                  label: const Text(
-                    'Ver brigadista',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
-                  ),
+                  label: const Text('Ver brigadista'),
                 ),
               ),
             ],
@@ -1184,217 +1160,217 @@ class AlertaRecibidaScreen extends StatelessWidget {
     return Container(
       color: NearbyColors.sos,
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(22, 20, 22, 26),
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.crisis_alert, color: Colors.white, size: 16),
-                    SizedBox(width: 6),
-                    Text(
-                      'ALERTA DE UN VECINO',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 12,
-                        letterSpacing: 0.8,
-                      ),
+        child: LayoutBuilder(
+          builder: (context, bounds) {
+            final g = _gutter(bounds.maxWidth);
+            return SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(g, 20, g, 24),
+              child: _readable(
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: (bounds.maxHeight - 44).clamp(
+                      0.0,
+                      double.infinity,
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 28),
-
-              // Pulsing avatar circle
-              Container(
-                width: 104,
-                height: 104,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.white.withValues(alpha: 0.4),
-                      blurRadius: 24,
-                      spreadRadius: 8,
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: initials.isEmpty
-                      ? const Icon(
-                          Icons.person,
-                          color: NearbyColors.sosDark,
-                          size: 48,
-                        )
-                      : Text(
-                          initials,
-                          style: const TextStyle(
-                            color: NearbyColors.sosDark,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 32,
+                  ),
+                  child: IntrinsicHeight(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.crisis_alert,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                                SizedBox(width: 6),
+                                Text(
+                                  'ALERTA DE UN VECINO',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 11,
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                ),
-              ),
-              const SizedBox(height: 22),
+                        const SizedBox(height: 28),
 
-              Text(
-                '$who necesita ayuda',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 25,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              // Chips
-              Wrap(
-                spacing: 8,
-                runSpacing: 6,
-                alignment: WrapAlignment.center,
-                children: [
-                  _chip(Icons.medical_services, type),
-                  if (dist != null) _chip(Icons.near_me, dist),
-                  if (ago != null) _chip(Icons.schedule, ago),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              Text(
-                detail,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  height: 1.4,
-                ),
-              ),
-
-              const Spacer(),
-
-              ElevatedButton.icon(
-                onPressed: () {
-                  state.respondSos(true);
-                  state.routeTo = {
-                    'title': live
-                        ? '$who · $type'
-                        : 'Rosa Flores · Jr. Los Pinos 210',
-                    if (live) 'sub': 'Ubicación aproximada',
-                    // Coordenadas aproximadas del SOS (GET /sos/nearby)
-                    if (destLat != null && destLng != null) ...{
-                      'lat': destLat.toDouble(),
-                      'lng': destLng.toDouble(),
-                    },
-                    'icon': Icons.emergency,
-                    'kind': 'help',
-                  };
-                  state.go('ruta', reset: true);
-                  state.toast(
-                    initials.isEmpty
-                        ? 'Avisamos que vas en camino'
-                        : '${who.split(' ').first} y la brigada saben que vas en camino',
-                    icon: 'directions_run',
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: NearbyColors.sosDark,
-                  minimumSize: const Size.fromHeight(52),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                icon: const Icon(Icons.directions_run, size: 22),
-                label: const Text(
-                  'Voy a ayudar',
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
-                ),
-              ),
-              const SizedBox(height: 10),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => state.startCall('106'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white70, width: 2),
-                        minimumSize: const Size.fromHeight(52),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                        // Avatar con halo
+                        Center(
+                          child: Container(
+                            width: 104,
+                            height: 104,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.white.withValues(alpha: 0.4),
+                                  blurRadius: 24,
+                                  spreadRadius: 8,
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: initials.isEmpty
+                                  ? const Icon(
+                                      Icons.person,
+                                      color: NearbyColors.sosDark,
+                                      size: 48,
+                                    )
+                                  : Text(
+                                      initials,
+                                      style: const TextStyle(
+                                        color: NearbyColors.sosDark,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 32,
+                                      ),
+                                    ),
+                            ),
+                          ),
                         ),
-                      ),
-                      icon: const Icon(Icons.medical_services, size: 18),
-                      label: const Text(
-                        'Llamar al 106',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 13,
+                        const SizedBox(height: 24),
+
+                        Text(
+                          '$who necesita ayuda',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            letterSpacing: -0.5,
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 14),
+
+                        // Etiquetas
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          alignment: WrapAlignment.center,
+                          children: [
+                            _chip(Icons.medical_services, type),
+                            if (dist != null) _chip(Icons.near_me, dist),
+                            if (ago != null) _chip(Icons.schedule, ago),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        Text(
+                          detail,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            height: 1.45,
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+                        const Spacer(),
+
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            state.respondSos(true);
+                            state.routeTo = {
+                              'title': live
+                                  ? '$who · $type'
+                                  : 'Rosa Flores · Jr. Los Pinos 210',
+                              if (live) 'sub': 'Ubicación aproximada',
+                              // Coordenadas aproximadas del SOS (GET /sos/nearby)
+                              if (destLat != null && destLng != null) ...{
+                                'lat': destLat.toDouble(),
+                                'lng': destLng.toDouble(),
+                              },
+                              'icon': Icons.emergency,
+                              'kind': 'help',
+                            };
+                            state.go('ruta', reset: true);
+                            state.toast(
+                              initials.isEmpty
+                                  ? 'Avisamos que vas en camino'
+                                  : '${who.split(' ').first} y la brigada saben que vas en camino',
+                              icon: 'directions_run',
+                            );
+                          },
+                          style: _onRedFilled(),
+                          icon: const Icon(Icons.directions_run, size: 22),
+                          label: const Text('Voy a ayudar'),
+                        ),
+                        const SizedBox(height: 10),
+
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () => state.startCall('106'),
+                                style: _onRedOutline(),
+                                icon: const Icon(
+                                  Icons.medical_services,
+                                  size: 18,
+                                ),
+                                label: const Text('Llamar al 106'),
+                              ),
+                            ),
+                            // Sin nombre real no hay a quién llamar
+                            if (initials.isNotEmpty) const SizedBox(width: 8),
+                            if (initials.isNotEmpty)
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => state.startCall(who),
+                                  style: _onRedOutline(),
+                                  icon: const Icon(Icons.call, size: 18),
+                                  label: Text(
+                                    'Llamar a ${who.split(' ').first}',
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+
+                        Center(
+                          child: TextButton(
+                            onPressed: () {
+                              state.respondSos(false);
+                              state.go('home', reset: true);
+                              state.toast(
+                                'Entendido. Avisamos a otros vecinos cercanos.',
+                                icon: 'groups',
+                              );
+                            },
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.white70,
+                            ),
+                            child: const Text(
+                              'No puedo ahora',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  // Sin nombre real no hay a quién llamar
-                  if (initials.isNotEmpty) const SizedBox(width: 8),
-                  if (initials.isNotEmpty) Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => state.startCall(who),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white70, width: 2),
-                        minimumSize: const Size.fromHeight(52),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      icon: const Icon(Icons.call, size: 18),
-                      label: Text(
-                        'Llamar a ${who.split(' ').first}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-
-              TextButton(
-                onPressed: () {
-                  state.respondSos(false);
-                  state.go('home', reset: true);
-                  state.toast(
-                    'Entendido. Avisamos a otros vecinos cercanos.',
-                    icon: 'groups',
-                  );
-                },
-                child: const Text(
-                  'No puedo ahora',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontWeight: FontWeight.w700,
-                  ),
                 ),
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -1405,19 +1381,19 @@ class AlertaRecibidaScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, color: Colors.white, size: 16),
-          const SizedBox(width: 5),
+          const SizedBox(width: 6),
           Text(
             label,
             style: const TextStyle(
               color: Colors.white,
-              fontWeight: FontWeight.w800,
-              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
             ),
           ),
         ],

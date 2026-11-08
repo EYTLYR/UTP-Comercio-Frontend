@@ -7,9 +7,81 @@ import '../state/app_state.dart';
 import '../theme/nearby_theme.dart';
 import '../services/speech_input.dart';
 
+// --- Piezas comunes de las hojas inferiores ---
+
+/// Cuadrito de ícono de cabecera (radio 12).
+Widget _sheetIcon(
+  NearbyCommunityStyle ui,
+  IconData icon, {
+  Color? bg,
+  Color? fg,
+}) => Container(
+  width: 48,
+  height: 48,
+  decoration: BoxDecoration(
+    color: bg ?? ui.blueSoft,
+    borderRadius: BorderRadius.circular(12),
+  ),
+  child: Icon(icon, color: fg ?? ui.ink, size: 24),
+);
+
+/// Título de hoja: 20 w700 en tinta.
+Widget _sheetTitle(NearbyCommunityStyle ui, String text) => Text(
+  text,
+  style: TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.w700,
+    color: ui.ink,
+    letterSpacing: -0.3,
+    height: 1.25,
+  ),
+);
+
+/// Texto de apoyo bajo el título.
+Widget _sheetBody(NearbyCommunityStyle ui, String text) => Text(
+  text,
+  style: TextStyle(color: ui.muted, fontSize: 14, height: 1.45),
+);
+
+/// Botón principal ámbar a todo el ancho.
+ButtonStyle _sheetPrimary(NearbyCommunityStyle ui) => ui.action().copyWith(
+  minimumSize: const WidgetStatePropertyAll(Size.fromHeight(48)),
+  textStyle: const WidgetStatePropertyAll(
+    TextStyle(fontFamily: 'Poppins', fontSize: 14, fontWeight: FontWeight.w600),
+  ),
+);
+
+/// Botón secundario de contorno a todo el ancho.
+ButtonStyle _sheetSecondary(NearbyCommunityStyle ui) => ui
+    .action(filled: false)
+    .copyWith(
+      minimumSize: const WidgetStatePropertyAll(Size.fromHeight(48)),
+      textStyle: const WidgetStatePropertyAll(
+        TextStyle(
+          fontFamily: 'Poppins',
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+
+/// Acción terciaria («Cancelar», «Ahora no»).
+Widget _sheetDismiss(
+  NearbyCommunityStyle ui,
+  String label,
+  VoidCallback onPressed,
+) => Center(
+  child: TextButton(
+    onPressed: onPressed,
+    style: TextButton.styleFrom(foregroundColor: ui.muted),
+    child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+  ),
+);
+
 class NearbyBottomSheetModal extends StatelessWidget {
   final NearbyThemeData theme;
   final AppState state;
+  NearbyCommunityStyle get ui => NearbyCommunityStyle(theme);
 
   const NearbyBottomSheetModal({
     super.key,
@@ -23,6 +95,7 @@ class NearbyBottomSheetModal extends StatelessWidget {
 
     final type = state.sheet!['type'] as String;
     final id = state.sheet!['id'];
+    final side = MediaQuery.sizeOf(context).width < 360 ? 16.0 : 24.0;
 
     return TweenAnimationBuilder<double>(
       key: ValueKey('sheet_${type}_$id'),
@@ -36,7 +109,7 @@ class NearbyBottomSheetModal extends StatelessWidget {
               child: GestureDetector(
                 onTap: state.closeSheet,
                 child: ColoredBox(
-                  color: Colors.black.withValues(alpha: 0.55 * progress),
+                  color: Colors.black.withValues(alpha: 0.5 * progress),
                 ),
               ),
             ),
@@ -50,9 +123,10 @@ class NearbyBottomSheetModal extends StatelessWidget {
           ],
         );
       },
+      // En pantallas anchas la hoja queda centrada y legible (máx. 560).
       child: Container(
         constraints: BoxConstraints(
-          maxWidth: 460,
+          maxWidth: 560,
           maxHeight:
               MediaQuery.sizeOf(context).height -
               MediaQuery.viewInsetsOf(context).bottom -
@@ -60,30 +134,30 @@ class NearbyBottomSheetModal extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: theme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.22),
-              blurRadius: 28,
-              offset: const Offset(0, -6),
+              color: Colors.black.withValues(alpha: 0.16),
+              blurRadius: 24,
+              offset: const Offset(0, -4),
             ),
           ],
         ),
-        padding: const EdgeInsets.fromLTRB(20, 10, 20, 28),
+        padding: EdgeInsets.fromLTRB(side, 12, side, 24),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Grab handle
+              // Asa para arrastrar
               Center(
                 child: Container(
-                  width: 44,
-                  height: 5,
-                  margin: const EdgeInsets.only(bottom: 16),
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
                   decoration: BoxDecoration(
-                    color: theme.line,
-                    borderRadius: BorderRadius.circular(3),
+                    color: ui.line,
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
@@ -111,6 +185,25 @@ class NearbyBottomSheetModal extends StatelessWidget {
     );
   }
 
+  /// Panel marfil con filas «etiqueta · valor» separadas por líneas.
+  Widget _infoPanel(List<Widget> rows) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+      decoration: BoxDecoration(
+        color: ui.ivory,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          for (var i = 0; i < rows.length; i++) ...[
+            if (i > 0) Divider(height: 1, color: ui.line),
+            rows[i],
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildAiRunSheet(BuildContext context) {
     final steps = [
       'Leyendo ${state.posts.length} favores del muro solidario',
@@ -123,75 +216,88 @@ class NearbyBottomSheetModal extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [NearbyColors.violet, NearbyColors.navy2],
-            ),
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: const Icon(Icons.auto_awesome, color: Colors.white, size: 28),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'IA cruzando el historial del barrio',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w900,
-            color: theme.ink,
-          ),
-        ),
+        _sheetIcon(ui, Icons.auto_awesome),
+        const SizedBox(height: 16),
+        _sheetTitle(ui, 'IA cruzando el historial del barrio'),
         const SizedBox(height: 6),
-        Text(
+        _sheetBody(
+          ui,
           'Lo que los vecinos ofrecieron en el día a día ahora sirve para rescatar.',
-          style: TextStyle(color: theme.muted, fontSize: 13.5),
         ),
-        const SizedBox(height: 18),
-        ...List.generate(steps.length, (i) {
-          final isDone = i < state.aiStep;
-          final isRun = i == state.aiStep;
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Row(
-              children: [
-                if (isDone)
-                  Icon(Icons.check_circle, color: theme.primary, size: 22)
-                else if (isRun)
-                  SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: theme.violet,
+        const SizedBox(height: 20),
+        Container(
+          decoration: BoxDecoration(
+            color: theme.surface,
+            border: Border.all(color: ui.line),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: List.generate(steps.length, (i) {
+              final isDone = i < state.aiStep;
+              final isRun = i == state.aiStep;
+              return Column(
+                children: [
+                  if (i > 0)
+                    Divider(
+                      height: 1,
+                      color: ui.line,
+                      indent: 12,
+                      endIndent: 12,
                     ),
-                  )
-                else
-                  Icon(
-                    Icons.radio_button_unchecked,
-                    color: theme.line,
-                    size: 22,
-                  ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    steps[i],
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: isDone || isRun
-                          ? FontWeight.w700
-                          : FontWeight.w500,
-                      color: isDone
-                          ? theme.ink
-                          : (isRun ? theme.violet : theme.muted),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 11,
+                    ),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: Center(
+                            child: isDone
+                                ? Icon(
+                                    Icons.check_circle,
+                                    color: theme.primary,
+                                    size: 22,
+                                  )
+                                : isRun
+                                ? SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: ui.ink,
+                                    ),
+                                  )
+                                : Icon(
+                                    Icons.radio_button_unchecked,
+                                    color: ui.muted.withValues(alpha: 0.5),
+                                    size: 22,
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            steps[i],
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: isDone || isRun
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                              color: isDone || isRun ? ui.ink : ui.muted,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ],
-            ),
-          );
-        }),
+                ],
+              );
+            }),
+          ),
+        ),
       ],
     );
   }
@@ -201,116 +307,72 @@ class NearbyBottomSheetModal extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: theme.sosSoft,
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Icon(Icons.crisis_alert, color: theme.sos, size: 28),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Modo emergencia activo',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w900,
-            color: theme.ink,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Nearby muestra lo necesario para coordinar ayuda: tablero, recursos, grupos de apoyo y puntos seguros.',
-          style: TextStyle(color: theme.muted, fontSize: 13.5),
+        _sheetIcon(
+          ui,
+          Icons.crisis_alert,
+          bg: theme.sosSoft,
+          fg: theme.sos,
         ),
         const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            border: Border.all(color: theme.line),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            children: [
-              _kvRow(
-                Icons.campaign,
-                'Activado por',
-                yo
-                    ? 'Ti, desde tu app'
-                    : !state.connected
-                    ? 'Defensa Civil / Municipalidad'
-                    : switch (state.zoneModeSource) {
-                        'AUTO_SOS' => 'Automático: varios SOS en tu zona',
-                        'USER' => 'Un vecino de tu zona',
-                        _ => 'La Municipalidad de tu zona',
-                      },
-              ),
-              const Divider(height: 16),
-              _kvRow(
-                Icons.schedule,
-                'Desde',
-                !state.connected
-                    ? '10:42 · ${yo ? "Alerta personal" : "Sismo en Lima"}'
-                    : _since(state.emergencySince),
-              ),
-              const Divider(height: 16),
-              if (!yo || !state.connected) ...[
-                _kvRow(
-                  Icons.info_outline,
-                  'Motivo',
-                  !state.connected
-                      ? (yo ? 'Alerta personal' : 'Sismo en Lima')
-                      : (state.zoneModeReason?.isNotEmpty == true
-                            ? state.zoneModeReason!
-                            : 'Sin motivo indicado'),
-                ),
-                const Divider(height: 16),
-              ] else ...[
-                _kvRow(Icons.info_outline, 'Motivo', 'Alerta personal'),
-                const Divider(height: 16),
-              ],
-              _kvRow(Icons.location_on, 'Zona', state.zoneName),
-            ],
-          ),
+        _sheetTitle(ui, 'Modo emergencia activo'),
+        const SizedBox(height: 6),
+        _sheetBody(
+          ui,
+          'Nearby muestra lo necesario para coordinar ayuda: tablero, recursos, grupos de apoyo y puntos seguros.',
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 16),
+        _infoPanel([
+          _kvRow(
+            Icons.campaign_outlined,
+            'Activado por',
+            yo
+                ? 'Ti, desde tu app'
+                : !state.connected
+                ? 'Defensa Civil / Municipalidad'
+                : switch (state.zoneModeSource) {
+                    'AUTO_SOS' => 'Automático: varios SOS en tu zona',
+                    'USER' => 'Un vecino de tu zona',
+                    _ => 'La Municipalidad de tu zona',
+                  },
+          ),
+          _kvRow(
+            Icons.schedule,
+            'Desde',
+            !state.connected
+                ? '10:42 · ${yo ? "Alerta personal" : "Sismo en Lima"}'
+                : _since(state.emergencySince),
+          ),
+          if (!yo || !state.connected)
+            _kvRow(
+              Icons.info_outline,
+              'Motivo',
+              !state.connected
+                  ? (yo ? 'Alerta personal' : 'Sismo en Lima')
+                  : (state.zoneModeReason?.isNotEmpty == true
+                        ? state.zoneModeReason!
+                        : 'Sin motivo indicado'),
+            )
+          else
+            _kvRow(Icons.info_outline, 'Motivo', 'Alerta personal'),
+          _kvRow(Icons.location_on_outlined, 'Zona', state.zoneName),
+        ]),
+        const SizedBox(height: 20),
         ElevatedButton.icon(
           onPressed: () {
             state.closeSheet();
             state.go('tablero');
           },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: theme.btnBg,
-            foregroundColor: theme.btnInk,
-            minimumSize: const Size.fromHeight(52),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-          icon: Icon(Icons.dashboard, color: theme.primary, size: 20),
-          label: const Text(
-            'Ver tablero del barrio',
-            style: TextStyle(fontWeight: FontWeight.w800),
-          ),
+          style: _sheetPrimary(ui),
+          icon: const Icon(Icons.dashboard_outlined, size: 20),
+          label: const Text('Ver tablero del barrio'),
         ),
         const SizedBox(height: 10),
         OutlinedButton.icon(
           key: state.tourTarget('em-exit'),
           onPressed: () => state.openSheet('em-off'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: NearbyColors.sos,
-            side: const BorderSide(color: NearbyColors.sos, width: 1.5),
-            minimumSize: const Size.fromHeight(52),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
+          style: _sheetSecondary(ui),
           icon: const Icon(Icons.power_settings_new, size: 20),
-          label: const Text(
-            'Desactivar modo emergencia',
-            style: TextStyle(fontWeight: FontWeight.w800),
-          ),
+          label: const Text('Desactivar modo emergencia'),
         ),
       ],
     );
@@ -331,120 +393,101 @@ class NearbyBottomSheetModal extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: theme.primarySoft,
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Icon(Icons.verified_user, color: theme.primary, size: 28),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          '¿Volver al modo normal?',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w900,
-            color: theme.ink,
-          ),
-        ),
+        _sheetIcon(ui, Icons.verified_user_outlined),
+        const SizedBox(height: 16),
+        _sheetTitle(ui, '¿Volver al modo normal?'),
         const SizedBox(height: 6),
-        Text(
+        _sheetBody(
+          ui,
           state.emSource == 'yo'
               ? 'Tú activaste este modo. Al salir, Nearby vuelve a mostrar servicios y el muro de favores.'
               : 'La Municipalidad aún mantiene la emergencia en tu zona. Puedes volver al modo normal en tu app: seguirás recibiendo alertas críticas.',
-          style: TextStyle(color: theme.muted, fontSize: 13.5),
         ),
         const SizedBox(height: 16),
-        // Notify contacts checkbox
-        InkWell(
-          onTap: () {
-            state.emNotify = !state.emNotify;
-            state.refresh();
-          },
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              border: Border.all(color: theme.line),
-              borderRadius: BorderRadius.circular(16),
+        // Casilla: avisar a mis contactos
+        Semantics(
+          checked: state.emNotify,
+          child: Material(
+            color: theme.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: ui.line),
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: theme.primarySoft,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(Icons.sms, color: theme.primary, size: 20),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Avisar a mis contactos que estoy a salvo',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          color: theme.ink,
-                          fontSize: 13.5,
-                        ),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () {
+                state.emNotify = !state.emNotify;
+                state.refresh();
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: ui.blueSoft,
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      Text(
-                        _contactNames(),
-                        style: TextStyle(color: theme.muted, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  width: 26,
-                  height: 26,
-                  decoration: BoxDecoration(
-                    color: state.emNotify ? theme.primary : Colors.transparent,
-                    border: Border.all(
-                      color: state.emNotify ? theme.primary : theme.line,
-                      width: 2,
+                      child: Icon(Icons.sms_outlined, color: ui.ink, size: 20),
                     ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: state.emNotify
-                      ? const Icon(Icons.check, color: Colors.white, size: 18)
-                      : null,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Avisar a mis contactos que estoy a salvo',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: ui.ink,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _contactNames(),
+                            style: TextStyle(color: ui.muted, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: state.emNotify ? ui.ink : Colors.transparent,
+                        border: Border.all(
+                          color: state.emNotify ? ui.ink : ui.muted,
+                          width: 1.5,
+                        ),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: state.emNotify
+                          ? Icon(Icons.check, color: theme.surface, size: 16)
+                          : null,
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 20),
         ElevatedButton(
           onPressed: () {
             state.toggleEmergency();
           },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: theme.btnBg,
-            foregroundColor: theme.btnInk,
-            minimumSize: const Size.fromHeight(52),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-          child: const Text(
-            'Sí, volver al modo normal',
-            style: TextStyle(fontWeight: FontWeight.w800),
-          ),
+          style: _sheetPrimary(ui),
+          child: const Text('Sí, volver al modo normal'),
         ),
-        const SizedBox(height: 8),
-        TextButton(
-          onPressed: () => state.closeSheet(),
-          child: Text(
-            'Seguir en modo emergencia',
-            style: TextStyle(color: theme.muted, fontWeight: FontWeight.w500),
-          ),
+        const SizedBox(height: 4),
+        _sheetDismiss(
+          ui,
+          'Seguir en modo emergencia',
+          () => state.closeSheet(),
         ),
       ],
     );
@@ -459,120 +502,79 @@ class NearbyBottomSheetModal extends StatelessWidget {
       Icons.pets,
       Icons.local_florist,
     ];
+    void attach() {
+      state.pub.photo = true;
+      state.closeSheet();
+      state.toast('Foto adjunta', icon: 'image');
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: theme.infoSoft,
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Icon(Icons.photo_camera, color: theme.info, size: 28),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Agregar una foto',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w900,
-            color: theme.ink,
-          ),
-        ),
+        _sheetIcon(ui, Icons.photo_camera_outlined),
+        const SizedBox(height: 16),
+        _sheetTitle(ui, 'Agregar una foto'),
         const SizedBox(height: 6),
-        Text(
+        _sheetBody(
+          ui,
           'Una foto ayuda a tus vecinos a entender mejor lo que necesitas.',
-          style: TextStyle(color: theme.muted, fontSize: 13.5),
         ),
         const SizedBox(height: 16),
         Row(
           children: [
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: () {
-                  state.pub.photo = true;
-                  state.closeSheet();
-                  state.toast('Foto adjunta', icon: 'image');
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.btnBg,
-                  foregroundColor: theme.btnInk,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  minimumSize: const Size.fromHeight(52),
-                ),
-                icon: const Icon(Icons.photo_camera, size: 18),
+                onPressed: attach,
+                style: _sheetPrimary(ui),
+                icon: const Icon(Icons.photo_camera_outlined, size: 18),
                 label: const Text('Tomar foto'),
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () {
-                  state.pub.photo = true;
-                  state.closeSheet();
-                  state.toast('Foto adjunta', icon: 'image');
-                },
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: theme.ink,
-                  side: BorderSide(color: theme.line),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  minimumSize: const Size.fromHeight(52),
-                ),
-                icon: const Icon(Icons.photo_library, size: 18),
+                onPressed: attach,
+                style: _sheetSecondary(ui),
+                icon: const Icon(Icons.photo_library_outlined, size: 18),
                 label: const Text('Galería'),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         Text(
           'Recientes',
           style: TextStyle(
-            fontWeight: FontWeight.w800,
-            color: theme.ink,
-            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: ui.ink,
+            fontSize: 15,
           ),
         ),
-        const SizedBox(height: 8),
-        GridView.count(
-          crossAxisCount: 3,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-          children: icons.map((ic) {
-            return InkWell(
-              onTap: () {
-                state.pub.photo = true;
-                state.closeSheet();
-                state.toast('Foto adjunta', icon: 'image');
-              },
-              borderRadius: BorderRadius.circular(14),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: theme.surface2,
-                  borderRadius: BorderRadius.circular(14),
+        const SizedBox(height: 10),
+        LayoutBuilder(
+          builder: (context, constraints) => GridView.count(
+            // 3 por fila en móvil; una sola fila de 6 en hojas anchas.
+            crossAxisCount: constraints.maxWidth >= 440 ? 6 : 3,
+            shrinkWrap: true,
+            padding: EdgeInsets.zero,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+            children: icons.map((ic) {
+              return Material(
+                color: ui.ivory,
+                borderRadius: BorderRadius.circular(12),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: attach,
+                  child: Center(child: Icon(ic, color: ui.ink, size: 28)),
                 ),
-                child: Center(child: Icon(ic, color: theme.primary, size: 32)),
-              ),
-            );
-          }).toList(),
+              );
+            }).toList(),
+          ),
         ),
         const SizedBox(height: 12),
-        Center(
-          child: TextButton(
-            onPressed: () => state.closeSheet(),
-            child: Text(
-              'Cancelar',
-              style: TextStyle(color: theme.muted, fontWeight: FontWeight.w500),
-            ),
-          ),
-        ),
+        _sheetDismiss(ui, 'Cancelar', () => state.closeSheet()),
       ],
     );
   }
@@ -584,78 +586,35 @@ class NearbyBottomSheetModal extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: theme.violetSoft,
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Icon(g.icon, color: theme.violet, size: 28),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Unirte a ${g.name}',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w900,
-            color: theme.ink,
-          ),
-        ),
+        _sheetIcon(ui, g.icon),
+        const SizedBox(height: 16),
+        _sheetTitle(ui, 'Unirte a ${g.name}'),
         const SizedBox(height: 6),
-        Text(
+        _sheetBody(
+          ui,
           '${g.desc}. Te avisaremos cuando el grupo necesite manos. Puedes salir cuando quieras.',
-          style: TextStyle(color: theme.muted, fontSize: 13.5),
         ),
         const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            border: Border.all(color: theme.line),
-            borderRadius: BorderRadius.circular(16),
+        _infoPanel([
+          _kvRow(Icons.groups_outlined, 'Integrantes', '${g.members} vecinos'),
+          _kvRow(
+            Icons.schedule,
+            'Estado',
+            g.live ? 'Activo ahora' : 'Sin actividad ahora',
           ),
-          child: Column(
-            children: [
-              _kvRow(Icons.groups, 'Integrantes', '${g.members} vecinos'),
-              const Divider(height: 16),
-              _kvRow(
-                Icons.schedule,
-                'Estado',
-                g.live ? 'Activo ahora' : 'Sin actividad ahora',
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 18),
+        ]),
+        const SizedBox(height: 20),
         ElevatedButton(
           onPressed: () {
             state.joinGroup(g);
             state.closeSheet();
             state.toast('Te uniste a «${g.name}»', icon: 'person_add');
           },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: theme.btnBg,
-            foregroundColor: theme.btnInk,
-            minimumSize: const Size.fromHeight(52),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-          child: const Text(
-            'Sí, quiero unirme',
-            style: TextStyle(fontWeight: FontWeight.w800),
-          ),
+          style: _sheetPrimary(ui),
+          child: const Text('Sí, quiero unirme'),
         ),
-        const SizedBox(height: 8),
-        Center(
-          child: TextButton(
-            onPressed: () => state.closeSheet(),
-            child: Text(
-              'Ahora no',
-              style: TextStyle(color: theme.muted, fontWeight: FontWeight.w500),
-            ),
-          ),
-        ),
+        const SizedBox(height: 4),
+        _sheetDismiss(ui, 'Ahora no', () => state.closeSheet()),
       ],
     );
   }
@@ -664,28 +623,13 @@ class NearbyBottomSheetModal extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: theme.sosSoft,
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Icon(Icons.logout, color: theme.sos, size: 28),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          '¿Cerrar sesión?',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w900,
-            color: theme.ink,
-          ),
-        ),
+        _sheetIcon(ui, Icons.logout),
+        const SizedBox(height: 16),
+        _sheetTitle(ui, '¿Cerrar sesión?'),
         const SizedBox(height: 6),
-        Text(
+        _sheetBody(
+          ui,
           'Tus contactos y tu ficha quedan guardados en tu cuenta. Para volver a entrar solo necesitas tu celular.',
-          style: TextStyle(color: theme.muted, fontSize: 13.5),
         ),
         const SizedBox(height: 20),
         ElevatedButton(
@@ -693,29 +637,11 @@ class NearbyBottomSheetModal extends StatelessWidget {
             state.closeSheet();
             state.logout();
           },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: NearbyColors.sos,
-            foregroundColor: Colors.white,
-            minimumSize: const Size.fromHeight(52),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-          child: const Text(
-            'Cerrar sesión',
-            style: TextStyle(fontWeight: FontWeight.w800),
-          ),
+          style: _sheetPrimary(ui),
+          child: const Text('Cerrar sesión'),
         ),
-        const SizedBox(height: 8),
-        Center(
-          child: TextButton(
-            onPressed: () => state.closeSheet(),
-            child: Text(
-              'Cancelar',
-              style: TextStyle(color: theme.muted, fontWeight: FontWeight.w500),
-            ),
-          ),
-        ),
+        const SizedBox(height: 4),
+        _sheetDismiss(ui, 'Cancelar', () => state.closeSheet()),
       ],
     );
   }
@@ -733,21 +659,28 @@ class NearbyBottomSheetModal extends StatelessWidget {
   }
 
   Widget _kvRow(IconData icon, String label, String value) {
-    return Row(
-      children: [
-        Icon(icon, color: theme.muted, size: 20),
-        const SizedBox(width: 8),
-        Text(label, style: TextStyle(color: theme.muted, fontSize: 13.5)),
-        const Spacer(),
-        Text(
-          value,
-          style: TextStyle(
-            color: theme.ink,
-            fontWeight: FontWeight.w800,
-            fontSize: 13.5,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 11),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: ui.muted, size: 18),
+          const SizedBox(width: 10),
+          Text(label, style: TextStyle(color: ui.muted, fontSize: 13)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                color: ui.ink,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -824,34 +757,35 @@ class _VoiceSheetState extends State<_VoiceSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = widget.theme;
+    final ui = NearbyCommunityStyle(theme);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Icon(
-          _voice.listening ? Icons.mic : Icons.mic_none,
-          color: theme.violet,
-          size: 42,
-        ),
-        const SizedBox(height: 12),
-        Text(
-          _voice.listening ? 'Te escucho…' : 'Dilo con tu voz',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            color: theme.ink,
+        Align(
+          alignment: Alignment.centerLeft,
+          child: _sheetIcon(
+            ui,
+            _voice.listening ? Icons.mic : Icons.mic_none,
+            bg: _voice.listening ? ui.accent : ui.blueSoft,
+            fg: _voice.listening ? ui.onAccent : ui.ink,
           ),
         ),
+        const SizedBox(height: 16),
+        _sheetTitle(ui, _voice.listening ? 'Te escucho…' : 'Dilo con tu voz'),
         const SizedBox(height: 6),
-        Text(
+        _sheetBody(
+          ui,
           'Activa el micrófono, cuéntalo con tus palabras y revisa el texto antes de continuar.',
-          style: TextStyle(color: theme.muted, fontSize: 13.5),
         ),
         if (_voice.listening) const Center(child: _WaveBars()),
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
         if (_voice.error != null) ...[
           Semantics(
             liveRegion: true,
-            child: Text(_voice.error!, style: TextStyle(color: theme.sosDark)),
+            child: Text(
+              _voice.error!,
+              style: TextStyle(color: theme.sosDark, fontSize: 13),
+            ),
           ),
           const SizedBox(height: 12),
         ],
@@ -861,15 +795,26 @@ class _VoiceSheetState extends State<_VoiceSheet> {
           minLines: 2,
           maxLines: 4,
           onChanged: (_) => setState(() {}),
-          style: TextStyle(color: theme.ink),
+          style: TextStyle(color: ui.ink, fontSize: 14),
           decoration: InputDecoration(
             hintText: 'Tu voz aparecerá aquí. También puedes escribir.',
             filled: true,
-            fillColor: theme.surface2,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+            fillColor: ui.ivory,
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: ui.line),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: ui.ink, width: 1.5),
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: ui.line),
+            ),
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
         OutlinedButton.icon(
           onPressed: _voice.preparing || _usingText
               ? null
@@ -880,7 +825,8 @@ class _VoiceSheetState extends State<_VoiceSheet> {
                     await _voice.start();
                   }
                 },
-          icon: Icon(_voice.listening ? Icons.stop : Icons.mic),
+          style: _sheetSecondary(ui),
+          icon: Icon(_voice.listening ? Icons.stop : Icons.mic, size: 20),
           label: Text(
             _voice.preparing
                 ? 'Preparando micrófono…'
@@ -892,17 +838,11 @@ class _VoiceSheetState extends State<_VoiceSheet> {
         const SizedBox(height: 8),
         ElevatedButton(
           onPressed: _text.text.trim().isEmpty || _usingText ? null : _useText,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: theme.btnBg,
-            foregroundColor: theme.btnInk,
-            minimumSize: const Size.fromHeight(52),
-          ),
+          style: _sheetPrimary(ui),
           child: const Text('Usar este texto'),
         ),
-        TextButton(
-          onPressed: widget.state.closeSheet,
-          child: const Text('Cancelar'),
-        ),
+        const SizedBox(height: 4),
+        _sheetDismiss(ui, 'Cancelar', widget.state.closeSheet),
       ],
     );
   }
@@ -999,6 +939,7 @@ class _SonicSheetState extends State<_SonicSheet>
 
   @override
   Widget build(BuildContext context) {
+    final ui = NearbyCommunityStyle(widget.theme);
     // Con sesión no hay código de ejemplo: sin SOS previo no hay nada que transmitir.
     final code =
         widget.state.lastCode ??
@@ -1007,57 +948,41 @@ class _SonicSheetState extends State<_SonicSheet>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [NearbyColors.violet, NearbyColors.navy2],
-            ),
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: const Icon(Icons.graphic_eq, color: Colors.white, size: 28),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Puente de sonido',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w900,
-            color: widget.theme.ink,
-          ),
-        ),
+        _sheetIcon(ui, Icons.graphic_eq),
+        const SizedBox(height: 16),
+        _sheetTitle(ui, 'Puente de sonido'),
         const SizedBox(height: 6),
-        Text(
+        _sheetBody(
+          ui,
           code == null
               ? 'Aún no tienes un código SOS. Se genera cuando envías una alerta sin internet.'
               : 'Transmitiendo tu código de celular a celular, sin internet ni señal. Alcance de unos 5 metros.',
-          style: TextStyle(color: widget.theme.muted, fontSize: 13.5),
         ),
         const SizedBox(height: 16),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: const Color(0xFF041128),
-            borderRadius: BorderRadius.circular(14),
+            color: NearbyColors.darkNavy,
+            borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
             code ?? 'Sin código todavía',
             style: const TextStyle(
               fontFamily: 'monospace',
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w700,
               fontSize: 15,
-              color: Color(0xFF6FE6D6),
+              color: NearbyColors.darkPrimaryDark,
             ),
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 20),
         AnimatedBuilder(
           animation: _anim,
           builder: (context, child) {
             return SizedBox(
               height: 48,
+              width: double.infinity,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(22, (i) {
@@ -1069,7 +994,7 @@ class _SonicSheetState extends State<_SonicSheet>
                     height: h,
                     margin: const EdgeInsets.symmetric(horizontal: 2),
                     decoration: BoxDecoration(
-                      color: widget.theme.violet,
+                      color: ui.ink,
                       borderRadius: BorderRadius.circular(3),
                     ),
                   );
@@ -1091,24 +1016,17 @@ class _SonicSheetState extends State<_SonicSheet>
             textAlign: TextAlign.center,
             style: TextStyle(
               color: sending
-                  ? widget.theme.violet
-                  : (code == null ? widget.theme.muted : widget.theme.primary),
-              fontWeight: FontWeight.w800,
+                  ? ui.ink
+                  : (code == null ? ui.muted : widget.theme.primaryDark),
+              fontWeight: FontWeight.w700,
               fontSize: 14,
             ),
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 20),
         ElevatedButton(
           onPressed: () => widget.state.closeSheet(),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: widget.theme.btnBg,
-            foregroundColor: widget.theme.btnInk,
-            minimumSize: const Size.fromHeight(52),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
+          style: _sheetPrimary(ui),
           child: const Text('Cerrar'),
         ),
       ],

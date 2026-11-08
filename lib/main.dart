@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'config/app_environment.dart';
 import 'services/startup_permissions.dart';
+import 'widgets/side_nav.dart';
 import 'widgets/permission_intro.dart';
 import 'screens/ai_screens.dart';
 import 'screens/auth_screens.dart';
@@ -149,22 +150,9 @@ class NearbyMasterShell extends StatelessWidget {
     required this.theme,
   });
 
+  // Diseño nuevo: página blanca en todas las pantallas (modo claro); en emergencia, el fondo del tema.
   Color get _pageBackground =>
-      !theme.dark &&
-          !theme.hc &&
-          ((state.screen == 'home' && !state.emergency) ||
-              const {
-                'splash',
-                'login',
-                'otp',
-                'registro',
-                'contactos',
-                'permisos',
-                'listo',
-                'servicios',
-                'svc',
-                'muro',
-              }.contains(state.screen))
+      !theme.dark && !theme.hc && !state.emergency
       ? Colors.white
       : theme.bg;
 
@@ -213,12 +201,36 @@ class NearbyMasterShell extends StatelessWidget {
             body: SafeArea(
               child: Stack(
                 children: [
-                  Center(
-                    child: ConstrainedBox(
-                      // En web y tablet se ve solo la app, al ancho de un celular.
-                      constraints: const BoxConstraints(maxWidth: 480),
-                      child: _buildAppContent(context),
-                    ),
+                  // Celular: pantalla completa. Escritorio (≥ 900 px): navegación lateral y contenido
+                  // centrado hasta 1100 px. El acceso y el registro van en una columna centrada.
+                  LayoutBuilder(
+                    builder: (context, box) {
+                      final wide = box.maxWidth >= kDesktopBreakpoint;
+                      final meta = _getScreenMeta(state.screen);
+                      if (!wide) return _buildAppContent(context, wide: false);
+                      // Pantallas a pantalla completa (SOS en rojo, llamada): todo el ancho.
+                      if (meta.full != null) {
+                        return _buildAppContent(context, wide: true);
+                      }
+                      // Solo el acceso y el registro van en una columna centrada.
+                      if (_accessScreens.contains(state.screen)) {
+                        return ColoredBox(
+                          color: _pageBackground,
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 640),
+                              child: _buildAppContent(context, wide: true),
+                            ),
+                          ),
+                        );
+                      }
+                      return Row(
+                        children: [
+                          NearbySideNav(state: state, theme: theme),
+                          Expanded(child: _buildAppContent(context, wide: true)),
+                        ],
+                      );
+                    },
                   ),
                   if (AppEnvironment.showDevelopmentTools)
                     const _DevelopmentToolsButton(),
@@ -231,8 +243,36 @@ class NearbyMasterShell extends StatelessWidget {
     );
   }
 
-  Widget _buildAppContent(BuildContext context) {
+  /// Bienvenida, ingreso y registro: en escritorio van en una columna centrada, sin navegación lateral.
+  static const _accessScreens = {
+    'splash',
+    'login',
+    'otp',
+    'registro',
+    'contactos',
+    'permisos',
+    'listo',
+  };
+
+  Widget _buildAppContent(BuildContext context, {required bool wide}) {
     final meta = _getScreenMeta(state.screen);
+    // En escritorio la barra inferior la reemplaza la navegación lateral.
+    final showBottomNav =
+        meta.nav && !wide && MediaQuery.viewInsetsOf(context).bottom == 0;
+    // El mapa usa todo el ancho; el resto se centra hasta 1100 px.
+    final fullBleed = const {'mapa', 'mapa-sms', 'ruta'}.contains(state.screen);
+    Widget screen(String name) {
+      final child = _buildAnimatedScreen(name);
+      if (!wide || fullBleed) return child;
+      return Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: kDesktopContentMaxWidth),
+          child: child,
+        ),
+      );
+    }
+
     final emUI = state.emergency && meta.bar != null && !meta.noEm;
 
     Color screenBg = _pageBackground;
@@ -263,20 +303,17 @@ class NearbyMasterShell extends StatelessWidget {
               background: screenBg,
               topBackground: emUI ? NearbyColors.navy : screenBg,
               top: _topChrome(meta, emUI),
-              bottom: meta.nav && MediaQuery.viewInsetsOf(context).bottom == 0
+              bottom: showBottomNav
                   ? NearbyBottomNav(state: state, theme: theme)
                   : null,
-              child: _buildAnimatedScreen(state.screen),
+              child: screen(state.screen),
             )
           else
             Column(
               children: [
                 _topChrome(meta, emUI),
-                Expanded(
-                  child: ClipRect(child: _buildAnimatedScreen(state.screen)),
-                ),
-                if (meta.nav && MediaQuery.viewInsetsOf(context).bottom == 0)
-                  NearbyBottomNav(state: state, theme: theme),
+                Expanded(child: ClipRect(child: screen(state.screen))),
+                if (showBottomNav) NearbyBottomNav(state: state, theme: theme),
               ],
             ),
 

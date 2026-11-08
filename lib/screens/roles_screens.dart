@@ -3,7 +3,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../state/app_state.dart';
 import '../theme/nearby_theme.dart';
-import '../widgets/navigation_chrome.dart';
+import 'profile/widgets/profile_ui.dart';
 
 // =============================================================== foto de perfil
 
@@ -24,11 +24,13 @@ class ProfilePhotoAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = uiThemeOf(state);
+    final ui = NearbyCommunityStyle(theme);
     final initials = Center(
       child: Text(
         state.initials,
         style: TextStyle(
-          color: NearbyColors.onPrimary,
+          color: ui.ink,
           fontSize: size * 0.34,
           fontWeight: FontWeight.w700,
         ),
@@ -38,10 +40,7 @@ class ProfilePhotoAvatar extends StatelessWidget {
       width: size,
       height: size,
       clipBehavior: Clip.antiAlias,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        color: NearbyColors.brandTurquoise,
-      ),
+      decoration: BoxDecoration(shape: BoxShape.circle, color: ui.blueSoft),
       child: state.photoUrl == null
           ? initials
           : Image.network(
@@ -72,14 +71,14 @@ class ProfilePhotoAvatar extends StatelessWidget {
                 width: size * 0.42,
                 height: size * 0.42,
                 decoration: BoxDecoration(
-                  color: NearbyColors.brandNavy,
+                  color: ui.accent,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
+                  border: Border.all(color: theme.surface, width: 2),
                 ),
                 child: Icon(
                   Icons.photo_camera,
                   size: size * 0.22,
-                  color: Colors.white,
+                  color: ui.onAccent,
                 ),
               ),
             ),
@@ -92,6 +91,8 @@ class ProfilePhotoAvatar extends StatelessWidget {
 
 /// Hoja para elegir la foto: cámara, galería o quitarla.
 void showProfilePhotoSheet(BuildContext context, AppState state) {
+  final ui = NearbyCommunityStyle(uiThemeOf(state));
+
   Future<void> pick(BuildContext sheet, ImageSource source) async {
     Navigator.pop(sheet);
     try {
@@ -118,49 +119,44 @@ void showProfilePhotoSheet(BuildContext context, AppState state) {
     context: context,
     useSafeArea: true,
     builder: (sheet) => Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: uiSheetPadding(sheet),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'Tu foto de perfil',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          UiSheetHeader(
+            ui: ui,
+            title: 'Tu foto de perfil',
+            subtitle: 'Ayuda a que tus vecinos te reconozcan cuando ofreces o pides ayuda.',
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Ayuda a que tus vecinos te reconozcan cuando ofreces o pides ayuda.',
-            style: TextStyle(
-              fontSize: 13,
-              color: Theme.of(sheet).colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 12),
-          ListTile(
-            leading: const Icon(Icons.photo_camera),
-            title: const Text('Tomar una foto'),
-            onTap: () => pick(sheet, ImageSource.camera),
-          ),
-          ListTile(
-            leading: const Icon(Icons.photo_library),
-            title: const Text('Elegir de la galería'),
-            onTap: () => pick(sheet, ImageSource.gallery),
-          ),
-          if (state.photoUrl != null)
-            ListTile(
-              leading: const Icon(
-                Icons.delete_outline,
-                color: NearbyColors.sos,
+          UiRowsCard(
+            ui: ui,
+            rows: [
+              UiRow(
+                ui: ui,
+                icon: Icons.photo_camera_outlined,
+                title: 'Tomar una foto',
+                onTap: () => pick(sheet, ImageSource.camera),
               ),
-              title: const Text(
-                'Quitar foto',
-                style: TextStyle(color: NearbyColors.sos),
+              UiRow(
+                ui: ui,
+                icon: Icons.photo_library_outlined,
+                title: 'Elegir de la galería',
+                onTap: () => pick(sheet, ImageSource.gallery),
               ),
-              onTap: () {
-                Navigator.pop(sheet);
-                state.removeProfilePhoto();
-              },
-            ),
+              if (state.photoUrl != null)
+                UiRow(
+                  ui: ui,
+                  icon: Icons.delete_outline,
+                  iconBackground: ui.ivory,
+                  title: 'Quitar foto',
+                  onTap: () {
+                    Navigator.pop(sheet);
+                    state.removeProfilePhoto();
+                  },
+                ),
+            ],
+          ),
         ],
       ),
     ),
@@ -176,7 +172,7 @@ class NeighborhoodRoleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final ui = NearbyCommunityStyle(uiThemeOf(state));
     final (
       IconData icon,
       String title,
@@ -184,20 +180,20 @@ class NeighborhoodRoleCard extends StatelessWidget {
       VoidCallback? onTap,
     ) = switch (state.role) {
       'ADMIN' => (
-        Icons.admin_panel_settings,
+        Icons.admin_panel_settings_outlined,
         'Administración Nearby',
         'Aprueba Municipalidades y revisa todas las zonas',
         () => state.go('municipalidad'),
       ),
       'MUNICIPALITY' || 'DELEGATE' => (
-        Icons.account_balance,
+        Icons.account_balance_outlined,
         'Panel de Municipalidad',
         state.municipality?['name'] as String? ??
             'Modo de tu zona y solicitudes de brigadistas',
         () => state.go('municipalidad'),
       ),
       'BRIGADIST' => (
-        Icons.verified_user,
+        Icons.verified_user_outlined,
         'Eres brigadista',
         'Ves el tablero del barrio y las alertas de rescate',
         () => state.go('tablero'),
@@ -210,85 +206,71 @@ class NeighborhoodRoleCard extends StatelessWidget {
           null,
         ),
         'REJECTED' => (
-          Icons.shield,
+          Icons.shield_outlined,
           'Quiero ser brigadista',
           'Tu solicitud anterior no fue aprobada. Puedes volver a pedirlo.',
           () => _askBrigade(context, state),
         ),
         _ => (
-          Icons.shield,
+          Icons.shield_outlined,
           'Quiero ser brigadista',
           'Ayuda en emergencias de tu barrio. La Municipalidad te aprueba.',
           () => _askBrigade(context, state),
         ),
       },
     };
-    return Card(
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        leading: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: NearbyColors.infoSoft,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Icon(icon, color: NearbyColors.navy2),
+    return UiRowsCard(
+      ui: ui,
+      rows: [
+        UiRow(
+          ui: ui,
+          icon: icon,
+          title: title,
+          subtitle: subtitle,
+          onTap: onTap,
         ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(
-          subtitle,
-          style: TextStyle(fontSize: 12.5, color: muted),
-        ),
-        trailing: onTap == null ? null : const Icon(Icons.chevron_right),
-        onTap: onTap,
-      ),
+      ],
     );
   }
 
   static void _askBrigade(BuildContext context, AppState state) {
+    final ui = NearbyCommunityStyle(uiThemeOf(state));
     final skills = TextEditingController();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       builder: (sheet) => Padding(
-        padding: EdgeInsets.fromLTRB(
-          16,
-          16,
-          16,
-          MediaQuery.viewInsetsOf(sheet).bottom + 20,
-        ),
+        padding: uiSheetPadding(sheet),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Quiero ser brigadista',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            UiSheetHeader(
+              ui: ui,
+              title: 'Quiero ser brigadista',
+              subtitle:
+                  'Los brigadistas ven el tablero del barrio y acuden a las alertas cercanas. '
+                  'La Municipalidad revisa tu solicitud.',
             ),
-            const SizedBox(height: 6),
-            Text(
-              'Los brigadistas ven el tablero del barrio y acuden a las alertas cercanas. '
-              'La Municipalidad revisa tu solicitud.',
-              style: TextStyle(
-                fontSize: 13.5,
-                color: Theme.of(sheet).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: skills,
-              maxLength: 300,
-              maxLines: 3,
-              minLines: 2,
-              decoration: const InputDecoration(
-                labelText: '¿Qué sabes hacer? (opcional)',
-                hintText: 'Ej. Primeros auxilios, tengo camioneta',
+            UiLabeled(
+              ui: ui,
+              label: '¿Qué sabes hacer? (opcional)',
+              child: TextField(
+                controller: skills,
+                maxLength: 300,
+                maxLines: 3,
+                minLines: 2,
+                style: TextStyle(color: ui.ink, fontSize: 14),
+                decoration: uiField(
+                  ui,
+                  hint: 'Ej. Primeros auxilios, tengo camioneta',
+                ),
               ),
             ),
             const SizedBox(height: 8),
             ElevatedButton(
+              style: ui.action(),
               onPressed: () async {
                 final ok = await state.requestBrigade(skills.text);
                 if (ok && sheet.mounted) Navigator.pop(sheet);
@@ -319,57 +301,68 @@ class NearbyPreventionBanner extends StatelessWidget {
   const NearbyPreventionBanner({super.key, required this.state});
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-    child: Material(
-      color: NearbyColors.accentSoft,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFF6D59A)),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => state.go('prevencion'),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-          child: Row(
-            children: [
-              const Icon(Icons.flood, color: NearbyColors.accentInk),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: Text(
-                  'Prevención El Niño · reporta riesgos en tu barrio',
-                  style: TextStyle(
-                    color: NearbyColors.accentInk,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13.5,
+  Widget build(BuildContext context) {
+    final theme = uiThemeOf(state);
+    final ui = NearbyCommunityStyle(theme);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      child: Material(
+        color: ui.ivory,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: ui.line),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => state.go('prevencion'),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+            child: Row(
+              children: [
+                UiIconBox(
+                  ui: ui,
+                  icon: Icons.flood,
+                  size: 34,
+                  color: theme.accentInk,
+                  background: theme.accentSoft,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Prevención El Niño · reporta riesgos en tu barrio',
+                    style: TextStyle(
+                      color: ui.ink,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: NearbyColors.accent,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Text(
-                  'Ver',
-                  style: TextStyle(
-                    color: NearbyColors.brandNavy,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: ui.accent,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'Ver',
+                    style: TextStyle(
+                      color: ui.onAccent,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12.5,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// Pantalla del modo Prevención El Niño: reportar un riesgo con foto y ver los cercanos.
@@ -390,6 +383,7 @@ class _PrevencionScreenState extends State<PrevencionScreen> {
   bool _sending = false;
 
   AppState get state => widget.state;
+  NearbyCommunityStyle get ui => NearbyCommunityStyle(widget.theme);
 
   @override
   void initState() {
@@ -451,156 +445,182 @@ class _PrevencionScreenState extends State<PrevencionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
-    final pad = NavigationInsets.of(context);
-    return ListView(
-      padding: EdgeInsets.fromLTRB(16, 8, 16, pad.bottom + 24),
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFFF4B04A), Color(0xFFE08F12)],
+    final ui = this.ui;
+    final theme = widget.theme;
+
+    // Formulario para reportar un riesgo.
+    final form = <Widget>[
+      UiSectionTitle(
+        ui: ui,
+        top: 0,
+        title: '¿Ves algo que pueda empeorar con la lluvia?',
+      ),
+      UiCard(
+        ui: ui,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            UiLabeled(
+              ui: ui,
+              label: 'Tipo de riesgo',
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final (id, label, icon) in _riskCategories)
+                    UiChoice(
+                      ui: ui,
+                      icon: icon,
+                      label: label,
+                      selected: _category == id,
+                      onTap: () => setState(() => _category = id),
+                    ),
+                ],
+              ),
             ),
-            borderRadius: BorderRadius.circular(NearbyRadius.card),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.flood, size: 40, color: NearbyColors.brandNavy),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Prevención El Niño',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: NearbyColors.brandNavy,
-                      ),
-                    ),
-                    Text(
-                      'Activado por la Municipalidad en ${state.zoneName}',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: NearbyColors.brandNavy,
-                      ),
-                    ),
-                  ],
+            const SizedBox(height: 20),
+            UiLabeled(
+              ui: ui,
+              label: 'Cuéntalo en una frase (opcional)',
+              child: TextField(
+                controller: _text,
+                maxLength: 1000,
+                minLines: 2,
+                maxLines: 4,
+                style: TextStyle(color: ui.ink, fontSize: 14),
+                decoration: uiField(
+                  ui,
+                  hint: 'Ej. La acequia de mi calle está al ras',
                 ),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _pickPhoto,
+                    style: ui.action(filled: false),
+                    icon: Icon(
+                      _photo == null
+                          ? Icons.add_a_photo_outlined
+                          : Icons.check_circle,
+                      size: 18,
+                    ),
+                    label: Text(_photo == null ? 'Agregar foto' : 'Foto lista'),
+                  ),
+                ),
+                if (_photo != null) ...[
+                  const SizedBox(width: 8),
+                  IconButton(
+                    tooltip: 'Quitar foto',
+                    onPressed: () => setState(() {
+                      _photo = null;
+                      _photoName = null;
+                    }),
+                    icon: Icon(Icons.close, color: ui.ink),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: _sending ? null : _send,
+              style: ui.action(),
+              icon: const Icon(Icons.campaign_outlined, size: 18),
+              label: Text(_sending ? 'Enviando…' : 'Reportar riesgo'),
+            ),
+          ],
         ),
-        const SizedBox(height: 16),
-        const Text(
-          '¿Ves algo que pueda empeorar con la lluvia?',
-          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final (id, label, icon) in _riskCategories)
-              ChoiceChip(
-                avatar: Icon(icon, size: 18),
-                label: Text(label),
-                selected: _category == id,
-                onSelected: (_) => setState(() => _category = id),
+      ),
+    ];
+
+    // Reportes cercanos de las últimas horas.
+    List<Widget> reports({required bool first}) => [
+      UiSectionTitle(
+        ui: ui,
+        top: first ? 0 : 28,
+        title: 'Riesgos reportados cerca',
+      ),
+      if (state.riskReports.isEmpty)
+        UiEmpty(ui: ui, text: 'Aún no hay reportes en las últimas 48 horas.')
+      else
+        UiRowsCard(
+          ui: ui,
+          rows: [
+            for (final r in state.riskReports.take(20))
+              UiRow(
+                ui: ui,
+                icon: _riskCategories
+                    .firstWhere(
+                      (c) => c.$1 == r['category'],
+                      orElse: () => _riskCategories.first,
+                    )
+                    .$3,
+                iconColor: theme.accentInk,
+                iconBackground: theme.accentSoft,
+                title: (r['label'] as String?) ?? 'Riesgo',
+                subtitle: [
+                  if ((r['text'] as String?)?.isNotEmpty == true) r['text'],
+                  'hace ${r['minutesAgo'] ?? 0} min',
+                ].join(' · '),
               ),
           ],
         ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _text,
-          maxLength: 1000,
-          minLines: 2,
-          maxLines: 4,
-          decoration: const InputDecoration(
-            labelText: 'Cuéntalo en una frase (opcional)',
-            hintText: 'Ej. La acequia de mi calle está al ras',
-          ),
-        ),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _pickPhoto,
-                icon: Icon(
-                  _photo == null ? Icons.add_a_photo : Icons.check_circle,
+      const SizedBox(height: 16),
+      OutlinedButton.icon(
+        onPressed: state.dismissZoneMode,
+        style: ui.action(filled: false),
+        icon: const Icon(Icons.wb_sunny_outlined, size: 18),
+        label: const Text('Volver al modo normal en mi app'),
+      ),
+    ];
+
+    return UiScrollPage(
+      maxWidth: 1100,
+      builder: (context, width) {
+        final header = UiPageHeader(
+          ui: ui,
+          eyebrow: 'Modo prevención',
+          title: 'Prevención El Niño',
+          subtitle: 'Activado por la Municipalidad en ${state.zoneName}.',
+        );
+        if (width >= 900) {
+          return [
+            header,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: form,
+                  ),
                 ),
-                label: Text(_photo == null ? 'Agregar foto' : 'Foto lista'),
-              ),
+                const SizedBox(width: 32),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: reports(first: true),
+                  ),
+                ),
+              ],
             ),
-            if (_photo != null)
-              IconButton(
-                tooltip: 'Quitar foto',
-                onPressed: () => setState(() {
-                  _photo = null;
-                  _photoName = null;
-                }),
-                icon: const Icon(Icons.close),
-              ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        ElevatedButton.icon(
-          onPressed: _sending ? null : _send,
-          icon: const Icon(Icons.campaign),
-          label: Text(_sending ? 'Enviando…' : 'Reportar riesgo'),
-        ),
-        const SizedBox(height: 22),
-        const Text(
-          'Riesgos reportados cerca',
-          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 8),
-        if (state.riskReports.isEmpty)
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Text(
-                'Aún no hay reportes en las últimas 48 horas.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: muted),
+          ];
+        }
+        return [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 640),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [header, ...form, ...reports(first: false)],
               ),
             ),
           ),
-        for (final r in state.riskReports.take(20))
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Card(
-              child: ListTile(
-                leading: Icon(
-                  _riskCategories
-                      .firstWhere(
-                        (c) => c.$1 == r['category'],
-                        orElse: () => _riskCategories.first,
-                      )
-                      .$3,
-                  color: NearbyColors.accentInk,
-                ),
-                title: Text(
-                  (r['label'] as String?) ?? 'Riesgo',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                subtitle: Text(
-                  [
-                    if ((r['text'] as String?)?.isNotEmpty == true) r['text'],
-                    'hace ${r['minutesAgo'] ?? 0} min',
-                  ].join(' · '),
-                ),
-              ),
-            ),
-          ),
-        const SizedBox(height: 10),
-        TextButton(
-          onPressed: state.dismissZoneMode,
-          child: const Text('Volver al modo normal en mi app'),
-        ),
-      ],
+        ];
+      },
     );
   }
 }

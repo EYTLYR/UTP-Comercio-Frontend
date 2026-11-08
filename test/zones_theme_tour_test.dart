@@ -182,11 +182,12 @@ void main() {
           state.emergency = false;
           state.refresh();
           await tester.pump();
+          // Fuera de emergencia el diseño nuevo usa página blanca (en oscuro, el fondo oscuro).
           expect(
             tester
                 .widget<Scaffold>(find.byType(Scaffold).first)
                 .backgroundColor,
-            expected,
+            dark ? NearbyColors.darkBg : Colors.white,
           );
           expect(state.dark, dark);
           expect(tester.takeException(), isNull);

@@ -9,6 +9,7 @@ import 'package:latlong2/latlong.dart';
 import '../../../services/offline_tiles.dart';
 import '../../../state/app_state.dart';
 import '../../../theme/nearby_theme.dart';
+import 'profile_ui.dart';
 
 /// Hoja para elegir la casa en un mapa: el pin queda fijo al centro y se mueve el mapa hasta
 /// la puerta exacta. Al soltar, la dirección se completa sola. «Usar mi GPS» centra el mapa
@@ -37,8 +38,8 @@ class _EditAddressSheetState extends State<_EditAddressSheet> {
   late final TextEditingController _address = TextEditingController(
     text: widget.state.userAddress,
   );
-  late LatLng _point = (widget.state.regLat != null &&
-          widget.state.regLng != null)
+  late LatLng _point =
+      (widget.state.regLat != null && widget.state.regLng != null)
       ? LatLng(widget.state.regLat!, widget.state.regLng!)
       : _lima;
   late final TileProvider? _cached = OfflineTiles.instance.provider();
@@ -125,7 +126,10 @@ class _EditAddressSheetState extends State<_EditAddressSheet> {
   Future<void> _save() async {
     final text = _address.text.trim();
     if (text.isEmpty) {
-      widget.state.toast('Escribe tu dirección o una referencia', icon: 'warning');
+      widget.state.toast(
+        'Escribe tu dirección o una referencia',
+        icon: 'warning',
+      );
       return;
     }
     setState(() => _saving = true);
@@ -144,194 +148,167 @@ class _EditAddressSheetState extends State<_EditAddressSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context);
-    final ink = t.colorScheme.onSurface;
-    final muted = t.colorScheme.onSurfaceVariant;
+    final theme = uiThemeOf(widget.state);
+    final ui = NearbyCommunityStyle(theme);
     return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.viewInsetsOf(context).bottom + 16,
-        left: 20,
-        right: 20,
-        top: 12,
-      ),
+      padding: uiSheetPadding(context),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(
-              child: Container(
-                width: 44,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: NearbyColors.lineStrong,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
+            UiSheetHeader(
+              ui: ui,
+              title: '¿Dónde está tu casa?',
+              subtitle: 'Mueve el mapa hasta que el pin quede sobre tu puerta.',
+              onClose: () => Navigator.pop(context),
             ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            DecoratedBox(
+              position: DecorationPosition.foreground,
+              decoration: BoxDecoration(
+                border: Border.all(color: ui.line),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  height: 280,
+                  child: Stack(
                     children: [
-                      Text(
-                        '¿Dónde está tu casa?',
-                        style: TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.w700,
-                          color: ink,
+                      FlutterMap(
+                        mapController: _map,
+                        options: MapOptions(
+                          initialCenter: _point,
+                          initialZoom: 17,
+                          minZoom: 5,
+                          maxZoom: 19,
+                          onPositionChanged: _onMove,
+                        ),
+                        children: [
+                          if (widget.state.networkMaps)
+                            TileLayer(
+                              tileProvider: _cached,
+                              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              userAgentPackageName:
+                                  'com.example.utp_comercio_frontend',
+                              maxNativeZoom:
+                                  _cached != null &&
+                                      !OfflineTiles.instance.online.value
+                                  ? OfflineTiles.maxZoom
+                                  : 19,
+                            ),
+                        ],
+                      ),
+                      // Pin fijo al centro: se mueve el mapa, no el pin.
+                      IgnorePointer(
+                        child: Center(
+                          // La punta del pin (abajo de la columna de 76 px) cae en el centro del mapa.
+                          child: Transform.translate(
+                            offset: const Offset(0, -36),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: NearbyColors.brandNavy,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    _moved ? 'Tu casa' : 'Mueve el mapa',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                const Icon(
+                                  Icons.location_on,
+                                  size: 48,
+                                  color: NearbyColors.brandTurquoise,
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.black26,
+                                      blurRadius: 8,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
-                      Text(
-                        'Mueve el mapa hasta que el pin quede sobre tu puerta.',
-                        style: TextStyle(fontSize: 13, color: muted),
+                      Positioned(
+                        right: 10,
+                        bottom: 10,
+                        child: Material(
+                          color: theme.surface,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            side: BorderSide(color: ui.line),
+                          ),
+                          child: IconButton(
+                            tooltip: 'Usar mi GPS',
+                            onPressed: _locating ? null : _useGps,
+                            icon: _locating
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Icon(Icons.my_location, color: ui.ink),
+                          ),
+                        ),
                       ),
                     ],
                   ),
                 ),
-                IconButton(
-                  tooltip: 'Cerrar',
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(NearbyRadius.card),
-              child: SizedBox(
-                height: 280,
-                child: Stack(
-                  children: [
-                    FlutterMap(
-                      mapController: _map,
-                      options: MapOptions(
-                        initialCenter: _point,
-                        initialZoom: 17,
-                        minZoom: 5,
-                        maxZoom: 19,
-                        onPositionChanged: _onMove,
-                      ),
-                      children: [
-                        if (widget.state.networkMaps)
-                          TileLayer(
-                            tileProvider: _cached,
-                            urlTemplate:
-                                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                            userAgentPackageName:
-                                'com.example.utp_comercio_frontend',
-                            maxNativeZoom: _cached != null &&
-                                    !OfflineTiles.instance.online.value
-                                ? OfflineTiles.maxZoom
-                                : 19,
-                          ),
-                      ],
-                    ),
-                    // Pin fijo al centro: se mueve el mapa, no el pin.
-                    IgnorePointer(
-                      child: Center(
-                        // La punta del pin (abajo de la columna de 76 px) cae en el centro del mapa.
-                        child: Transform.translate(
-                          offset: const Offset(0, -36),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: NearbyColors.brandNavy,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  _moved ? 'Tu casa' : 'Mueve el mapa',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              const Icon(
-                                Icons.location_on,
-                                size: 48,
-                                color: NearbyColors.brandTurquoise,
-                                shadows: [
-                                  Shadow(color: Colors.black26, blurRadius: 8),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      right: 10,
-                      bottom: 10,
-                      child: Material(
-                        color: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        elevation: 3,
-                        child: IconButton(
-                          tooltip: 'Usar mi GPS',
-                          onPressed: _locating ? null : _useGps,
-                          icon: _locating
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Icon(
-                                  Icons.my_location,
-                                  color: NearbyColors.navy2,
-                                ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: _address,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(
-                labelText: 'Dirección o referencia',
-                hintText: 'Ej. Jr. Los Jazmines 312, puerta verde',
-                prefixIcon: const Icon(Icons.home_outlined),
-                suffixIcon: _resolving
-                    ? const Padding(
-                        padding: EdgeInsets.all(14),
-                        child: SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      )
-                    : null,
               ),
             ),
             const SizedBox(height: 16),
+            UiLabeled(
+              ui: ui,
+              label: 'Dirección o referencia',
+              child: TextField(
+                controller: _address,
+                textCapitalization: TextCapitalization.sentences,
+                style: TextStyle(color: ui.ink, fontSize: 14),
+                decoration: uiField(
+                  ui,
+                  hint: 'Ej. Jr. Los Jazmines 312, puerta verde',
+                  icon: Icons.home_outlined,
+                  suffix: _resolving
+                      ? const Padding(
+                          padding: EdgeInsets.all(14),
+                          child: SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : null,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _saving ? null : _save,
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(52),
-              ),
+              style: ui.action(),
               child: _saving
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 22,
                       height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2.2),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.2,
+                        color: ui.onAccent,
+                      ),
                     )
                   : const Text('Sí, aquí vivo'),
             ),

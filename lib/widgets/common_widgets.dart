@@ -264,9 +264,8 @@ class NearbyTopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final em = state.emergency;
     final home = !em && state.screen == 'home';
-    final community =
-        home ||
-        (!em && (state.screen == 'servicios' || state.screen == 'muro'));
+    // Diseño de la comunidad (blanco) en todas las pantallas; en emergencia, el azul de siempre.
+    final community = home || !em;
     final ui = NearbyCommunityStyle(theme);
     final topBarBg = em ? NearbyColors.navy : Colors.transparent;
 
@@ -478,7 +477,7 @@ class NearbyTopBarBack extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final community = state.screen == 'svc' && !emergencyStyle;
+    final community = !emergencyStyle;
     final ui = NearbyCommunityStyle(theme);
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -731,11 +730,7 @@ class NearbyBottomNav extends StatelessWidget {
 
     final cur = _currentTab(state.screen);
 
-    final community =
-        !em &&
-        (state.screen == 'home' ||
-            state.screen == 'servicios' ||
-            state.screen == 'muro');
+    final community = !em;
     final ui = NearbyCommunityStyle(theme);
     final activeColor = community
         ? ui.ink

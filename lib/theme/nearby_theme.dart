@@ -49,8 +49,9 @@ class NearbyColors {
   /// Texto sobre rellenos turquesa: azul marino (5.6:1), nunca blanco (2.3:1).
   static const Color onPrimary = brandNavy;
 
-  static const Color btnBg = brandNavy;
-  static const Color btnInk = brandWhite;
+  // Diseño nuevo: acción principal ámbar con texto tinta (como el registro).
+  static const Color btnBg = Color(0xFFF2C14E);
+  static const Color btnInk = Color(0xFF263B65);
 
   // Aviso (estado): ámbar.
   static const Color accent = Color(0xFFF2A93B);
@@ -135,13 +136,13 @@ class NearbyRadius {
   static const double sm = 10;
 
   /// Botones y campos de texto: el mismo radio para todo lo que se toca.
-  static const double control = 14;
+  static const double control = 8;
 
   /// Tarjetas y paneles.
-  static const double card = 18;
+  static const double card = 12;
 
   /// Hojas inferiores y diálogos.
-  static const double sheet = 24;
+  static const double sheet = 20;
   static const double pill = 999;
 }
 
@@ -367,7 +368,10 @@ class NearbyThemeData {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: ink,
-          side: BorderSide(color: lineStrong, width: 1.2),
+          side: BorderSide(
+            color: hc || dark ? lineStrong : NearbyColors.btnInk,
+            width: 1.5,
+          ),
           minimumSize: minButton,
           padding: buttonPadding,
           shape: controlShape,

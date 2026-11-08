@@ -239,12 +239,7 @@ class _LiveMapState extends State<LiveMap> {
     required String heroTag,
   }) => Padding(
     padding: const EdgeInsets.only(top: 8),
-    child: FloatingActionButton.small(
-      heroTag: heroTag,
-      tooltip: tooltip,
-      onPressed: onPressed,
-      child: Icon(icon),
-    ),
+    child: _MapButton(tooltip: tooltip, onPressed: onPressed, child: Icon(icon)),
   );
 
   void _onPositionChanged(MapCamera camera, bool hasGesture) {
@@ -313,7 +308,7 @@ class _LiveMapState extends State<LiveMap> {
                   alignment: Alignment.center,
                   builder: (context, markers) => Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFF00796B),
+                      color: const Color(0xFF263B65),
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 2),
                       boxShadow: const [
@@ -339,10 +334,11 @@ class _LiveMapState extends State<LiveMap> {
                       .map(
                         (p) => Marker(
                           point: LatLng(p.latitude!, p.longitude!),
-                          width: 150,
-                          height: 66,
-                          // El círculo queda sobre el punto y la etiqueta debajo.
-                          alignment: const Alignment(0, 0.55),
+                          // El círculo es el centro exacto del marcador: queda clavado en su punto al
+                          // acercar o alejar. La etiqueta va debajo, dentro del mismo cuadro.
+                          width: _PinMarker.boxWidth,
+                          height: _PinMarker.boxHeight,
+                          alignment: Alignment.center,
                           child: _PinMarker(
                             pin: p,
                             selected: _selected?.id == p.id,
@@ -449,8 +445,7 @@ class _LiveMapState extends State<LiveMap> {
         key: const ValueKey('map-location-control'),
         right: 4,
         bottom: widget.bottomInset + 4,
-        child: FloatingActionButton.small(
-          heroTag: 'map-location',
+        child: _MapButton(
           tooltip: 'Mi ubicación',
           onPressed: _busy ? null : _locate,
           child: _busy
@@ -469,8 +464,16 @@ class _LiveMapState extends State<LiveMap> {
           bottom: widget.bottomInset + 38,
           child: Material(
             color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(18),
-            elevation: 4,
+            // Tarjeta del pin elegido: borde fino y esquinas de 12, como el resto.
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color: Theme.of(context).brightness == Brightness.light
+                    ? const Color(0xFFE7E4DD)
+                    : Theme.of(context).colorScheme.outlineVariant,
+              ),
+            ),
+            elevation: 3,
             child: ConstrainedBox(
               constraints: BoxConstraints(
                 maxHeight:
@@ -560,7 +563,12 @@ Color pinColor(String kind) => switch (kind) {
 };
 
 /// Pin con su ícono de color y una etiqueta corta (quién y qué), para entender el mapa sin tocarlo.
+/// El círculo siempre mide lo mismo y está en el centro del cuadro: así no se desplaza con el zoom.
 class _PinMarker extends StatelessWidget {
+  static const double boxWidth = 150;
+  static const double boxHeight = 100;
+  static const double dot = 38;
+
   final MapPin pin;
   final bool selected;
   final VoidCallback onTap;
@@ -576,46 +584,111 @@ class _PinMarker extends StatelessWidget {
     return Semantics(
       button: true,
       label: '${pin.title}. ${pin.sub}',
-      child: GestureDetector(
-        onTap: onTap,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+      child: SizedBox(
+        width: boxWidth,
+        height: boxHeight,
+        child: Stack(
+          clipBehavior: Clip.none,
           children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 160),
-              width: selected ? 40 : 34,
-              height: selected ? 40 : 34,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2.5),
-                boxShadow: const [
-                  BoxShadow(color: Color(0x40000000), blurRadius: 6),
-                ],
+            Center(
+              child: GestureDetector(
+                onTap: onTap,
+                child: Container(
+                  width: dot,
+                  height: dot,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: selected ? const Color(0xFF263B65) : Colors.white,
+                      width: selected ? 3.5 : 2.5,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(color: Color(0x40000000), blurRadius: 6),
+                    ],
+                  ),
+                  child: Icon(pin.icon, color: Colors.white, size: 18),
+                ),
               ),
-              child: Icon(pin.icon, color: Colors.white, size: 18),
             ),
-            const SizedBox(height: 2),
-            Container(
-              constraints: const BoxConstraints(maxWidth: 146),
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.95),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: color.withValues(alpha: 0.5)),
-              ),
-              child: Text(
-                pin.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w700,
-                  color: color,
+            Positioned(
+              left: 0,
+              right: 0,
+              top: boxHeight / 2 + dot / 2 + 3,
+              child: Center(
+                child: GestureDetector(
+                  onTap: onTap,
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: boxWidth - 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.95),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: color.withValues(alpha: 0.5)),
+                    ),
+                    child: Text(
+                      pin.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        color: color,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Botón del mapa con el diseño nuevo: cuadrado blanco, borde fino, esquinas de 8 e ícono en tinta.
+class _MapButton extends StatelessWidget {
+  final String tooltip;
+  final VoidCallback? onPressed;
+  final Widget child;
+  const _MapButton({
+    required this.tooltip,
+    required this.onPressed,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final light = Theme.of(context).brightness == Brightness.light;
+    final ink = light ? const Color(0xFF263B65) : scheme.onSurface;
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: scheme.surface,
+        elevation: 2,
+        shadowColor: const Color(0x33000000),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(
+            color: light ? const Color(0xFFE7E4DD) : scheme.outlineVariant,
+          ),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onPressed,
+          child: SizedBox(
+            width: 40,
+            height: 40,
+            child: IconTheme(
+              data: IconThemeData(color: ink, size: 22),
+              child: Center(child: child),
+            ),
+          ),
         ),
       ),
     );

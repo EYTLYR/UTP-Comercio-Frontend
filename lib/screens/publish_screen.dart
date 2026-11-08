@@ -4,6 +4,12 @@ import '../models/models.dart';
 import '../state/app_state.dart';
 import '../theme/nearby_theme.dart';
 
+/// Ancho máximo del flujo de publicar en escritorio.
+const double _kMaxWidth = 720;
+
+/// Margen lateral: el mismo de Inicio (24; 16 en pantallas muy angostas).
+double _sideFor(double width) => width < 360 ? 16.0 : 24.0;
+
 class PublishScreen extends StatefulWidget {
   final AppState state;
   final NearbyThemeData theme;
@@ -16,6 +22,8 @@ class PublishScreen extends StatefulWidget {
 
 class _PublishScreenState extends State<PublishScreen> {
   late TextEditingController _textController;
+
+  NearbyCommunityStyle get ui => NearbyCommunityStyle(widget.theme);
 
   @override
   void initState() {
@@ -38,385 +46,452 @@ class _PublishScreenState extends State<PublishScreen> {
     super.dispose();
   }
 
+  /// Botón principal: ámbar; en modo emergencia conserva el rojo SOS.
+  ButtonStyle get _primaryStyle {
+    final base = ui.action().copyWith(
+      minimumSize: const WidgetStatePropertyAll(Size.fromHeight(48)),
+      backgroundColor: WidgetStateProperty.resolveWith(
+        (s) => s.contains(WidgetState.disabled)
+            ? ui.line
+            : (widget.state.emergency ? NearbyColors.sos : ui.accent),
+      ),
+      foregroundColor: WidgetStateProperty.resolveWith(
+        (s) => s.contains(WidgetState.disabled)
+            ? ui.muted
+            : (widget.state.emergency ? Colors.white : ui.onAccent),
+      ),
+    );
+    return base;
+  }
+
+  ButtonStyle get _secondaryStyle => ui
+      .action(filled: false)
+      .copyWith(minimumSize: const WidgetStatePropertyAll(Size.fromHeight(48)));
+
   @override
   Widget build(BuildContext context) {
     final theme = widget.theme;
     final state = widget.state;
     final p = state.pub;
 
+    return ColoredBox(
+      color: theme.surface,
+      child: LayoutBuilder(
+        builder: (context, box) {
+          final side = _sideFor(box.maxWidth);
+          // En escritorio la columna de lectura (720) queda alineada a la izquierda, como Inicio.
+          final width = box.maxWidth < _kMaxWidth + side * 2
+              ? box.maxWidth
+              : _kMaxWidth + side * 2;
+          return Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: width,
+              child: Column(
+                children: [
+                  // Encabezado por pasos: «PUBLICAR / 01 DE 03» + barritas
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(side, 4, side, 8),
+                    child: _stepHeader(p.step),
+                  ),
+
+                  // Contenido del paso
+                  Expanded(
+                    child: p.step == 1
+                        ? _buildStep1(context, side)
+                        : (p.step == 2
+                              ? _buildStep2(context, side)
+                              : _buildStep3(context, side)),
+                  ),
+
+                  // Pie del paso 2
+                  if (p.step == 2)
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.fromLTRB(side, 12, side, 16),
+                      decoration: BoxDecoration(
+                        color: theme.surface,
+                        border: Border(top: BorderSide(color: ui.line)),
+                      ),
+                      child: Column(
+                        children: [
+                          ElevatedButton.icon(
+                            key: state.tourTarget('publish-submit'),
+                            onPressed: p.cat != null
+                                ? () {
+                                    p.text = _textController.text;
+                                    state.finishPublish();
+                                  }
+                                : null,
+                            style: _primaryStyle,
+                            icon: const Icon(Icons.send, size: 18),
+                            label: Text(_getSubmitLabel()),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            p.cat != null
+                                ? 'Último toque'
+                                : 'Elige una opción para continuar',
+                            style: TextStyle(color: ui.muted, fontSize: 11.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _stepHeader(int step) {
+    const labels = ['Tipo', 'Detalle', 'Listo'];
+    final current = step.clamp(1, 3);
+    final section = widget.state.emergency ? 'REPORTAR' : 'PUBLICAR';
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 3 Steps progress header
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: Row(
-            children: ['Tipo', 'Detalle', 'Listo'].asMap().entries.map((entry) {
-              final idx = entry.key;
-              final label = entry.value;
-              final isOn = p.step >= (idx + 1);
-
-              return Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 3),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        height: 5,
-                        decoration: BoxDecoration(
-                          color: isOn
-                              ? (state.emergency
-                                    ? NearbyColors.sos
-                                    : theme.primary)
-                              : theme.line,
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${idx + 1}. $label',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          color: isOn ? theme.ink : theme.muted,
-                        ),
-                      ),
-                    ],
-                  ),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                '$section / 0$current DE 03',
+                style: TextStyle(
+                  color: ui.ink,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1,
                 ),
-              );
-            }).toList(),
-          ),
-        ),
-
-        // Step Content
-        Expanded(
-          child: p.step == 1
-              ? _buildStep1(context)
-              : (p.step == 2 ? _buildStep2(context) : _buildStep3(context)),
-        ),
-
-        // Footer in Step 2
-        if (p.step == 2)
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 22),
-            decoration: BoxDecoration(
-              color: theme.surface,
-              border: Border(top: BorderSide(color: theme.line)),
+              ),
             ),
-            child: Column(
-              children: [
-                ElevatedButton.icon(
-                  key: state.tourTarget('publish-submit'),
-                  onPressed: p.cat != null
-                      ? () {
-                          p.text = _textController.text;
-                          state.finishPublish();
-                        }
-                      : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: state.emergency
-                        ? NearbyColors.sos
-                        : theme.btnBg,
-                    foregroundColor: state.emergency
-                        ? Colors.white
-                        : theme.btnInk,
-                    minimumSize: const Size.fromHeight(52),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  icon: const Icon(Icons.send, size: 18),
-                  label: Text(
-                    _getSubmitLabel(),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  p.cat != null
-                      ? 'Último toque'
-                      : 'Elige una opción para continuar',
-                  style: TextStyle(color: theme.muted, fontSize: 11.5),
-                ),
-              ],
+            Text(
+              labels[current - 1],
+              style: TextStyle(
+                color: ui.muted,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [1, 2, 3].map((i) {
+            final color = i == current
+                ? ui.accent
+                : (i < current ? ui.ink : ui.line);
+            return Expanded(
+              child: Container(
+                height: 5,
+                margin: EdgeInsets.only(right: i < 3 ? 6 : 0),
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
       ],
     );
   }
 
-  Widget _buildStep1(BuildContext context) {
+  Widget _pageTitle(String title, String? subtitle) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        title,
+        style: TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.w700,
+          color: ui.ink,
+          letterSpacing: -0.5,
+          height: 1.15,
+        ),
+      ),
+      if (subtitle != null) ...[
+        const SizedBox(height: 6),
+        Text(subtitle, style: TextStyle(color: ui.muted, fontSize: 14)),
+      ],
+    ],
+  );
+
+  Widget _iconSquare(
+    IconData icon, {
+    Color? bg,
+    Color? fg,
+    double size = 40,
+    double iconSize = 20,
+  }) => Container(
+    width: size,
+    height: size,
+    decoration: BoxDecoration(
+      color: bg ?? ui.blueSoft,
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Icon(icon, color: fg ?? ui.ink, size: iconSize),
+  );
+
+  Widget _buildStep1(BuildContext context, double side) {
     final theme = widget.theme;
     final state = widget.state;
     final types = state.emergency ? kEmTypes : kTypes;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+      padding: EdgeInsets.fromLTRB(side, 16, side, 24),
       children: [
-        Text(
+        _pageTitle(
           '¿Qué quieres ${state.emergency ? "reportar" : "publicar"}?',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w900,
-            color: theme.ink,
-            letterSpacing: -0.5,
+          'Solo 3 toques: tipo, categoría y listo.',
+        ),
+        const SizedBox(height: 24),
+
+        // Atajo por voz: panel tinta
+        Material(
+          color: ui.panel,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            onTap: () => state.openSheet('voice'),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  _iconSquare(
+                    Icons.mic,
+                    bg: ui.accent,
+                    fg: ui.onAccent,
+                    size: 48,
+                    iconSize: 24,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Dilo con tu voz',
+                          style: TextStyle(
+                            color: ui.onPanel,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'La IA marca el tipo, la categoría y la ubicación por ti',
+                          style: TextStyle(
+                            color: ui.onPanel.withValues(alpha: 0.8),
+                            fontSize: 12.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.arrow_forward, color: ui.onPanel, size: 18),
+                ],
+              ),
+            ),
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          'Solo 3 toques: tipo, categoría y listo.',
-          style: TextStyle(color: theme.muted, fontSize: 14),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            Expanded(child: Divider(color: ui.line)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text(
+                'o elige tú mismo',
+                style: TextStyle(color: ui.muted, fontSize: 12),
+              ),
+            ),
+            Expanded(child: Divider(color: ui.line)),
+          ],
         ),
         const SizedBox(height: 16),
 
-        // AI Voice CTA
-        InkWell(
-          onTap: () => state.openSheet('voice'),
-          borderRadius: BorderRadius.circular(22),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [NearbyColors.violet, NearbyColors.navy2],
-              ),
-              borderRadius: BorderRadius.circular(22),
-              boxShadow: [
-                BoxShadow(
-                  color: NearbyColors.violet.withValues(alpha: 0.35),
-                  blurRadius: 18,
-                  offset: const Offset(0, 6),
-                ),
+        // Tipos: filas con ícono, en una tarjeta con borde
+        Container(
+          decoration: BoxDecoration(
+            color: theme.surface,
+            border: Border.all(color: ui.line),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              for (var i = 0; i < types.length; i++) ...[
+                if (i > 0) Divider(height: 1, color: ui.line),
+                _typeRow(types[i]),
               ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.mic, color: Colors.white, size: 28),
-                ),
-                const SizedBox(width: 14),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Dilo con tu voz',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 16,
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'La IA marca el tipo, la categoría y la ubicación por ti',
-                        style: TextStyle(color: Colors.white70, fontSize: 12.5),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            ],
           ),
         ),
-        const SizedBox(height: 14),
-        Center(
-          child: Text(
-            'o elige tú mismo',
-            style: TextStyle(color: theme.muted, fontSize: 12),
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        // Type cards
-        ...types.map((t) {
-          return Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            child: InkWell(
-              key: t.id == 'need' ? state.tourTarget('publish-type') : null,
-              onTap: () {
-                state.pub.type = t.id;
-                state.pub.cat = null;
-                state.pub.step = 2;
-                state.refresh();
-                state.checkTourEvent('ptype');
-              },
-              borderRadius: BorderRadius.circular(22),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: theme.surface,
-                  border: Border.all(color: theme.line),
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: theme.cardShadow,
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: _toneSoft(t.tone),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Icon(t.icon, color: _toneColor(t.tone), size: 30),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            t.label,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              color: theme.ink,
-                              fontSize: 15,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            t.desc,
-                            style: TextStyle(
-                              color: theme.muted,
-                              fontSize: 12.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Icon(Icons.chevron_right, color: theme.muted),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }),
       ],
     );
   }
 
-  Widget _buildStep2(BuildContext context) {
+  Widget _typeRow(PublishType t) {
+    final state = widget.state;
+    final red = t.tone == 'red';
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        key: t.id == 'need' ? state.tourTarget('publish-type') : null,
+        onTap: () {
+          state.pub.type = t.id;
+          state.pub.cat = null;
+          state.pub.step = 2;
+          state.refresh();
+          state.checkTourEvent('ptype');
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              _iconSquare(
+                t.icon,
+                bg: red ? _toneSoft(t.tone) : ui.blueSoft,
+                fg: red ? _toneColor(t.tone) : ui.ink,
+                size: 44,
+                iconSize: 22,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      t.label,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: ui.ink,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      t.desc,
+                      style: TextStyle(color: ui.muted, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.chevron_right, color: ui.ink, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStep2(BuildContext context, double side) {
     final theme = widget.theme;
     final state = widget.state;
     final p = state.pub;
     final all = [...kTypes, ...kEmTypes];
     final curType = all.where((t) => t.id == p.type).firstOrNull ?? all.first;
     final categories = _getCategoriesForType(p.type);
+    final redType = curType.tone == 'red';
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+      padding: EdgeInsets.fromLTRB(side, 16, side, 24),
       children: [
-        // Selected pill type with "Cambiar"
+        // Tipo elegido con «Cambiar»
         Row(
           children: [
-            Container(
-              padding: const EdgeInsets.fromLTRB(10, 5, 6, 5),
-              decoration: BoxDecoration(
-                color: theme.surface,
-                border: Border.all(color: theme.line),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(curType.icon, color: _toneColor(curType.tone), size: 16),
-                  const SizedBox(width: 6),
-                  Text(
-                    curType.label,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: theme.ink,
-                      fontSize: 12.5,
+            Flexible(
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
+                decoration: BoxDecoration(
+                  color: ui.ivory,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      curType.icon,
+                      color: redType ? _toneColor(curType.tone) : ui.ink,
+                      size: 16,
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  InkWell(
-                    onTap: () {
-                      p.step = 1;
-                      state.refresh();
-                    },
-                    borderRadius: BorderRadius.circular(999),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.primarySoft,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
+                    const SizedBox(width: 6),
+                    Flexible(
                       child: Text(
-                        'Cambiar',
+                        curType.label,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: theme.primaryDark,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: ui.ink,
+                          fontSize: 12,
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+            ),
+            const SizedBox(width: 4),
+            TextButton(
+              onPressed: () {
+                p.step = 1;
+                state.refresh();
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: ui.ink,
+                textStyle: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12.5,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+              child: const Text('Cambiar'),
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
 
         Text(
           curType.q,
           style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            color: theme.ink,
+            fontSize: 26,
+            fontWeight: FontWeight.w700,
+            color: ui.ink,
             letterSpacing: -0.5,
+            height: 1.15,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
 
-        // AI Detection label if exists
+        // Lo que detectó la IA
         if (p.ai != null && p.ai!['label'] != null) ...[
           Container(
-            margin: const EdgeInsets.only(bottom: 12),
+            margin: const EdgeInsets.only(bottom: 16),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  theme.violet.withValues(alpha: 0.14),
-                  theme.violet.withValues(alpha: 0.06),
-                ],
-              ),
-              border: Border.all(color: theme.violet.withValues(alpha: 0.3)),
-              borderRadius: BorderRadius.circular(16),
+              color: ui.blueSoft,
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               children: [
-                Icon(Icons.auto_awesome, color: theme.violet, size: 20),
-                const SizedBox(width: 8),
+                Icon(Icons.auto_awesome, color: ui.ink, size: 18),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text.rich(
                     TextSpan(
                       style: TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 13,
-                        color: theme.ink,
+                        color: ui.ink,
                       ),
                       children: [
-                        TextSpan(
+                        const TextSpan(
                           text: 'IA detectó: ',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            color: theme.violet,
-                          ),
+                          style: TextStyle(fontWeight: FontWeight.w700),
                         ),
                         TextSpan(text: '${p.ai!["label"]}'),
                       ],
@@ -428,96 +503,43 @@ class _PublishScreenState extends State<PublishScreen> {
           ),
         ],
 
-        // Category grid (2 columns)
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
-          mainAxisExtent: 118 * theme.scaleFactor,
-          children: categories.map((c) {
-            final isSel = p.cat == c.id;
-            return InkWell(
-              key: c.id == 'herramientas'
-                  ? state.tourTarget('publish-category')
-                  : null,
-              onTap: () {
-                p.cat = c.id;
-                state.refresh();
-                state.checkTourEvent('pcat');
-              },
-              borderRadius: BorderRadius.circular(18),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isSel
-                      ? (state.emergency ? theme.sosSoft : theme.primarySoft)
-                      : theme.surface,
-                  border: Border.all(
-                    color: isSel
-                        ? (state.emergency ? NearbyColors.sos : theme.primary)
-                        : theme.line,
-                    width: isSel ? 2 : 1.5,
-                  ),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: isSel
-                            ? (state.emergency
-                                  ? NearbyColors.sos
-                                  : theme.primary)
-                            : theme.surface2,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        c.icon,
-                        color: isSel ? Colors.white : theme.ink,
-                        size: 20,
-                      ),
-                    ),
-                    Text(
-                      c.label,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 12.5,
-                        color: theme.ink,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+        // Categorías: 2 columnas en móvil, 3 en anchos mayores
+        LayoutBuilder(
+          builder: (context, box) {
+            final cols = box.maxWidth >= 520 ? 3 : 2;
+            return GridView.count(
+              crossAxisCount: cols,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              mainAxisExtent: 108 * theme.scaleFactor,
+              padding: EdgeInsets.zero,
+              children: categories.map((c) {
+                final isSel = p.cat == c.id;
+                return _categoryTile(c, isSel);
+              }).toList(),
             );
-          }).toList(),
+          },
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 24),
 
-        // Detail field
+        // Detalle
         Text(
           'Detalle (opcional)',
           style: TextStyle(
-            fontWeight: FontWeight.w800,
-            color: theme.ink,
-            fontSize: 13.5,
+            fontWeight: FontWeight.w700,
+            color: ui.ink,
+            fontSize: 16,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
           decoration: BoxDecoration(
             color: theme.surface,
-            border: Border.all(color: theme.line),
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: theme.cardShadow,
+            border: Border.all(color: ui.line),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -528,49 +550,32 @@ class _PublishScreenState extends State<PublishScreen> {
                   maxLines: 3,
                   style: TextStyle(
                     fontFamily: 'Poppins',
-                    color: theme.ink,
+                    color: ui.ink,
                     fontSize: 14,
                   ),
                   decoration: InputDecoration(
                     hintText: curType.ph,
                     border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
                     isDense: true,
                   ),
                   onChanged: (val) => p.text = val,
                 ),
               ),
+              const SizedBox(width: 8),
               Column(
                 children: [
-                  InkWell(
-                    onTap: () => state.openSheet('voice'),
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: theme.surface2,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(Icons.mic, color: theme.primary, size: 20),
-                    ),
+                  _squareButton(
+                    Icons.mic,
+                    'Dictar con tu voz',
+                    () => state.openSheet('voice'),
                   ),
                   const SizedBox(height: 6),
-                  InkWell(
-                    onTap: () => state.openSheet('photo'),
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: theme.surface2,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.photo_camera,
-                        color: theme.primary,
-                        size: 20,
-                      ),
-                    ),
+                  _squareButton(
+                    Icons.photo_camera,
+                    'Adjuntar foto',
+                    () => state.openSheet('photo'),
                   ),
                 ],
               ),
@@ -578,27 +583,27 @@ class _PublishScreenState extends State<PublishScreen> {
           ),
         ),
 
-        // Photo attached tag if true
+        // Foto adjunta
         if (p.photo) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.fromLTRB(10, 5, 6, 5),
+                padding: const EdgeInsets.fromLTRB(10, 6, 6, 6),
                 decoration: BoxDecoration(
-                  color: theme.primarySoft,
-                  borderRadius: BorderRadius.circular(12),
+                  color: ui.ivory,
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.image, color: theme.primaryDark, size: 16),
+                    Icon(Icons.image_outlined, color: ui.ink, size: 16),
                     const SizedBox(width: 6),
                     Text(
                       'Foto adjunta',
                       style: TextStyle(
-                        color: theme.primaryDark,
-                        fontWeight: FontWeight.w800,
+                        color: ui.ink,
+                        fontWeight: FontWeight.w600,
                         fontSize: 12,
                       ),
                     ),
@@ -608,10 +613,10 @@ class _PublishScreenState extends State<PublishScreen> {
                         p.photo = false;
                         state.refresh();
                       },
-                      child: Icon(
-                        Icons.close,
-                        color: theme.primaryDark,
-                        size: 16,
+                      borderRadius: BorderRadius.circular(6),
+                      child: Padding(
+                        padding: const EdgeInsets.all(2),
+                        child: Icon(Icons.close, color: ui.ink, size: 16),
                       ),
                     ),
                   ],
@@ -621,79 +626,87 @@ class _PublishScreenState extends State<PublishScreen> {
           ),
         ],
 
-        // Location row
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Icon(Icons.my_location, color: theme.info, size: 20),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text.rich(
-                TextSpan(
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 12.5,
-                    color: theme.muted,
-                  ),
-                  children: [
-                    TextSpan(
-                      text: p.ai?['loc'] == null && widget.state.pubLocating
-                          ? 'Buscando dónde estás…'
-                          : widget.state.publishWhere,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        color: theme.ink,
-                      ),
+        // Ubicación
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.fromLTRB(12, 10, 6, 10),
+          decoration: BoxDecoration(
+            color: ui.ivory,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              _iconSquare(Icons.my_location, bg: theme.surface, size: 36),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text.rich(
+                  TextSpan(
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 12.5,
+                      color: ui.muted,
                     ),
-                    if (!widget.state.pubLocating || p.ai?['loc'] != null)
+                    children: [
                       TextSpan(
-                        text: p.ai?['loc'] != null
-                            ? ' · ubicación detectada por la IA'
-                            : widget.state.pubFromGps
-                            ? ' · tu ubicación actual'
-                            : ' · tu dirección guardada',
+                        text: p.ai?['loc'] == null && widget.state.pubLocating
+                            ? 'Buscando dónde estás…'
+                            : widget.state.publishWhere,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: ui.ink,
+                        ),
                       ),
-                  ],
+                      if (!widget.state.pubLocating || p.ai?['loc'] != null)
+                        TextSpan(
+                          text: p.ai?['loc'] != null
+                              ? ' · ubicación detectada por la IA'
+                              : widget.state.pubFromGps
+                              ? ' · tu ubicación actual'
+                              : ' · tu dirección guardada',
+                        ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            if (widget.state.connected && p.ai?['loc'] == null)
-              IconButton(
-                tooltip: 'Actualizar mi ubicación',
-                visualDensity: VisualDensity.compact,
-                onPressed: widget.state.pubLocating
-                    ? null
-                    : widget.state.locateForPublish,
-                icon: widget.state.pubLocating
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Icon(Icons.refresh, color: theme.info, size: 20),
-              ),
-          ],
+              if (widget.state.connected && p.ai?['loc'] == null)
+                IconButton(
+                  tooltip: 'Actualizar mi ubicación',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: widget.state.pubLocating
+                      ? null
+                      : widget.state.locateForPublish,
+                  icon: widget.state.pubLocating
+                      ? SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: ui.ink,
+                          ),
+                        )
+                      : Icon(Icons.refresh, color: ui.ink, size: 20),
+                ),
+            ],
+          ),
         ),
 
         if (p.type == 'vulnerable') ...[
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: theme.surface,
-              border: Border.all(color: theme.line),
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: theme.cardShadow,
+              color: ui.blueSoft,
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.lock, color: theme.info, size: 18),
-                const SizedBox(width: 8),
+                Icon(Icons.lock_outline, color: ui.ink, size: 18),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'Solo brigadistas verificados ven la dirección exacta. Los demás vecinos ven la zona aproximada.',
-                    style: TextStyle(color: theme.muted, fontSize: 12),
+                    style: TextStyle(color: ui.ink, fontSize: 12),
                   ),
                 ),
               ],
@@ -704,44 +717,126 @@ class _PublishScreenState extends State<PublishScreen> {
     );
   }
 
-  Widget _buildStep3(BuildContext context) {
+  Widget _categoryTile(CategoryItem c, bool isSel) {
+    final theme = widget.theme;
+    final state = widget.state;
+    final p = state.pub;
+    return Material(
+      color: isSel ? ui.blueSoft : theme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: isSel ? ui.ink : ui.line,
+          width: isSel ? 1.5 : 1,
+        ),
+      ),
+      child: InkWell(
+        key: c.id == 'herramientas'
+            ? state.tourTarget('publish-category')
+            : null,
+        onTap: () {
+          p.cat = c.id;
+          state.refresh();
+          state.checkTourEvent('pcat');
+        },
+        customBorder: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _iconSquare(
+                    c.icon,
+                    bg: isSel ? ui.accent : ui.blueSoft,
+                    fg: isSel ? ui.onAccent : ui.ink,
+                    size: 38,
+                  ),
+                  const Spacer(),
+                  if (isSel) Icon(Icons.check_circle, color: ui.ink, size: 18),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Flexible(
+                child: Text(
+                  c.label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12.5,
+                    height: 1.2,
+                    color: ui.ink,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _squareButton(IconData icon, String tooltip, VoidCallback onTap) =>
+      Tooltip(
+        message: tooltip,
+        child: Material(
+          color: ui.blueSoft,
+          borderRadius: BorderRadius.circular(8),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(
+              width: 42,
+              height: 42,
+              child: Icon(icon, color: ui.ink, size: 20),
+            ),
+          ),
+        ),
+      );
+
+  Widget _buildStep3(BuildContext context, double side) {
     final theme = widget.theme;
     final state = widget.state;
     final p = state.pub;
     final off = state.offline;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 30, 24, 30),
+      padding: EdgeInsets.fromLTRB(side, 32, side, 32),
       children: [
         Center(
           child: Container(
-            width: 96,
-            height: 96,
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
               color: off
-                  ? theme.accentSoft
-                  : (state.emergency ? theme.sosSoft : theme.primarySoft),
-              shape: BoxShape.circle,
+                  ? ui.ivory
+                  : (state.emergency ? theme.sosSoft : ui.blueSoft),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
-              off ? Icons.cloud_sync : Icons.check_circle,
-              color: off
-                  ? NearbyColors.accent
-                  : (state.emergency ? NearbyColors.sos : theme.primary),
-              size: 54,
+              off ? Icons.cloud_sync_outlined : Icons.check_circle_outline,
+              color: state.emergency && !off ? NearbyColors.sos : ui.ink,
+              size: 44,
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         Text(
           off
               ? 'Guardado en tu teléfono'
               : (p.type == 'vulnerable' ? 'Reporte enviado' : '¡Publicado!'),
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w900,
-            color: theme.ink,
+            fontSize: 28,
+            fontWeight: FontWeight.w700,
+            color: ui.ink,
+            letterSpacing: -0.5,
           ),
         ),
         const SizedBox(height: 8),
@@ -754,13 +849,13 @@ class _PublishScreenState extends State<PublishScreen> {
                     ? 'La brigada y los vecinos cercanos ya lo ven en el tablero de ayuda humanitaria.'
                     : 'Tus vecinos en 500 m ya lo pueden ver y responder.'),
           textAlign: TextAlign.center,
-          style: TextStyle(color: theme.muted, fontSize: 14, height: 1.4),
+          style: TextStyle(color: ui.muted, fontSize: 14, height: 1.45),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
 
         if (off && p.type == 'vulnerable' && state.lastCode != null) ...[
           _buildCompressedCodeCard(state.lastCode!),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
         ],
 
         ElevatedButton(
@@ -775,40 +870,22 @@ class _PublishScreenState extends State<PublishScreen> {
               state.go('muro', reset: true);
             }
           },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: state.emergency ? NearbyColors.sos : theme.btnBg,
-            foregroundColor: state.emergency ? Colors.white : theme.btnInk,
-            minimumSize: const Size.fromHeight(52),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
+          style: _primaryStyle,
           child: Text(
             p.type == 'vulnerable'
                 ? 'Ver tablero'
                 : (p.type == 'service'
                       ? 'Ver servicios'
                       : (state.emergency ? 'Ver recursos' : 'Ver en el muro')),
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
           ),
         ),
         const SizedBox(height: 10),
         OutlinedButton.icon(
           key: state.tourTarget('publish-home'),
           onPressed: () => state.selectTab('home'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: theme.ink,
-            side: BorderSide(color: theme.line),
-            minimumSize: const Size.fromHeight(52),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-          icon: const Icon(Icons.home, size: 18),
-          label: const Text(
-            'Volver al inicio',
-            style: TextStyle(fontWeight: FontWeight.w800),
-          ),
+          style: _secondaryStyle,
+          icon: const Icon(Icons.home_outlined, size: 18),
+          label: const Text('Volver al inicio'),
         ),
       ],
     );
@@ -816,45 +893,46 @@ class _PublishScreenState extends State<PublishScreen> {
 
   Widget _buildCompressedCodeCard(String code) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: widget.theme.surface,
-        border: Border.all(color: widget.theme.line),
-        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: ui.line),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.auto_awesome, color: widget.theme.violet, size: 18),
-              const SizedBox(width: 6),
-              Text(
-                'Comprimido por IA para SMS',
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 12,
-                  color: widget.theme.violet,
-                  letterSpacing: 0.5,
+              _iconSquare(Icons.auto_awesome, size: 32, iconSize: 16),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Comprimido por IA para SMS',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: ui.ink,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFF041128),
-              borderRadius: BorderRadius.circular(12),
+              color: ui.panel,
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: Text(
+            child: SelectableText(
               code,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'monospace',
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w700,
                 fontSize: 14.5,
-                color: Color(0xFF6FE6D6),
+                color: ui.onPanel,
               ),
             ),
           ),
@@ -864,19 +942,11 @@ class _PublishScreenState extends State<PublishScreen> {
             children: [
               Text(
                 '${code.length} de 25 caracteres',
-                style: TextStyle(
-                  color: widget.theme.muted,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(color: ui.muted, fontSize: 11.5),
               ),
               Text(
                 'Cabe en 1 SMS',
-                style: TextStyle(
-                  color: widget.theme.muted,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(color: ui.muted, fontSize: 11.5),
               ),
             ],
           ),
@@ -886,18 +956,11 @@ class _PublishScreenState extends State<PublishScreen> {
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () => widget.state.openSheet('sonic'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: NearbyColors.violet,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                  ),
+                  style: ui.action(),
                   icon: const Icon(Icons.graphic_eq, size: 16),
                   label: const Text(
                     'Enviar por sonido',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
@@ -909,18 +972,11 @@ class _PublishScreenState extends State<PublishScreen> {
                     widget.state.lastCode = code;
                     widget.state.go('puente');
                   },
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: widget.theme.ink,
-                    side: BorderSide(color: widget.theme.line),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                  ),
-                  icon: const Icon(Icons.visibility, size: 16),
+                  style: ui.action(filled: false),
+                  icon: const Icon(Icons.visibility_outlined, size: 16),
                   label: const Text(
                     'Ver brigadista',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),

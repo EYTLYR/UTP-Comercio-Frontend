@@ -24,12 +24,14 @@ class HomeScreen extends StatelessWidget {
   // --- Normal Home ---
   Widget _buildNormalHome(BuildContext context) {
     final ui = NearbyCommunityStyle(theme);
-    return ListView(
-      padding: NavigationInsets.of(context) + const EdgeInsets.only(bottom: 24),
-      children: [
-        Divider(height: 1, indent: 24, endIndent: 24, color: ui.line),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // < 700: diseño móvil. ≥ 700: rejillas más anchas. ≥ 900: dos columnas.
+        final wide = constraints.maxWidth >= 700;
+        final split = constraints.maxWidth >= 900;
+
         // Greeting
-        Padding(
+        final greeting = Padding(
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -54,79 +56,79 @@ class HomeScreen extends StatelessWidget {
               ),
             ],
           ),
-        ),
-
-        // SOS Card
-        NearbySosCard(theme: theme, state: state),
+        );
 
         // Zone emergency banner if zone still in emergency
-        if (state.zoneEm)
-          Container(
-            margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: theme.sosSoft,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.crisis_alert, color: theme.sosDark, size: 24),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'La emergencia sigue activa en tu zona',
+        final Widget? zoneBanner = state.zoneEm
+            ? Container(
+                margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: theme.sosSoft,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.crisis_alert, color: theme.sosDark, size: 24),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'La emergencia sigue activa en tu zona',
+                            style: TextStyle(
+                              color: theme.sosDark,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13,
+                            ),
+                          ),
+                          Text(
+                            'Saliste del modo emergencia en tu app.',
+                            style: TextStyle(
+                              color: theme.sosDark.withValues(alpha: 0.8),
+                              fontSize: 11.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        state.emergency = true;
+                        state.emSource = 'zona';
+                        state.refresh();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: NearbyColors.sos,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                      child: const Text(
+                        'Volver',
                         style: TextStyle(
-                          color: theme.sosDark,
                           fontWeight: FontWeight.w800,
-                          fontSize: 13,
+                          fontSize: 12,
                         ),
                       ),
-                      Text(
-                        'Saliste del modo emergencia en tu app.',
-                        style: TextStyle(
-                          color: theme.sosDark.withValues(alpha: 0.8),
-                          fontSize: 11.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    state.emergency = true;
-                    state.emSource = 'zona';
-                    state.refresh();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: NearbyColors.sos,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
                     ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                  ),
-                  child: const Text(
-                    'Volver',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
-                  ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              )
+            : null;
 
         // Section "Día a día"
-        _buildSectionHeader('Día a día', homeStyle: ui),
-        Padding(
+        final dayGrid = Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: GridView.count(
-            crossAxisCount: 2,
+            crossAxisCount: wide && !split ? 4 : 2,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             crossAxisSpacing: 12,
@@ -178,139 +180,195 @@ class HomeScreen extends StatelessWidget {
               ),
             ],
           ),
-        ),
+        );
 
         // AI Summary Banner
-        if (state.isBrigade)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-            child: PressableScale(
-              onTap: () => state.go('red'),
-              scale: 0.98,
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      theme.violet.withValues(alpha: 0.12),
-                      theme.violet.withValues(alpha: 0.06),
-                    ],
-                  ),
-                  border: Border.all(
-                    color: theme.violet.withValues(alpha: 0.3),
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 46,
-                      height: 46,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [NearbyColors.violet, NearbyColors.navy2],
-                        ),
-                        borderRadius: BorderRadius.circular(15),
+        final Widget? brigadeBanner = state.isBrigade
+            ? Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                child: PressableScale(
+                  onTap: () => state.go('red'),
+                  scale: 0.98,
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          theme.violet.withValues(alpha: 0.12),
+                          theme.violet.withValues(alpha: 0.06),
+                        ],
                       ),
-                      child: const Icon(
-                        Icons.auto_awesome,
-                        color: Colors.white,
-                        size: 24,
+                      border: Border.all(
+                        color: theme.violet.withValues(alpha: 0.3),
                       ),
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 46,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [NearbyColors.violet, NearbyColors.navy2],
+                            ),
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: const Icon(
+                            Icons.auto_awesome,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Tu barrio ya está preparado',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  color: theme.ink,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'La IA detectó ${state.buildInventory().where((e) => kAiTags[e.tag]?.kind != "vuln").length} recursos y habilidades de rescate en los favores de cada día',
+                                style: TextStyle(
+                                  color: theme.muted,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.chevron_right, color: theme.muted),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+            : null;
+
+        final hero = <Widget>[
+          greeting,
+          // SOS Card
+          NearbySosCard(theme: theme, state: state),
+          ?zoneBanner,
+        ];
+        final shortcuts = <Widget>[
+          _buildSectionHeader('Día a día', homeStyle: ui),
+          dayGrid,
+          ?brigadeBanner,
+        ];
+
+        return ListView(
+          padding:
+              NavigationInsets.of(context) + const EdgeInsets.only(bottom: 24),
+          children: [
+            Divider(height: 1, indent: 24, endIndent: 24, color: ui.line),
+            if (split)
+              _splitColumns(hero, shortcuts)
+            else ...[
+              ...hero,
+              ...shortcuts,
+            ],
+
+            // Recommended Services Horizontal Scroll
+            _buildSectionHeader(
+              'Recomendados por tus vecinos',
+              homeStyle: ui,
+              actionText: 'Ver todos',
+              onAction: () => state.go('servicios'),
+            ),
+            SizedBox(
+              height: 100 * theme.scaleFactor,
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                scrollDirection: Axis.horizontal,
+                itemCount: state.services.take(5).length,
+                separatorBuilder: (_, _) => const SizedBox(width: 12),
+                itemBuilder: (context, i) {
+                  final s = state.services[i];
+                  return InkWell(
+                    onTap: () {
+                      state.selService = s.id;
+                      state.go('svc');
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: 164 * theme.scaleFactor,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: theme.surface,
+                        border: Border.all(color: ui.line),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Tu barrio ya está preparado',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              color: theme.ink,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'La IA detectó ${state.buildInventory().where((e) => kAiTags[e.tag]?.kind != "vuln").length} recursos y habilidades de rescate en los favores de cada día',
-                            style: TextStyle(color: theme.muted, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Icon(Icons.chevron_right, color: theme.muted),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-        // Recommended Services Horizontal Scroll
-        _buildSectionHeader(
-          'Recomendados por tus vecinos',
-          homeStyle: ui,
-          actionText: 'Ver todos',
-          onAction: () => state.go('servicios'),
-        ),
-        SizedBox(
-          height: 100 * theme.scaleFactor,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            scrollDirection: Axis.horizontal,
-            itemCount: state.services.take(5).length,
-            separatorBuilder: (_, _) => const SizedBox(width: 12),
-            itemBuilder: (context, i) {
-              final s = state.services[i];
-              return InkWell(
-                onTap: () {
-                  state.selService = s.id;
-                  state.go('svc');
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  width: 164 * theme.scaleFactor,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: theme.surface,
-                    border: Border.all(color: ui.line),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              color: ui.blueSoft,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(s.icon, color: ui.ink, size: 18),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  s.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    color: ui.ink,
-                                    fontSize: 12,
-                                  ),
+                          Row(
+                            children: [
+                              Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: ui.blueSoft,
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
+                                child: Icon(s.icon, color: ui.ink, size: 18),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      s.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: ui.ink,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    Text(
+                                      s.job,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: ui.muted,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: ui.ivory,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.verified, color: ui.ink, size: 14),
+                                const SizedBox(width: 4),
                                 Text(
-                                  s.job,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                                  '${s.vb + (state.vbGiven[s.id] == true ? 1 : 0)}',
                                   style: TextStyle(
-                                    color: ui.muted,
+                                    color: ui.ink,
+                                    fontWeight: FontWeight.w800,
                                     fontSize: 11,
                                   ),
                                 ),
@@ -319,64 +377,36 @@ class HomeScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: ui.ivory,
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.verified, color: ui.ink, size: 14),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${s.vb + (state.vbGiven[s.id] == true ? 1 : 0)}',
-                              style: TextStyle(
-                                color: ui.ink,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
+                    ),
+                  );
+                },
+              ),
+            ),
 
-        // In the wall right now
-        _buildSectionHeader(
-          'En el muro ahora',
-          actionText: 'Ver muro',
-          onAction: () => state.go('muro'),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            children: state.posts
-                .take(2)
-                .map((p) => _buildPostCard(p))
-                .toList(),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          child: TextButton.icon(
-            onPressed: () => state.startTour('main'),
-            icon: const Icon(Icons.touch_app_outlined),
-            label: const Text('Aprende tocando la app (1 minuto)'),
-          ),
-        ),
-      ],
+            // In the wall right now
+            _buildSectionHeader(
+              'En el muro ahora',
+              actionText: 'Ver muro',
+              onAction: () => state.go('muro'),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: wide ? 24 : 16),
+              child: _cardRows(
+                state.posts.take(2).map((p) => _buildPostCard(p)).toList(),
+                wide ? 2 : 1,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: TextButton.icon(
+                onPressed: () => state.startTour('main'),
+                icon: const Icon(Icons.touch_app_outlined),
+                label: const Text('Aprende tocando la app (1 minuto)'),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -384,11 +414,14 @@ class HomeScreen extends StatelessWidget {
   Widget _buildEmergencyHome(BuildContext context) {
     final pendingCount = state.reports.where((r) => r.status != 'a').length;
 
-    return ListView(
-      padding: NavigationInsets.of(context) + const EdgeInsets.only(bottom: 24),
-      children: [
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // < 700: diseño móvil. ≥ 700: rejillas más anchas. ≥ 900: dos columnas.
+        final wide = constraints.maxWidth >= 700;
+        final split = constraints.maxWidth >= 900;
+
         // Greeting
-        Padding(
+        final greeting = Padding(
           padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -413,13 +446,10 @@ class HomeScreen extends StatelessWidget {
               ),
             ],
           ),
-        ),
-
-        // SOS Card
-        NearbySosCard(theme: theme, state: state),
+        );
 
         // Check-in card "¿Cómo estás?"
-        Container(
+        final checkinCard = Container(
           key: state.tourTarget('checkin'),
           margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
           padding: const EdgeInsets.all(16),
@@ -574,109 +604,109 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-        ),
+        );
 
         // AI Plan Button / Active summary
-        if (state.isBrigade)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: state.aiStatus == 'done'
-                ? InkWell(
-                    onTap: () => state.go('tablero'),
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            theme.violet.withValues(alpha: 0.14),
-                            theme.violet.withValues(alpha: 0.06),
-                          ],
-                        ),
-                        border: Border.all(
-                          color: theme.violet.withValues(alpha: 0.3),
-                        ),
+        final Widget? aiPlan = state.isBrigade
+            ? Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: state.aiStatus == 'done'
+                    ? InkWell(
+                        onTap: () => state.go('tablero'),
                         borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [
-                                  NearbyColors.violet,
-                                  NearbyColors.navy2,
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: const Icon(
-                              Icons.auto_awesome,
-                              color: Colors.white,
-                              size: 22,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Plan de rescate con IA activo',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                    color: theme.ink,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                Text(
-                                  '${state.aiMissions.values.fold(0, (sum, m) => sum + m.length)} vecinos asignados · ver misiones',
-                                  style: TextStyle(
-                                    color: theme.muted,
-                                    fontSize: 12,
-                                  ),
-                                ),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                theme.violet.withValues(alpha: 0.14),
+                                theme.violet.withValues(alpha: 0.06),
                               ],
                             ),
+                            border: Border.all(
+                              color: theme.violet.withValues(alpha: 0.3),
+                            ),
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                          Icon(Icons.chevron_right, color: theme.muted),
-                        ],
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      NearbyColors.violet,
+                                      NearbyColors.navy2,
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: const Icon(
+                                  Icons.auto_awesome,
+                                  color: Colors.white,
+                                  size: 22,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Plan de rescate con IA activo',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        color: theme.ink,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${state.aiMissions.values.fold(0, (sum, m) => sum + m.length)} vecinos asignados · ver misiones',
+                                      style: TextStyle(
+                                        color: theme.muted,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(Icons.chevron_right, color: theme.muted),
+                            ],
+                          ),
+                        ),
+                      )
+                    : ElevatedButton.icon(
+                        onPressed: () {
+                          state.go('tablero');
+                          state.runAi();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: NearbyColors.violet,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(52),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          elevation: 3,
+                        ),
+                        icon: const Icon(Icons.auto_awesome, size: 22),
+                        label: const Text(
+                          'Generar plan de rescate con IA',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 15,
+                          ),
+                        ),
                       ),
-                    ),
-                  )
-                : ElevatedButton.icon(
-                    onPressed: () {
-                      state.go('tablero');
-                      state.runAi();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: NearbyColors.violet,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size.fromHeight(52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      elevation: 3,
-                    ),
-                    icon: const Icon(Icons.auto_awesome, size: 22),
-                    label: const Text(
-                      'Generar plan de rescate con IA',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ),
-          ),
+              )
+            : null;
 
         // Section "Coordinar ayuda" (2x2 grid)
-        _buildSectionHeader('Coordinar ayuda'),
-        Padding(
+        final coordGrid = Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: GridView.count(
-            crossAxisCount: 2,
+            crossAxisCount: wide && !split ? 4 : 2,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             crossAxisSpacing: 10,
@@ -724,15 +754,10 @@ class HomeScreen extends StatelessWidget {
               ),
             ],
           ),
-        ),
+        );
 
         // Section "Tablero del barrio" with stats
-        _buildSectionHeader(
-          'Tablero del barrio',
-          actionText: state.isBrigade ? 'Ver todo' : null,
-          onAction: state.isBrigade ? () => state.go('tablero') : null,
-        ),
-        Padding(
+        final stats = Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
@@ -752,22 +777,21 @@ class HomeScreen extends StatelessWidget {
               ),
             ],
           ),
-        ),
+        );
 
         // Urgent Reports previews
-        Padding(
+        final reports = Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          child: Column(
-            children: state.reports.where((r) => r.status != 'a').take(2).map((
-              r,
-            ) {
+          child: _cardRows(
+            state.reports.where((r) => r.status != 'a').take(2).map((r) {
               return _buildReportPreview(r);
             }).toList(),
+            wide && !split ? 2 : 1,
           ),
-        ),
+        );
 
         // Exit emergency mode banner
-        Padding(
+        final exitBanner = Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
           child: InkWell(
             onTap: () => state.openSheet('em-off'),
@@ -820,7 +844,80 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
           ),
+        );
+
+        final hero = <Widget>[
+          greeting,
+          // SOS Card
+          NearbySosCard(theme: theme, state: state),
+          checkinCard,
+          ?aiPlan,
+        ];
+        final board = <Widget>[
+          _buildSectionHeader('Coordinar ayuda'),
+          coordGrid,
+          _buildSectionHeader(
+            'Tablero del barrio',
+            actionText: state.isBrigade ? 'Ver todo' : null,
+            onAction: state.isBrigade ? () => state.go('tablero') : null,
+          ),
+          stats,
+          reports,
+          exitBanner,
+        ];
+
+        return ListView(
+          padding:
+              NavigationInsets.of(context) + const EdgeInsets.only(bottom: 24),
+          children: [
+            if (split) _splitColumns(hero, board) else ...[...hero, ...board],
+          ],
+        );
+      },
+    );
+  }
+
+  // --- Responsive helpers ---
+  // Dos columnas alineadas arriba (pantallas anchas).
+  Widget _splitColumns(List<Widget> left, List<Widget> right) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: left,
+          ),
         ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: right,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Reparte tarjetas en filas de [cols] columnas con su altura natural.
+  Widget _cardRows(List<Widget> items, int cols) {
+    if (cols <= 1) return Column(children: items);
+    return Column(
+      children: [
+        for (var i = 0; i < items.length; i += cols)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var j = 0; j < cols; j++) ...[
+                if (j > 0) const SizedBox(width: 12),
+                Expanded(
+                  child: i + j < items.length
+                      ? items[i + j]
+                      : const SizedBox.shrink(),
+                ),
+              ],
+            ],
+          ),
       ],
     );
   }

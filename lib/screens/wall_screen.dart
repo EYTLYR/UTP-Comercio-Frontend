@@ -26,189 +26,226 @@ class WallScreen extends StatelessWidget {
         .where((category) => category.id == state.muroCat)
         .firstOrNull;
 
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.only(top: NavigationInsets.of(context).top),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Muro solidario',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
-                          color: ui.ink,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Cadena de favores entre vecinos.',
-                        style: TextStyle(color: ui.muted, fontSize: 14),
-                      ),
-                    ],
-                  ),
-                ),
-
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: ui.ivory,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            '${state.posts.length}',
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // 1 columna en móvil; 2 desde 700 px y 3 desde 1050 px.
+        final width = constraints.maxWidth;
+        final cols = width >= 1050 ? 3 : (width >= 700 ? 2 : 1);
+        // En ancho, las tarjetas se alinean con el encabezado (24).
+        final side = cols == 1 ? 16.0 : 24.0;
+        return CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.only(top: NavigationInsets.of(context).top),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Muro solidario',
                             style: TextStyle(
-                              color: ui.ink,
-                              fontSize: 26,
+                              fontSize: 28,
                               fontWeight: FontWeight.w700,
+                              color: ui.ink,
+                              letterSpacing: -0.5,
                             ),
                           ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Cadena de favores entre vecinos.',
+                            style: TextStyle(color: ui.muted, fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: ui.ivory,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 4,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                state.posts.length == 1
-                                    ? 'favor cerca de ti'
-                                    : 'favores cerca de ti',
+                        child: Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                '${state.posts.length}',
                                 style: TextStyle(
                                   color: ui.ink,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
-                              Text(
-                                () {
-                                  final mine = state.posts
-                                      .where(
-                                        (post) =>
-                                            post.mine || post.dist == 'tú',
-                                      )
-                                      .length;
-                                  if (mine > 0) return 'Tú publicaste $mine';
-                                  return state.posts.isEmpty
-                                      ? 'Publica el primero y suma a la cadena'
-                                      : 'Pide u ofrece ayuda y suma a la cadena';
-                                }(),
-                                style: TextStyle(color: ui.muted, fontSize: 11),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      border: Border(bottom: BorderSide(color: ui.line)),
-                    ),
-                    child: Row(
-                      children: [
-                        _segButton('all', 'Todo'),
-                        _segButton('need', 'Necesitan'),
-                        _segButton('offer', 'Ofrecen'),
-                        const SizedBox(width: 8),
-                        PopupMenuButton<String>(
-                          tooltip: selectedCategory == null
-                              ? 'Filtrar por categoría'
-                              : 'Categoría: ${selectedCategory.label}',
-                          icon: const Icon(Icons.tune, size: 20),
-                          style: IconButton.styleFrom(
-                            foregroundColor: ui.ink,
-                            backgroundColor: selectedCategory == null
-                                ? ui.ivory
-                                : ui.accent,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
                             ),
-                          ),
-                          onSelected: (categoryId) {
-                            state.muroCat = categoryId.isEmpty
-                                ? null
-                                : categoryId;
-                            state.refresh();
-                          },
-                          itemBuilder: (_) => [
-                            CheckedPopupMenuItem(
-                              value: '',
-                              checked: selectedCategory == null,
-                              child: const Text('Todas las categorías'),
-                            ),
-                            for (final category in kPostCats)
-                              CheckedPopupMenuItem(
-                                value: category.id,
-                                checked: category.id == state.muroCat,
-                                child: Text(category.label),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 4,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    state.posts.length == 1
+                                        ? 'favor cerca de ti'
+                                        : 'favores cerca de ti',
+                                    style: TextStyle(
+                                      color: ui.ink,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  Text(
+                                    () {
+                                      final mine = state.posts
+                                          .where(
+                                            (post) =>
+                                                post.mine || post.dist == 'tú',
+                                          )
+                                          .length;
+                                      if (mine > 0) {
+                                        return 'Tú publicaste $mine';
+                                      }
+                                      return state.posts.isEmpty
+                                          ? 'Publica el primero y suma a la cadena'
+                                          : 'Pide u ofrece ayuda y suma a la cadena';
+                                    }(),
+                                    style: TextStyle(
+                                      color: ui.muted,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
                               ),
+                            ),
                           ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-              ],
-            ),
-          ),
-        ),
+                    const SizedBox(height: 12),
 
-        // Posts list (Virtualizado)
-        if (filtered.isEmpty)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: theme.surface,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: ui.line),
-                  boxShadow: theme.cardShadow,
-                ),
-                child: Center(
-                  child: Text(
-                    'No hay publicaciones en esta categoría todavía.',
-                    style: TextStyle(color: ui.muted, fontSize: 13.5),
-                  ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          border: Border(bottom: BorderSide(color: ui.line)),
+                        ),
+                        child: Row(
+                          children: [
+                            _segButton('all', 'Todo'),
+                            _segButton('need', 'Necesitan'),
+                            _segButton('offer', 'Ofrecen'),
+                            const SizedBox(width: 8),
+                            PopupMenuButton<String>(
+                              tooltip: selectedCategory == null
+                                  ? 'Filtrar por categoría'
+                                  : 'Categoría: ${selectedCategory.label}',
+                              icon: const Icon(Icons.tune, size: 20),
+                              style: IconButton.styleFrom(
+                                foregroundColor: ui.ink,
+                                backgroundColor: selectedCategory == null
+                                    ? ui.ivory
+                                    : ui.accent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              onSelected: (categoryId) {
+                                state.muroCat = categoryId.isEmpty
+                                    ? null
+                                    : categoryId;
+                                state.refresh();
+                              },
+                              itemBuilder: (_) => [
+                                CheckedPopupMenuItem(
+                                  value: '',
+                                  checked: selectedCategory == null,
+                                  child: const Text('Todas las categorías'),
+                                ),
+                                for (final category in kPostCats)
+                                  CheckedPopupMenuItem(
+                                    value: category.id,
+                                    checked: category.id == state.muroCat,
+                                    child: Text(category.label),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
                 ),
               ),
             ),
-          )
-        else
-          SliverPadding(
-            padding: EdgeInsets.fromLTRB(
-              16,
-              0,
-              16,
-              NavigationInsets.of(context).bottom + 24,
+
+            // Posts list (Virtualizado)
+            if (filtered.isEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(side, 0, side, 24),
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: theme.surface,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: ui.line),
+                      boxShadow: theme.cardShadow,
+                    ),
+                    child: Center(
+                      child: Text(
+                        'No hay publicaciones en esta categoría todavía.',
+                        style: TextStyle(color: ui.muted, fontSize: 13.5),
+                      ),
+                    ),
+                  ),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                  side,
+                  0,
+                  side,
+                  NavigationInsets.of(context).bottom + 24,
+                ),
+                sliver: SliverList.builder(
+                  itemCount: cols == 1
+                      ? filtered.length
+                      : (filtered.length / cols).ceil(),
+                  itemBuilder: (context, index) => cols == 1
+                      ? _buildPostCard(filtered[index])
+                      : _buildPostGroup(filtered, index, cols),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Fila de tarjetas con la misma altura (pantallas anchas).
+  Widget _buildPostGroup(List<PostItem> items, int row, int cols) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var j = 0; j < cols; j++) ...[
+            if (j > 0) const SizedBox(width: 12),
+            Expanded(
+              child: row * cols + j < items.length
+                  ? _buildPostCard(items[row * cols + j])
+                  : const SizedBox.shrink(),
             ),
-            sliver: SliverList.builder(
-              itemCount: filtered.length,
-              itemBuilder: (context, index) => _buildPostCard(filtered[index]),
-            ),
-          ),
-      ],
+          ],
+        ],
+      ),
     );
   }
 
@@ -373,7 +410,11 @@ class WallScreen extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.campaign_outlined, color: theme.info, size: 20),
+                      Icon(
+                        Icons.campaign_outlined,
+                        color: theme.info,
+                        size: 20,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -396,7 +437,11 @@ class WallScreen extends StatelessWidget {
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Row(
                         children: [
-                          Icon(Icons.people_alt_outlined, size: 16, color: theme.primaryDark),
+                          Icon(
+                            Icons.people_alt_outlined,
+                            size: 16,
+                            color: theme.primaryDark,
+                          ),
                           const SizedBox(width: 6),
                           Text(
                             'Solicitudes recibidas (${p.incomingResponses.length})',
@@ -409,13 +454,18 @@ class WallScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    ...p.incomingResponses.map((r) => _buildIncomingResponseRow(p, r)),
+                    ...p.incomingResponses.map(
+                      (r) => _buildIncomingResponseRow(p, r),
+                    ),
                   ],
                 ),
               const SizedBox(height: 10),
               if (p.status == 'RESOLVED')
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: theme.primarySoft,
                     borderRadius: BorderRadius.circular(12),
@@ -423,7 +473,11 @@ class WallScreen extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.check_circle, size: 16, color: theme.primaryDark),
+                      Icon(
+                        Icons.check_circle,
+                        size: 16,
+                        color: theme.primaryDark,
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         'Favor resuelto con éxito',
@@ -441,7 +495,9 @@ class WallScreen extends StatelessWidget {
                   onPressed: () => state.updatePostStatus(p.id, 'RESOLVED'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: theme.primaryDark,
-                    side: BorderSide(color: theme.primaryDark.withValues(alpha: 0.3)),
+                    side: BorderSide(
+                      color: theme.primaryDark.withValues(alpha: 0.3),
+                    ),
                     minimumSize: const Size.fromHeight(40),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -478,14 +534,18 @@ class WallScreen extends StatelessWidget {
         color: theme.surface2,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isInProgress ? theme.primary.withValues(alpha: 0.3) : theme.line,
+          color: isInProgress
+              ? theme.primary.withValues(alpha: 0.3)
+              : theme.line,
         ),
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 14,
-            backgroundColor: isInProgress ? theme.primarySoft : theme.violetSoft,
+            backgroundColor: isInProgress
+                ? theme.primarySoft
+                : theme.violetSoft,
             child: Text(
               initials,
               style: TextStyle(
@@ -514,18 +574,20 @@ class WallScreen extends StatelessWidget {
                   isPending
                       ? 'Desea ayudar · Pendiente'
                       : isInProgress
-                          ? 'Aceptado · En progreso'
-                          : isRejected
-                              ? 'Rechazado'
-                              : r.status,
+                      ? 'Aceptado · En progreso'
+                      : isRejected
+                      ? 'Rechazado'
+                      : r.status,
                   style: TextStyle(
                     fontSize: 11,
                     color: isInProgress
                         ? theme.primaryDark
                         : isRejected
-                            ? theme.accentInk
-                            : theme.muted,
-                    fontWeight: isInProgress ? FontWeight.w600 : FontWeight.w400,
+                        ? theme.accentInk
+                        : theme.muted,
+                    fontWeight: isInProgress
+                        ? FontWeight.w600
+                        : FontWeight.w400,
                   ),
                 ),
               ],
@@ -549,7 +611,10 @@ class WallScreen extends StatelessWidget {
                 foregroundColor: theme.primaryDark,
                 elevation: 0,
                 visualDensity: VisualDensity.compact,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -569,7 +634,9 @@ class WallScreen extends StatelessWidget {
               },
               style: OutlinedButton.styleFrom(
                 foregroundColor: theme.primaryDark,
-                side: BorderSide(color: theme.primaryDark.withValues(alpha: 0.3)),
+                side: BorderSide(
+                  color: theme.primaryDark.withValues(alpha: 0.3),
+                ),
                 visualDensity: VisualDensity.compact,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 shape: RoundedRectangleBorder(
