@@ -851,6 +851,7 @@ extension NearbyBackend on AppState {
   }
 
   void _stopPolling() {
+    unawaited(SoundService.instance.stopAll());
     if (internetCall.active) unawaited(internetCall.end());
     _pollTimer?.cancel();
     _chatTimer?.cancel();
@@ -987,19 +988,27 @@ extension NearbyBackend on AppState {
         // Quita los "enviando" propios que ya llegaron del servidor.
         box.removeWhere((m) => m.from == 'me' && m.pending && !offline);
       }
+      bool receivedNewThem = false;
       for (final m in list) {
         final id = m['id'] as String?;
         if (id != null && !_seenMsgIds.add(id) && !replace) continue;
+        final isMe = m['senderId'] == userId;
+        if (!isMe && m['system'] != true && !replace) {
+          receivedNewThem = true;
+        }
         box.add(
           ChatMessage(
             from: m['system'] == true
                 ? 'sys'
-                : (m['senderId'] == userId ? 'me' : 'them'),
+                : (isMe ? 'me' : 'them'),
             text: (m['text'] as String?) ?? '',
             time: Api2App.clock(m['createdAt']),
           ),
         );
         _lastMsgAt[conversationId] = m['createdAt'] as String?;
+      }
+      if (receivedNewThem) {
+        unawaited(SoundService.instance.playMessagePop());
       }
       refresh();
     } on ApiException catch (_) {}
@@ -1609,6 +1618,7 @@ extension NearbyBackend on AppState {
 
   /// Respuesta a una alerta recibida: GOING o DECLINED.
   Future<void> respondSos(bool going) async {
+    unawaited(SoundService.instance.stopSosAlarm());
     final id = incomingSos?['id'] as String?;
     if (id == null || !connected) return;
     try {
@@ -2123,7 +2133,13 @@ extension NearbyBackend on AppState {
   void openConversation(Map<String, dynamic> c) {
     final name = (c['otherUserName'] as String?) ?? 'Vecino';
     c['unread'] = 0;
-    openChat(name, conversationId: c['id'] as String?);
+    final contextText =
+        (c['contextText'] as String?) ?? (c['serviceTitle'] as String?);
+    openChat(
+      name,
+      conversationId: c['id'] as String?,
+      contextText: contextText,
+    );
   }
 
   /// Barrio (urbanización) y distrito de un punto, según OpenStreetMap. null sin internet.
