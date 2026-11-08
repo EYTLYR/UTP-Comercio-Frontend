@@ -98,7 +98,7 @@ class TableroScreen extends StatelessWidget {
                       backgroundColor: theme.surface,
                       selectedColor: theme.btnBg,
                       labelStyle: TextStyle(
-                        fontFamily: 'Nunito',
+                        fontFamily: 'Poppins',
                         color: isSel ? theme.btnInk : theme.ink,
                         fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
                         fontSize: 13,
@@ -134,6 +134,7 @@ class TableroScreen extends StatelessWidget {
               color: theme.surface,
               border: Border.all(color: theme.line),
               borderRadius: BorderRadius.circular(14),
+              boxShadow: theme.cardShadow,
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -164,7 +165,7 @@ class TableroScreen extends StatelessWidget {
               foregroundColor: Colors.white,
               minimumSize: const Size.fromHeight(52),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(14),
               ),
             ),
             icon: const Icon(Icons.add, size: 20),
@@ -185,9 +186,9 @@ class TableroScreen extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: NearbyColors.violet,
           foregroundColor: Colors.white,
-          minimumSize: const Size.fromHeight(56),
+          minimumSize: const Size.fromHeight(52),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(14),
           ),
           elevation: 2,
         ),
@@ -224,7 +225,7 @@ class TableroScreen extends StatelessWidget {
             height: 44,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [NearbyColors.violet, Color(0xFF8B5CF6)],
+                colors: [NearbyColors.violet, NearbyColors.navy2],
               ),
               borderRadius: BorderRadius.circular(14),
             ),
@@ -308,7 +309,7 @@ class TableroScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [NearbyColors.violet, Color(0xFF8B5CF6)],
+                  colors: [NearbyColors.violet, NearbyColors.navy2],
                 ),
                 borderRadius: BorderRadius.circular(999),
               ),
@@ -409,7 +410,7 @@ class TableroScreen extends StatelessWidget {
                             child: Text.rich(
                               TextSpan(
                                 style: TextStyle(
-                                  fontFamily: 'Nunito',
+                                  fontFamily: 'Poppins',
                                   fontSize: 12.5,
                                   color: theme.ink,
                                 ),
@@ -477,7 +478,7 @@ class TableroScreen extends StatelessWidget {
                         backgroundColor: NearbyColors.violet,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(14),
                         ),
                         minimumSize: const Size.fromHeight(40),
                       ),
@@ -567,7 +568,7 @@ class TableroScreen extends StatelessWidget {
                     backgroundColor: NearbyColors.sos,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 14,
@@ -590,7 +591,7 @@ class TableroScreen extends StatelessWidget {
                     foregroundColor: theme.ink,
                     side: BorderSide(color: theme.line),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
@@ -617,7 +618,8 @@ class TableroScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.surface,
           border: Border.all(color: theme.line),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: theme.cardShadow,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -637,7 +639,7 @@ class TableroScreen extends StatelessWidget {
               style: TextStyle(
                 color: theme.muted,
                 fontSize: 11,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
@@ -779,7 +781,7 @@ class RecursosScreen extends StatelessWidget {
                             style: TextStyle(
                               color: theme.muted,
                               fontSize: 11,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                           Text(
@@ -787,7 +789,7 @@ class RecursosScreen extends StatelessWidget {
                             style: TextStyle(
                               color: theme.muted,
                               fontSize: 11,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
@@ -834,7 +836,8 @@ class RecursosScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: theme.surface,
                     border: Border.all(color: theme.line),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: theme.cardShadow,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -914,7 +917,7 @@ class RecursosScreen extends StatelessWidget {
                             style: TextStyle(
                               color: theme.muted,
                               fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w400,
                             ),
                           ),
                         ],
@@ -942,7 +945,7 @@ class RecursosScreen extends StatelessWidget {
                           color: NearbyColors.sos,
                           width: 1.5,
                         ),
-                        minimumSize: const Size.fromHeight(48),
+                        minimumSize: const Size.fromHeight(52),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
@@ -968,7 +971,7 @@ class RecursosScreen extends StatelessWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: theme.btnBg,
                         foregroundColor: theme.btnInk,
-                        minimumSize: const Size.fromHeight(48),
+                        minimumSize: const Size.fromHeight(52),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
@@ -1076,7 +1079,8 @@ class ApoyoScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: theme.surface,
                   border: Border.all(color: theme.line),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: theme.cardShadow,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1168,7 +1172,7 @@ class ApoyoScreen extends StatelessWidget {
                           style: TextStyle(
                             color: theme.muted,
                             fontSize: 12,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -1184,7 +1188,7 @@ class ApoyoScreen extends StatelessWidget {
                               foregroundColor: theme.primaryDark,
                               elevation: 0,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(14),
                               ),
                               padding: const EdgeInsets.symmetric(vertical: 10),
                             ),
@@ -1232,7 +1236,7 @@ class ApoyoScreen extends StatelessWidget {
                                     foregroundColor: theme.ink,
                                     side: BorderSide(color: theme.line),
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
+                                      borderRadius: BorderRadius.circular(14),
                                     ),
                                     padding: const EdgeInsets.symmetric(
                                       vertical: 10,
@@ -1279,6 +1283,7 @@ class ApoyoScreen extends StatelessWidget {
                   color: theme.surface,
                   border: Border.all(color: theme.line),
                   borderRadius: BorderRadius.circular(18),
+                  boxShadow: theme.cardShadow,
                 ),
                 child: Row(
                   children: [
@@ -1317,7 +1322,7 @@ class ApoyoScreen extends StatelessWidget {
                         backgroundColor: theme.btnBg,
                         foregroundColor: theme.btnInk,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(14),
                         ),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,

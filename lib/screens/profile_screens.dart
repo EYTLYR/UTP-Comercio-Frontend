@@ -105,7 +105,7 @@ class _FichaScreenState extends State<FichaScreen> {
             'Solo la ven los brigadistas verificados cuando envías un SOS. Les ayuda a atenderte mejor.',
             style: TextStyle(
               fontSize: 13,
-              color: Colors.grey.shade600,
+              color: NearbyColors.muted,
               height: 1.4,
             ),
           ),
@@ -127,7 +127,7 @@ class _FichaScreenState extends State<FichaScreen> {
                 selected: isSelected,
                 selectedColor: NearbyColors.primary,
                 labelStyle: TextStyle(
-                  color: isSelected ? Colors.white : Colors.grey.shade800,
+                  color: isSelected ? Colors.white : NearbyColors.ink,
                   fontWeight: FontWeight.w700,
                 ),
                 onSelected: (val) {
@@ -150,11 +150,11 @@ class _FichaScreenState extends State<FichaScreen> {
               prefixIcon: const Icon(Icons.medication),
               hintText: 'Ej. penicilina',
               filled: true,
-              fillColor: Colors.grey.withValues(alpha: 0.08),
+              fillColor: NearbyColors.muted.withValues(alpha: 0.08),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
-                  color: Colors.grey.withValues(alpha: 0.2),
+                  color: NearbyColors.muted.withValues(alpha: 0.2),
                 ),
               ),
             ),
@@ -173,11 +173,11 @@ class _FichaScreenState extends State<FichaScreen> {
               prefixIcon: const Icon(Icons.favorite),
               hintText: 'Ej. diabetes, uso oxígeno',
               filled: true,
-              fillColor: Colors.grey.withValues(alpha: 0.08),
+              fillColor: NearbyColors.muted.withValues(alpha: 0.08),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
-                  color: Colors.grey.withValues(alpha: 0.2),
+                  color: NearbyColors.muted.withValues(alpha: 0.2),
                 ),
               ),
             ),
@@ -200,13 +200,13 @@ class _FichaScreenState extends State<FichaScreen> {
                 avatar: Icon(
                   opt['icon'] as IconData,
                   size: 16,
-                  color: isSelected ? Colors.white : Colors.grey.shade700,
+                  color: isSelected ? Colors.white : NearbyColors.muted,
                 ),
                 label: Text(opt['label'] as String),
                 selected: isSelected,
                 selectedColor: NearbyColors.primary,
                 labelStyle: TextStyle(
-                  color: isSelected ? Colors.white : Colors.grey.shade800,
+                  color: isSelected ? Colors.white : NearbyColors.ink,
                   fontWeight: FontWeight.w600,
                 ),
                 onSelected: (val) {
@@ -226,9 +226,7 @@ class _FichaScreenState extends State<FichaScreen> {
           // Save button
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              backgroundColor: NearbyColors.primary,
-              foregroundColor: Colors.white,
-              minimumSize: const Size.fromHeight(50),
+              minimumSize: const Size.fromHeight(52),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
               ),
@@ -263,7 +261,7 @@ class _FichaScreenState extends State<FichaScreen> {
           Text(
             'Usa tu huella, tu rostro o el PIN del teléfono para verla o editarla.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+            style: TextStyle(fontSize: 13, color: NearbyColors.muted),
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
@@ -313,8 +311,8 @@ class PerfilScreen extends StatelessWidget {
               child: Card(
                 elevation: 0,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+                  borderRadius: BorderRadius.circular(18),
+                  side: BorderSide(color: NearbyColors.muted.withValues(alpha: 0.2)),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -322,13 +320,13 @@ class PerfilScreen extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 30,
-                        backgroundColor: NearbyColors.primary,
+                        backgroundColor: NearbyColors.brandTurquoise,
                         child: Center(
                           child: Text(
                             state.initials,
                             textAlign: TextAlign.center,
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: NearbyColors.onPrimary,
                               fontSize: 20,
                               fontWeight: FontWeight.w800,
                             ),
@@ -354,7 +352,7 @@ class PerfilScreen extends StatelessWidget {
                                   : '${state.effectiveZoneName} · +51 ${state.userPhone}',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.grey.shade600,
+                                color: NearbyColors.muted,
                               ),
                             ),
                             const SizedBox(height: 6),
@@ -447,8 +445,8 @@ class PerfilScreen extends StatelessWidget {
                     child: Card(
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+                        borderRadius: BorderRadius.circular(18),
+                        side: BorderSide(color: NearbyColors.muted.withValues(alpha: 0.2)),
                       ),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
@@ -490,7 +488,7 @@ class PerfilScreen extends StatelessWidget {
                                     '${state.effectiveZoneName} · Privada para ti y brigadas de rescate',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey.shade600,
+                                      color: NearbyColors.muted,
                                       height: 1.2,
                                     ),
                                   ),
@@ -501,7 +499,7 @@ class PerfilScreen extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
-                                color: Colors.grey.withValues(alpha: 0.08),
+                                color: NearbyColors.muted.withValues(alpha: 0.08),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
@@ -536,8 +534,8 @@ class PerfilScreen extends StatelessWidget {
             child: Card(
               elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-                side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+                borderRadius: BorderRadius.circular(18),
+                side: BorderSide(color: NearbyColors.muted.withValues(alpha: 0.2)),
               ),
               child: Column(
                 children: cs.isNotEmpty
@@ -557,7 +555,7 @@ class PerfilScreen extends StatelessWidget {
                           ),
                           trailing: const Icon(
                             Icons.sms,
-                            color: Colors.grey,
+                            color: NearbyColors.muted,
                             size: 20,
                           ),
                         );
@@ -600,8 +598,8 @@ class PerfilScreen extends StatelessWidget {
             child: Card(
               elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-                side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+                borderRadius: BorderRadius.circular(18),
+                side: BorderSide(color: NearbyColors.muted.withValues(alpha: 0.2)),
               ),
               child: ListTile(
                 leading: const Icon(Icons.lock, color: NearbyColors.sos),
@@ -627,8 +625,8 @@ class PerfilScreen extends StatelessWidget {
             child: Card(
               elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-                side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+                borderRadius: BorderRadius.circular(18),
+                side: BorderSide(color: NearbyColors.muted.withValues(alpha: 0.2)),
               ),
               child: Column(
                 children: [
@@ -677,8 +675,8 @@ class PerfilScreen extends StatelessWidget {
             child: Card(
               elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-                side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+                borderRadius: BorderRadius.circular(18),
+                side: BorderSide(color: NearbyColors.muted.withValues(alpha: 0.2)),
               ),
               child: Column(
                 children: [
@@ -732,7 +730,7 @@ class PerfilScreen extends StatelessWidget {
                           trailing: IconButton(
                             icon: const Icon(
                               Icons.delete,
-                              color: Colors.grey,
+                              color: NearbyColors.muted,
                               size: 20,
                             ),
                             onPressed: () {
@@ -747,7 +745,7 @@ class PerfilScreen extends StatelessWidget {
                       })
                     else
                       const ListTile(
-                        leading: Icon(Icons.info, color: Colors.grey),
+                        leading: Icon(Icons.info, color: NearbyColors.muted),
                         title: Text(
                           'La IA aún no aprendió nada de ti',
                           style: TextStyle(
@@ -782,8 +780,8 @@ class PerfilScreen extends StatelessWidget {
             child: Card(
               elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-                side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+                borderRadius: BorderRadius.circular(18),
+                side: BorderSide(color: NearbyColors.muted.withValues(alpha: 0.2)),
               ),
               child: Column(
                 children: [
@@ -847,8 +845,8 @@ class PerfilScreen extends StatelessWidget {
             child: Card(
               elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-                side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+                borderRadius: BorderRadius.circular(18),
+                side: BorderSide(color: NearbyColors.muted.withValues(alpha: 0.2)),
               ),
               child: Column(
                 children: [
@@ -939,7 +937,7 @@ class _ProfileStat extends StatelessWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.18)),
+          border: Border.all(color: NearbyColors.muted.withValues(alpha: 0.18)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.02),
@@ -970,8 +968,8 @@ class _ProfileStat extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 11,
-                color: Colors.grey.shade600,
-                fontWeight: FontWeight.w600,
+                color: NearbyColors.muted,
+                fontWeight: FontWeight.w400,
                 height: 1.2,
               ),
             ),

@@ -166,7 +166,7 @@ class _LiveMapState extends State<LiveMap> {
                           : 'Tu ubicación',
                       child: Icon(
                         Icons.my_location,
-                        color: Color(0xFF007D69),
+                        color: Color(0xFF00796B),
                         size: 36,
                       ),
                     ),

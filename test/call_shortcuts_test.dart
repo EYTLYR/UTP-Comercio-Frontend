@@ -8,8 +8,8 @@ import 'package:utp_comercio_frontend/widgets/common_widgets.dart';
 void main() {
   setUpAll(() async {
     await (FontLoader(
-      'Nunito',
-    )..addFont(rootBundle.load('assets/fonts/Nunito.ttf'))).load();
+      'Poppins',
+    )..addFont(rootBundle.load('assets/fonts/Poppins-Regular.ttf'))).load();
   });
   for (final width in [360.0, 390.0]) {
     for (final scale in [1.0, 1.4, 2.0]) {
@@ -23,7 +23,7 @@ void main() {
         final state = AppState();
         await tester.pumpWidget(
           MaterialApp(
-            theme: ThemeData(fontFamily: 'Nunito'),
+            theme: ThemeData(fontFamily: 'Poppins'),
             home: Scaffold(
               body: MediaQuery(
                 data: MediaQueryData(textScaler: TextScaler.linear(scale)),

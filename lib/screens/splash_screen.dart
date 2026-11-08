@@ -32,7 +32,7 @@ class SplashScreen extends StatelessWidget {
               fontSize: 15.5,
               color: theme.muted,
               height: 1.4,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w400,
             ),
           ),
           const SizedBox(height: 24),
@@ -56,26 +56,30 @@ class SplashScreen extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: theme.btnBg,
               foregroundColor: theme.btnInk,
-              minimumSize: const Size.fromHeight(54),
+              minimumSize: const Size.fromHeight(52),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(14),
               ),
-              elevation: 2,
+              elevation: 0,
             ),
-            icon: Icon(Icons.smartphone, color: theme.primary, size: 22),
+            icon: Icon(
+              Icons.smartphone,
+              color: theme.dark ? theme.btnInk : NearbyColors.brandTurquoise,
+              size: 22,
+            ),
             label: Text(
               'Ingresar con mi celular',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
             'Sin contraseñas: te enviamos un código por SMS.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 12.5,
               color: theme.muted,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ],
@@ -90,13 +94,7 @@ class SplashScreen extends StatelessWidget {
         color: theme.surface,
         border: Border.all(color: theme.line),
         borderRadius: BorderRadius.circular(999),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0A000000),
-            blurRadius: 4,
-            offset: Offset(0, 1),
-          ),
-        ],
+        boxShadow: theme.cardShadow,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -107,7 +105,7 @@ class SplashScreen extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 12.5,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w600,
               color: theme.ink,
             ),
           ),

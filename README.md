@@ -107,7 +107,7 @@ Exportar vistas de Flutter a `build/previews/`:
 flutter test --dart-define=PREVIEW=true --dart-define=PREVIEW_WIDTH=390 --dart-define=APP_ENV=production test/prototype_flows_test.dart --plain-name "exporta vistas"
 ```
 
-Las llamadas telefónicas y la transmisión por sonido siguen simuladas. Sin backend (pruebas de widgets), la app usa los datos de ejemplo y no persiste cambios. Nunito se incluye con su licencia en `assets/fonts/`.
+Las llamadas telefónicas y la transmisión por sonido siguen simuladas. Sin backend (pruebas de widgets), la app usa los datos de ejemplo y no persiste cambios. La tipografía de marca, Poppins, se incluye con su licencia en `assets/fonts/`. La paleta, los componentes y la aplicación de las leyes de la Gestalt están en [docs/DISENO_VISUAL.md](docs/DISENO_VISUAL.md).
 
 ## Cola offline (SOS, reportes y favores sin internet)
 

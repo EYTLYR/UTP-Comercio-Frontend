@@ -50,8 +50,8 @@ Future<void> layout(WidgetTester tester) async {
 void main() {
   setUpAll(() async {
     await (FontLoader(
-      'Nunito',
-    )..addFont(rootBundle.load('assets/fonts/Nunito.ttf'))).load();
+      'Poppins',
+    )..addFont(rootBundle.load('assets/fonts/Poppins-Regular.ttf'))).load();
   });
   void viewport(
     WidgetTester tester, {

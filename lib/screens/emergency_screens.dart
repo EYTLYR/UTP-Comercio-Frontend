@@ -216,7 +216,7 @@ class SosScreen extends StatelessWidget {
                                             style: TextStyle(
                                               color: theme.muted,
                                               fontSize: 11,
-                                              fontWeight: FontWeight.w600,
+                                              fontWeight: FontWeight.w400,
                                             ),
                                           ),
                                         ],
@@ -440,7 +440,7 @@ class _SosCountdownScreenState extends State<SosCountdownScreen>
                   minimumSize: const Size.fromHeight(52),
                   padding: const EdgeInsets.all(14),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                 ),
                 icon: const Icon(Icons.send, size: 20),
@@ -463,10 +463,10 @@ class _SosCountdownScreenState extends State<SosCountdownScreen>
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.white,
                   side: const BorderSide(color: Colors.white70, width: 2),
-                  minimumSize: const Size.fromHeight(50),
+                  minimumSize: const Size.fromHeight(52),
                   padding: const EdgeInsets.all(14),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                 ),
                 icon: const Icon(Icons.close, size: 20),
@@ -632,7 +632,8 @@ class SosSentScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: theme.surface,
                     border: Border.all(color: theme.line),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: theme.cardShadow,
                   ),
                   child: Column(
                     children: off
@@ -729,7 +730,8 @@ class SosSentScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: theme.surface,
                       border: Border.all(color: theme.line),
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: theme.cardShadow,
                     ),
                     child: Column(
                       children: live
@@ -819,7 +821,8 @@ class SosSentScreen extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: theme.surface,
                           border: Border.all(color: theme.line),
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: theme.cardShadow,
                         ),
                         child: Row(
                           children: [
@@ -884,9 +887,9 @@ class SosSentScreen extends StatelessWidget {
                         color: NearbyColors.sos,
                         width: 1.5,
                       ),
-                      minimumSize: const Size.fromHeight(50),
+                      minimumSize: const Size.fromHeight(52),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                     ),
                     icon: const Icon(Icons.crisis_alert, size: 20),
@@ -918,7 +921,7 @@ class SosSentScreen extends StatelessWidget {
                     foregroundColor: theme.btnInk,
                     minimumSize: const Size.fromHeight(52),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                   ),
                   icon: Icon(
@@ -997,6 +1000,7 @@ class SosSentScreen extends StatelessWidget {
         color: theme.surface,
         border: Border.all(color: theme.line),
         borderRadius: BorderRadius.circular(18),
+        boxShadow: theme.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1021,7 +1025,7 @@ class SosSentScreen extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFF0B1424),
+              color: const Color(0xFF041128),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -1030,7 +1034,7 @@ class SosSentScreen extends StatelessWidget {
                 fontFamily: 'monospace',
                 fontWeight: FontWeight.w900,
                 fontSize: 14.5,
-                color: Color(0xFF7BE3C6),
+                color: Color(0xFF6FE6D6),
               ),
             ),
           ),
@@ -1043,7 +1047,7 @@ class SosSentScreen extends StatelessWidget {
                 style: TextStyle(
                   color: theme.muted,
                   fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               Text(
@@ -1051,7 +1055,7 @@ class SosSentScreen extends StatelessWidget {
                 style: TextStyle(
                   color: theme.muted,
                   fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -1066,7 +1070,7 @@ class SosSentScreen extends StatelessWidget {
                     backgroundColor: NearbyColors.violet,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
@@ -1089,7 +1093,7 @@ class SosSentScreen extends StatelessWidget {
                     foregroundColor: theme.ink,
                     side: BorderSide(color: theme.line),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
@@ -1269,9 +1273,9 @@ class AlertaRecibidaScreen extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: NearbyColors.sosDark,
-                  minimumSize: const Size.fromHeight(54),
+                  minimumSize: const Size.fromHeight(52),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                 ),
                 icon: const Icon(Icons.directions_run, size: 22),
@@ -1290,7 +1294,7 @@ class AlertaRecibidaScreen extends StatelessWidget {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
                         side: const BorderSide(color: Colors.white70, width: 2),
-                        minimumSize: const Size.fromHeight(48),
+                        minimumSize: const Size.fromHeight(52),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
@@ -1312,7 +1316,7 @@ class AlertaRecibidaScreen extends StatelessWidget {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
                         side: const BorderSide(color: Colors.white70, width: 2),
-                        minimumSize: const Size.fromHeight(48),
+                        minimumSize: const Size.fromHeight(52),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),

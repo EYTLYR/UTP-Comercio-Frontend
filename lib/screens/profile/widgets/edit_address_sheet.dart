@@ -41,7 +41,7 @@ void showEditAddressSheet(BuildContext context, AppState state) {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
+                      color: NearbyColors.lineStrong,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -77,7 +77,7 @@ void showEditAddressSheet(BuildContext context, AppState state) {
                             'Actualiza tu dirección o muévete con GPS',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey.shade600,
+                              color: NearbyColors.muted,
                             ),
                           ),
                         ],
@@ -274,9 +274,9 @@ void showEditAddressSheet(BuildContext context, AppState state) {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.06),
+                    color: NearbyColors.muted.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                    border: Border.all(color: NearbyColors.muted.withValues(alpha: 0.2)),
                   ),
                   child: Row(
                     children: [
@@ -301,7 +301,7 @@ void showEditAddressSheet(BuildContext context, AppState state) {
                               'Lat: ${tempLat.toStringAsFixed(4)}, Lng: ${tempLng.toStringAsFixed(4)}',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.grey.shade600,
+                                color: NearbyColors.muted,
                               ),
                             ),
                           ],

@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../theme/nearby_theme.dart';
+
+/// Isotipo de Nearby: una mano abierta que sostiene un corazón.
+///
+/// La mano va en azul marino ([inkColor]) y el corazón en turquesa ([greenColor]);
+/// [gapColor] es el contorno que separa ambas figuras (el color del fondo donde se pinta).
+/// Dibujado en vector para que se vea nítido en cualquier tamaño.
 class NearbyLogo extends StatelessWidget {
   final double width;
   final Color? inkColor;
@@ -17,14 +24,18 @@ class NearbyLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final height = width * 0.84;
-    return SizedBox(
-      width: width,
-      height: height,
-      child: CustomPaint(
-        painter: _NearbyLogoPainter(
-          inkColor: inkColor ?? const Color(0xFF15233A),
-          gapColor: gapColor ?? Colors.white,
-          greenColor: greenColor ?? const Color(0xFF00A07F),
+    return Semantics(
+      label: 'Nearby',
+      image: true,
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: CustomPaint(
+          painter: _NearbyLogoPainter(
+            inkColor: inkColor ?? NearbyColors.brandNavy,
+            gapColor: gapColor ?? Colors.white,
+            greenColor: greenColor ?? NearbyColors.brandTurquoise,
+          ),
         ),
       ),
     );
@@ -42,65 +53,79 @@ class _NearbyLogoPainter extends CustomPainter {
     required this.greenColor,
   });
 
+  /// Corazón que descansa sobre la palma (lienzo de 100 × 84).
+  static Path _heart() => Path()
+    ..moveTo(47, 54)
+    ..cubicTo(27, 43, 20, 30, 27, 20)
+    ..cubicTo(33, 12, 42, 13, 47, 21)
+    ..cubicTo(52, 13, 61, 12, 67, 20)
+    ..cubicTo(74, 30, 67, 43, 47, 54)
+    ..close();
+
+  /// Dedos extendidos (inicio, punta, grosor), de arriba hacia abajo.
+  static const _fingers = [
+    (Offset(58, 60), Offset(88, 47), 10.0),
+    (Offset(60, 67), Offset(93, 58), 10.0),
+    (Offset(58, 74), Offset(90, 69), 9.0),
+  ];
+
   @override
   void paint(Canvas canvas, Size size) {
     final scale = size.width / 100.0;
     canvas.save();
     canvas.scale(scale);
+    canvas.clipRect(const Rect.fromLTWH(0, 0, 100, 84));
 
-    // Green person head
-    final greenHeadPaint = Paint()
-      ..color = greenColor
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(const Offset(73, 17), 10.5, greenHeadPaint);
-
-    // Green person body curve
-    final greenBodyPaint = Paint()
-      ..color = greenColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 17
-      ..strokeCap = StrokeCap.round;
-
-    final greenPath = Path();
-    greenPath.moveTo(61, 44);
-    greenPath.cubicTo(76, 33, 95, 42, 91, 59);
-    greenPath.cubicTo(88, 71, 75, 79, 60, 71);
-    canvas.drawPath(greenPath, greenBodyPaint);
-
-    // Gap path (stroke)
-    final gapPaint = Paint()
-      ..color = gapColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 27
-      ..strokeCap = StrokeCap.round;
-
-    final gapPath = Path();
-    gapPath.moveTo(46, 38);
-    gapPath.lineTo(62, 50);
-    gapPath.cubicTo(66, 53, 71, 53, 74, 49);
-    canvas.drawPath(gapPath, gapPaint);
-
-    // Navy person head
-    final inkHeadPaint = Paint()
+    final ink = Paint()
       ..color = inkColor
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(const Offset(31, 15), 11.5, inkHeadPaint);
-
-    // Navy person body & arm
-    final inkBodyPaint = Paint()
-      ..color = inkColor
+      ..isAntiAlias = true;
+    Paint stroke(Color c, double w) => Paint()
+      ..color = c
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 17
+      ..strokeWidth = w
       ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
+      ..isAntiAlias = true;
 
-    final inkPath = Path();
-    inkPath.moveTo(24, 72);
-    inkPath.lineTo(24, 46);
-    inkPath.cubicTo(24, 34, 36, 30, 45, 37);
-    inkPath.lineTo(62, 50);
-    inkPath.cubicTo(66, 53, 71, 53, 74, 49);
-    canvas.drawPath(inkPath, inkBodyPaint);
+    // Mano abierta, palma hacia arriba: muñeca, palma, pulgar y dedos.
+    canvas.drawLine(
+      const Offset(28, 74),
+      const Offset(22, 92),
+      stroke(inkColor, 18),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(16, 56, 52, 22),
+        const Radius.circular(11),
+      ),
+      ink,
+    );
+    canvas.drawLine(
+      const Offset(26, 64),
+      const Offset(14, 50),
+      stroke(inkColor, 12),
+    );
+    for (final (start, tip, width) in _fingers) {
+      // Un trazo del color del fondo, un poco más ancho, separa cada dedo del anterior.
+      canvas.drawLine(start, tip, stroke(gapColor, width + 3));
+      canvas.drawLine(start, tip, stroke(inkColor, width));
+    }
+
+    final heart = _heart();
+    // Contorno del color del fondo: separa el corazón de la mano (figura y fondo).
+    canvas.drawPath(
+      heart,
+      Paint()
+        ..color = gapColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 6
+        ..strokeJoin = StrokeJoin.round,
+    );
+    canvas.drawPath(
+      heart,
+      Paint()
+        ..color = greenColor
+        ..isAntiAlias = true,
+    );
 
     canvas.restore();
   }
@@ -135,10 +160,11 @@ class NearbyWordmark extends StatelessWidget {
         Text(
           'Nearby',
           style: TextStyle(
+            fontFamily: NearbyThemeData.fontFamily,
             fontSize: width * 0.21,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -1.0,
-            color: inkColor ?? const Color(0xFF15233A),
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.8,
+            color: inkColor ?? NearbyColors.brandNavy,
             height: 1.0,
           ),
         ),

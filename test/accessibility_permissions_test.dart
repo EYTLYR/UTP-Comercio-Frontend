@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:utp_comercio_frontend/main.dart';
 import 'package:utp_comercio_frontend/state/app_state.dart';
+import 'package:utp_comercio_frontend/theme/nearby_theme.dart';
 import 'package:utp_comercio_frontend/services/startup_permissions.dart';
 import 'package:utp_comercio_frontend/widgets/permission_intro.dart';
 
@@ -31,8 +32,8 @@ class Backend extends AccessBackend {
 void main() {
   setUpAll(() async {
     await (FontLoader(
-      'Nunito',
-    )..addFont(rootBundle.load('assets/fonts/Nunito.ttf'))).load();
+      'Poppins',
+    )..addFont(rootBundle.load('assets/fonts/Poppins-Regular.ttf'))).load();
   });
   void viewport(WidgetTester tester, {double height = 900}) {
     tester.view.physicalSize = Size(360, height);
@@ -49,13 +50,19 @@ void main() {
     await tester.pumpWidget(harness(state));
     for (final label in ['Hola, María', 'Inicio', 'Publicar']) {
       final paragraph = tester.renderObject<RenderParagraph>(find.text(label));
-      expect(paragraph.textScaler.scale(10), 10);
+      expect(
+        paragraph.textScaler.scale(10),
+        closeTo(10 * NearbyTextScaler.brandOptical, 1e-9),
+      );
     }
     state.toggleLg();
     await tester.pump();
     for (final label in ['Hola, María', 'Inicio', 'Publicar']) {
       final paragraph = tester.renderObject<RenderParagraph>(find.text(label));
-      expect(paragraph.textScaler.scale(10), 14);
+      expect(
+        paragraph.textScaler.scale(10),
+        closeTo(14 * NearbyTextScaler.brandOptical, 1e-9),
+      );
     }
     await tester.pumpWidget(const SizedBox());
     state.dispose();

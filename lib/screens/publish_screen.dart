@@ -122,7 +122,7 @@ class _PublishScreenState extends State<PublishScreen> {
                         : theme.btnInk,
                     minimumSize: const Size.fromHeight(52),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                   ),
                   icon: const Icon(Icons.send, size: 18),
@@ -180,7 +180,7 @@ class _PublishScreenState extends State<PublishScreen> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [NearbyColors.violet, Color(0xFF8B5CF6)],
+                colors: [NearbyColors.violet, NearbyColors.navy2],
               ),
               borderRadius: BorderRadius.circular(22),
               boxShadow: [
@@ -255,7 +255,8 @@ class _PublishScreenState extends State<PublishScreen> {
                 decoration: BoxDecoration(
                   color: theme.surface,
                   border: Border.all(color: theme.line),
-                  borderRadius: BorderRadius.circular(22),
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: theme.cardShadow,
                 ),
                 child: Row(
                   children: [
@@ -404,7 +405,7 @@ class _PublishScreenState extends State<PublishScreen> {
                   child: Text.rich(
                     TextSpan(
                       style: TextStyle(
-                        fontFamily: 'Nunito',
+                        fontFamily: 'Poppins',
                         fontSize: 13,
                         color: theme.ink,
                       ),
@@ -514,7 +515,8 @@ class _PublishScreenState extends State<PublishScreen> {
           decoration: BoxDecoration(
             color: theme.surface,
             border: Border.all(color: theme.line),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: theme.cardShadow,
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -524,7 +526,7 @@ class _PublishScreenState extends State<PublishScreen> {
                   controller: _textController,
                   maxLines: 3,
                   style: TextStyle(
-                    fontFamily: 'Nunito',
+                    fontFamily: 'Poppins',
                     color: theme.ink,
                     fontSize: 14,
                   ),
@@ -628,7 +630,7 @@ class _PublishScreenState extends State<PublishScreen> {
               child: Text.rich(
                 TextSpan(
                   style: TextStyle(
-                    fontFamily: 'Nunito',
+                    fontFamily: 'Poppins',
                     fontSize: 12.5,
                     color: theme.muted,
                   ),
@@ -660,6 +662,7 @@ class _PublishScreenState extends State<PublishScreen> {
               color: theme.surface,
               border: Border.all(color: theme.line),
               borderRadius: BorderRadius.circular(14),
+              boxShadow: theme.cardShadow,
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -756,7 +759,7 @@ class _PublishScreenState extends State<PublishScreen> {
             foregroundColor: state.emergency ? Colors.white : theme.btnInk,
             minimumSize: const Size.fromHeight(52),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
             ),
           ),
           child: Text(
@@ -775,9 +778,9 @@ class _PublishScreenState extends State<PublishScreen> {
           style: OutlinedButton.styleFrom(
             foregroundColor: theme.ink,
             side: BorderSide(color: theme.line),
-            minimumSize: const Size.fromHeight(50),
+            minimumSize: const Size.fromHeight(52),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
             ),
           ),
           icon: const Icon(Icons.home, size: 18),
@@ -821,7 +824,7 @@ class _PublishScreenState extends State<PublishScreen> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFF0B1424),
+              color: const Color(0xFF041128),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -830,7 +833,7 @@ class _PublishScreenState extends State<PublishScreen> {
                 fontFamily: 'monospace',
                 fontWeight: FontWeight.w900,
                 fontSize: 14.5,
-                color: Color(0xFF7BE3C6),
+                color: Color(0xFF6FE6D6),
               ),
             ),
           ),
@@ -843,7 +846,7 @@ class _PublishScreenState extends State<PublishScreen> {
                 style: TextStyle(
                   color: widget.theme.muted,
                   fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               Text(
@@ -851,7 +854,7 @@ class _PublishScreenState extends State<PublishScreen> {
                 style: TextStyle(
                   color: widget.theme.muted,
                   fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -866,7 +869,7 @@ class _PublishScreenState extends State<PublishScreen> {
                     backgroundColor: NearbyColors.violet,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
@@ -889,7 +892,7 @@ class _PublishScreenState extends State<PublishScreen> {
                     foregroundColor: widget.theme.ink,
                     side: BorderSide(color: widget.theme.line),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),

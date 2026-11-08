@@ -67,6 +67,7 @@ class _ChatScreenState extends State<ChatScreen> {
             color: theme.surface,
             border: Border.all(color: theme.line),
             borderRadius: BorderRadius.circular(18),
+            boxShadow: theme.cardShadow,
           ),
           child: Row(
             children: [
@@ -130,6 +131,7 @@ class _ChatScreenState extends State<ChatScreen> {
               color: theme.surface,
               border: Border.all(color: theme.line),
               borderRadius: BorderRadius.circular(14),
+              boxShadow: theme.cardShadow,
             ),
             child: Row(
               children: [
@@ -349,12 +351,12 @@ class _ChatScreenState extends State<ChatScreen> {
                       width: 50,
                       height: 50,
                       decoration: BoxDecoration(
-                        color: theme.primary,
+                        color: NearbyColors.brandTurquoise,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
                         Icons.send,
-                        color: Colors.white,
+                        color: NearbyColors.onPrimary,
                         size: 20,
                       ),
                     ),

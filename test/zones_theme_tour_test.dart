@@ -16,8 +16,8 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() async {
     await (FontLoader(
-      'Nunito',
-    )..addFont(rootBundle.load('assets/fonts/Nunito.ttf'))).load();
+      'Poppins',
+    )..addFont(rootBundle.load('assets/fonts/Poppins-Regular.ttf'))).load();
   });
   const other = BrowseZone(
     id: 'other',

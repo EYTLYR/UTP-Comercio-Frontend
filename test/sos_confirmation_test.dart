@@ -8,8 +8,8 @@ import 'prototype_flows_test.dart' show harness;
 void main() {
   setUpAll(() async {
     await (FontLoader(
-      'Nunito',
-    )..addFont(rootBundle.load('assets/fonts/Nunito.ttf'))).load();
+      'Poppins',
+    )..addFont(rootBundle.load('assets/fonts/Poppins-Regular.ttf'))).load();
   });
   for (final mode in ['normal', 'large', 'offline']) {
     testWidgets('los detalles desplazan la cabecera roja: $mode', (

@@ -70,7 +70,8 @@ class _ServicesScreenState extends State<ServicesScreen> {
             decoration: BoxDecoration(
               color: theme.surface,
               border: Border.all(color: theme.line),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: theme.cardShadow,
             ),
             child: Row(
               children: [
@@ -127,7 +128,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                 backgroundColor: theme.surface,
                 selectedColor: theme.btnBg,
                 labelStyle: TextStyle(
-                  fontFamily: 'Nunito',
+                  fontFamily: 'Poppins',
                   color: isSel ? theme.btnInk : theme.ink,
                   fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
                   fontSize: 13,
@@ -159,7 +160,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                 child: Text.rich(
                   TextSpan(
                     style: TextStyle(
-                      fontFamily: 'Nunito',
+                      fontFamily: 'Poppins',
                       color: theme.primaryDark,
                       fontSize: 12.5,
                       height: 1.4,
@@ -202,7 +203,8 @@ class _ServicesScreenState extends State<ServicesScreen> {
               decoration: BoxDecoration(
                 color: theme.surface,
                 border: Border.all(color: theme.line),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: theme.cardShadow,
               ),
               child: Row(
                 children: [
@@ -268,7 +270,8 @@ class _ServicesScreenState extends State<ServicesScreen> {
           decoration: BoxDecoration(
             color: theme.surface,
             border: Border.all(color: theme.line),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: theme.cardShadow,
           ),
           child: Row(
             children: [
@@ -495,7 +498,8 @@ class ServiceDetailScreen extends StatelessWidget {
             decoration: BoxDecoration(
               color: theme.surface,
               border: Border.all(color: theme.line),
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: theme.cardShadow,
             ),
             child: Row(
               children: [
@@ -572,7 +576,7 @@ class ServiceDetailScreen extends StatelessWidget {
                             style: TextStyle(
                               color: theme.muted,
                               fontSize: 12,
-                              fontWeight: FontWeight.w800,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
@@ -629,7 +633,8 @@ class ServiceDetailScreen extends StatelessWidget {
             decoration: BoxDecoration(
               color: theme.surface,
               border: Border.all(color: theme.line),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: theme.cardShadow,
             ),
             child: Column(
               children: [
@@ -759,7 +764,8 @@ class ServiceDetailScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.surface,
         border: Border.all(color: theme.line),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: theme.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

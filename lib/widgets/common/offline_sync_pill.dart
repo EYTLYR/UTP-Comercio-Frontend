@@ -64,7 +64,7 @@ class _OfflineSyncPillState extends State<OfflineSyncPill>
     late final bool showPill;
 
     if (isOffline) {
-      bgColor = const Color(0xFF1E293B);
+      bgColor = const Color(0xFF0E2552);
       textColor = const Color(0xFFF59E0B);
       iconData = Icons.cloud_off_rounded;
       label = totalPending > 0
@@ -72,16 +72,16 @@ class _OfflineSyncPillState extends State<OfflineSyncPill>
           : 'Modo sin conexión';
       showPill = true;
     } else if (totalPending > 0) {
-      bgColor = const Color(0xFF15233A);
-      textColor = const Color(0xFF38BDF8);
+      bgColor = const Color(0xFF0B2D6B);
+      textColor = const Color(0xFFB9E0F5);
       iconData = Icons.sync_rounded;
       label = isSyncing
           ? 'Sincronizando $totalPending evento(s)...'
           : '$totalPending envío(s) pendiente(s)';
       showPill = true;
     } else if (isSyncing) {
-      bgColor = const Color(0xFF15233A);
-      textColor = const Color(0xFF34D399);
+      bgColor = const Color(0xFF0B2D6B);
+      textColor = const Color(0xFF00BFA6);
       iconData = Icons.sync_rounded;
       label = 'Sincronizando...';
       showPill = true;

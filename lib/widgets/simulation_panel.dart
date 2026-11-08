@@ -64,7 +64,7 @@ class SimulationPanel extends StatelessWidget {
                       Text(
                         'Nearby',
                         style: TextStyle(
-                          fontFamily: 'Nunito',
+                          fontFamily: 'Poppins',
                           fontWeight: FontWeight.w900,
                           fontSize: 18,
                           color: NearbyColors.navy,
@@ -73,7 +73,7 @@ class SimulationPanel extends StatelessWidget {
                       Text(
                         'Prototipo · Hackathon',
                         style: TextStyle(
-                          fontFamily: 'Nunito',
+                          fontFamily: 'Poppins',
                           color: NearbyColors.muted,
                           fontSize: 12.5,
                         ),
@@ -111,7 +111,7 @@ class SimulationPanel extends StatelessWidget {
                       Text(
                         'ESTA PANTALLA',
                         style: TextStyle(
-                          fontFamily: 'Nunito',
+                          fontFamily: 'Poppins',
                           fontSize: 11,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 0.8,
@@ -124,7 +124,7 @@ class SimulationPanel extends StatelessWidget {
                   Text(
                     _getScreenNote(state.screen),
                     style: const TextStyle(
-                      fontFamily: 'Nunito',
+                      fontFamily: 'Poppins',
                       fontSize: 13,
                       height: 1.45,
                       color: Color(0xFF5A4100),
@@ -475,7 +475,7 @@ class SimulationPanel extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(
-          fontFamily: 'Nunito',
+          fontFamily: 'Poppins',
           fontSize: 11.5,
           fontWeight: FontWeight.w900,
           letterSpacing: 0.9,
@@ -507,7 +507,7 @@ class SimulationPanel extends StatelessWidget {
                 child: Text(
                   label,
                   style: const TextStyle(
-                    fontFamily: 'Nunito',
+                    fontFamily: 'Poppins',
                     fontWeight: FontWeight.w700,
                     fontSize: 13.5,
                   ),
@@ -568,7 +568,7 @@ class SimulationPanel extends StatelessWidget {
                 child: Text(
                   label,
                   style: TextStyle(
-                    fontFamily: 'Nunito',
+                    fontFamily: 'Poppins',
                     fontWeight: isCurrent ? FontWeight.w800 : FontWeight.w600,
                     fontSize: 13.5,
                     color: isCurrent

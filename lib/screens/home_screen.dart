@@ -36,7 +36,7 @@ class HomeScreen extends StatelessWidget {
                 'Hola, ${state.firstName}',
                 style: TextStyle(
                   color: theme.muted,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w500,
                   fontSize: 14.5,
                 ),
               ),
@@ -103,7 +103,7 @@ class HomeScreen extends StatelessWidget {
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
@@ -201,7 +201,7 @@ class HomeScreen extends StatelessWidget {
                       height: 46,
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [NearbyColors.violet, Color(0xFF8B5CF6)],
+                          colors: [NearbyColors.violet, NearbyColors.navy2],
                         ),
                         borderRadius: BorderRadius.circular(15),
                       ),
@@ -266,7 +266,8 @@ class HomeScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: theme.surface,
                     border: Border.all(color: theme.line),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: theme.cardShadow,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -383,7 +384,7 @@ class HomeScreen extends StatelessWidget {
                 '${state.firstName}, mantén la calma',
                 style: TextStyle(
                   color: theme.muted,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w500,
                   fontSize: 14.5,
                 ),
               ),
@@ -412,7 +413,8 @@ class HomeScreen extends StatelessWidget {
           decoration: BoxDecoration(
             color: theme.surface,
             border: Border.all(color: theme.line),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: theme.cardShadow,
           ),
           child: state.checkin
               ? Row(
@@ -488,21 +490,21 @@ class HomeScreen extends StatelessWidget {
                             child: Container(
                               height: 48,
                               decoration: BoxDecoration(
-                                color: theme.primary,
+                                color: NearbyColors.brandTurquoise,
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: const Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.check_circle, size: 18, color: Colors.white),
+                                  Icon(Icons.check_circle, size: 18, color: NearbyColors.onPrimary),
                                   SizedBox(width: 6),
                                   Text(
                                     'Estoy bien',
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontWeight: FontWeight.w800,
-                                      color: Colors.white,
+                                      color: NearbyColors.onPrimary,
                                       fontSize: 13.5,
                                     ),
                                   ),
@@ -579,7 +581,7 @@ class HomeScreen extends StatelessWidget {
                               gradient: const LinearGradient(
                                 colors: [
                                   NearbyColors.violet,
-                                  Color(0xFF8B5CF6),
+                                  NearbyColors.navy2,
                                 ],
                               ),
                               borderRadius: BorderRadius.circular(14),
@@ -626,9 +628,9 @@ class HomeScreen extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: NearbyColors.violet,
                       foregroundColor: Colors.white,
-                      minimumSize: const Size.fromHeight(56),
+                      minimumSize: const Size.fromHeight(52),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                       elevation: 3,
                     ),
@@ -743,7 +745,8 @@ class HomeScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 color: theme.surface,
                 border: Border.all(color: theme.line),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: theme.cardShadow,
               ),
               child: Row(
                 children: [
@@ -858,14 +861,8 @@ class HomeScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.surface,
           border: Border.all(color: theme.line),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: theme.cardShadow,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -917,7 +914,8 @@ class HomeScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.surface,
         border: Border.all(color: theme.line),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: theme.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -955,7 +953,7 @@ class HomeScreen extends StatelessWidget {
                       style: TextStyle(
                         color: theme.muted,
                         fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -1022,7 +1020,7 @@ class HomeScreen extends StatelessWidget {
               elevation: 0,
               minimumSize: const Size.fromHeight(42),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
               ),
             ),
             icon: Icon(
@@ -1052,7 +1050,8 @@ class HomeScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.surface,
           border: Border.all(color: theme.line),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: theme.cardShadow,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1072,7 +1071,7 @@ class HomeScreen extends StatelessWidget {
               style: TextStyle(
                 color: theme.muted,
                 fontSize: 11,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
@@ -1175,7 +1174,7 @@ class HomeScreen extends StatelessWidget {
                   backgroundColor: NearbyColors.sos,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,

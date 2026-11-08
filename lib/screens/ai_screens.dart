@@ -204,7 +204,7 @@ class _RedScreenState extends State<RedScreen> {
                 margin: EdgeInsets.zero,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(18),
                   side: BorderSide(color: theme.line),
                 ),
                 child: Padding(
@@ -270,7 +270,7 @@ class _RedScreenState extends State<RedScreen> {
                                   Icon(
                                     Icons.lock,
                                     size: 12,
-                                    color: Colors.grey,
+                                    color: NearbyColors.muted,
                                   ),
                                   SizedBox(width: 4),
                                   Expanded(
@@ -297,7 +297,7 @@ class _RedScreenState extends State<RedScreen> {
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: Colors.grey.withValues(alpha: 0.08),
+                                  color: NearbyColors.muted.withValues(alpha: 0.08),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
@@ -325,7 +325,7 @@ class _RedScreenState extends State<RedScreen> {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey.withValues(alpha: 0.08),
+                color: NearbyColors.muted.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: theme.line),
               ),
@@ -376,6 +376,7 @@ class _StatCard extends StatelessWidget {
         color: theme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: theme.line),
+        boxShadow: theme.cardShadow,
       ),
       child: Column(
         children: [
@@ -394,7 +395,7 @@ class _StatCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 10,
               color: theme.muted,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ],
@@ -546,7 +547,7 @@ class _PuenteScreenState extends State<PuenteScreen> {
                 const SizedBox(height: 6),
                 Text(
                   'El teléfono del brigadista recibe el código y la IA lo descomprime en el mismo teléfono.',
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 13, color: NearbyColors.muted),
                 ),
               ],
             ),
@@ -560,10 +561,10 @@ class _PuenteScreenState extends State<PuenteScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.12),
+                    color: NearbyColors.muted.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: Colors.grey.withValues(alpha: 0.2),
+                      color: NearbyColors.muted.withValues(alpha: 0.2),
                     ),
                   ),
                   child: Column(
@@ -573,8 +574,8 @@ class _PuenteScreenState extends State<PuenteScreen> {
                         'SMS · +51 987 *** 321 · ${widget.state.nowTime()}',
                         style: const TextStyle(
                           fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.grey,
+                          fontWeight: FontWeight.w600,
+                          color: NearbyColors.muted,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -597,7 +598,7 @@ class _PuenteScreenState extends State<PuenteScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: NearbyColors.ai,
                       foregroundColor: Colors.white,
-                      minimumSize: const Size.fromHeight(50),
+                      minimumSize: const Size.fromHeight(52),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
@@ -617,9 +618,9 @@ class _PuenteScreenState extends State<PuenteScreen> {
                   Card(
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(18),
                       side: BorderSide(
-                        color: Colors.grey.withValues(alpha: 0.2),
+                        color: NearbyColors.muted.withValues(alpha: 0.2),
                       ),
                     ),
                     child: Padding(
@@ -706,7 +707,7 @@ class _PuenteScreenState extends State<PuenteScreen> {
                                     backgroundColor: NearbyColors.sos,
                                     foregroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
+                                      borderRadius: BorderRadius.circular(14),
                                     ),
                                   ),
                                   icon: const Icon(Icons.directions_run),
@@ -735,7 +736,7 @@ class _PuenteScreenState extends State<PuenteScreen> {
                                 child: OutlinedButton.icon(
                                   style: OutlinedButton.styleFrom(
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
+                                      borderRadius: BorderRadius.circular(14),
                                     ),
                                   ),
                                   icon: const Icon(Icons.add_location),
@@ -764,7 +765,7 @@ class _PuenteScreenState extends State<PuenteScreen> {
                               child: OutlinedButton.icon(
                                 style: OutlinedButton.styleFrom(
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(14),
                                   ),
                                 ),
                                 icon: const Icon(Icons.map),
@@ -814,8 +815,8 @@ class _PuenteScreenState extends State<PuenteScreen> {
                 Card(
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+                    borderRadius: BorderRadius.circular(18),
+                    side: BorderSide(color: NearbyColors.muted.withValues(alpha: 0.2)),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(14),
@@ -838,11 +839,11 @@ class _PuenteScreenState extends State<PuenteScreen> {
                           ),
                           decoration: InputDecoration(
                             filled: true,
-                            fillColor: Colors.grey.withValues(alpha: 0.08),
+                            fillColor: NearbyColors.muted.withValues(alpha: 0.08),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide: BorderSide(
-                                color: Colors.grey.withValues(alpha: 0.3),
+                                color: NearbyColors.muted.withValues(alpha: 0.3),
                               ),
                             ),
                           ),
@@ -850,9 +851,9 @@ class _PuenteScreenState extends State<PuenteScreen> {
                         const SizedBox(height: 10),
                         OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(46),
+                            minimumSize: const Size.fromHeight(48),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(14),
                             ),
                           ),
                           icon: const Icon(Icons.key),
@@ -872,7 +873,7 @@ class _PuenteScreenState extends State<PuenteScreen> {
                           'Formato: NB#SOS!{tipo}{personas}@{lugar}\$P:{prioridad}[#G:lat,lng]. Ej. NB#SOS!A2@MC12\$P:ALTA#G:-11.97900,-77.00300. También puedes pegar el SMS completo.',
                           style: TextStyle(
                             fontSize: 10,
-                            color: Colors.grey.shade600,
+                            color: NearbyColors.muted,
                           ),
                         ),
                       ],
@@ -909,7 +910,7 @@ class _DecodedRow extends StatelessWidget {
         children: [
           Text(
             label,
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            style: TextStyle(fontSize: 12, color: NearbyColors.muted),
           ),
           Text(
             value,

@@ -128,7 +128,7 @@ class NearbyBottomSheetModal extends StatelessWidget {
           height: 56,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [NearbyColors.violet, Color(0xFF8B5CF6)],
+              colors: [NearbyColors.violet, NearbyColors.navy2],
             ),
             borderRadius: BorderRadius.circular(18),
           ),
@@ -258,9 +258,9 @@ class NearbyBottomSheetModal extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: theme.btnBg,
             foregroundColor: theme.btnInk,
-            minimumSize: const Size.fromHeight(50),
+            minimumSize: const Size.fromHeight(52),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
             ),
           ),
           icon: Icon(Icons.dashboard, color: theme.primary, size: 20),
@@ -276,9 +276,9 @@ class NearbyBottomSheetModal extends StatelessWidget {
           style: OutlinedButton.styleFrom(
             foregroundColor: NearbyColors.sos,
             side: const BorderSide(color: NearbyColors.sos, width: 1.5),
-            minimumSize: const Size.fromHeight(50),
+            minimumSize: const Size.fromHeight(52),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
             ),
           ),
           icon: const Icon(Icons.power_settings_new, size: 20),
@@ -392,9 +392,9 @@ class NearbyBottomSheetModal extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: theme.btnBg,
             foregroundColor: theme.btnInk,
-            minimumSize: const Size.fromHeight(50),
+            minimumSize: const Size.fromHeight(52),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
             ),
           ),
           child: const Text(
@@ -407,7 +407,7 @@ class NearbyBottomSheetModal extends StatelessWidget {
           onPressed: () => state.closeSheet(),
           child: Text(
             'Seguir en modo emergencia',
-            style: TextStyle(color: theme.muted, fontWeight: FontWeight.w700),
+            style: TextStyle(color: theme.muted, fontWeight: FontWeight.w500),
           ),
         ),
       ],
@@ -465,7 +465,7 @@ class NearbyBottomSheetModal extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  minimumSize: const Size.fromHeight(48),
+                  minimumSize: const Size.fromHeight(52),
                 ),
                 icon: const Icon(Icons.photo_camera, size: 18),
                 label: const Text('Tomar foto'),
@@ -485,7 +485,7 @@ class NearbyBottomSheetModal extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  minimumSize: const Size.fromHeight(48),
+                  minimumSize: const Size.fromHeight(52),
                 ),
                 icon: const Icon(Icons.photo_library, size: 18),
                 label: const Text('Galería'),
@@ -533,7 +533,7 @@ class NearbyBottomSheetModal extends StatelessWidget {
             onPressed: () => state.closeSheet(),
             child: Text(
               'Cancelar',
-              style: TextStyle(color: theme.muted, fontWeight: FontWeight.w700),
+              style: TextStyle(color: theme.muted, fontWeight: FontWeight.w500),
             ),
           ),
         ),
@@ -600,9 +600,9 @@ class NearbyBottomSheetModal extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: theme.btnBg,
             foregroundColor: theme.btnInk,
-            minimumSize: const Size.fromHeight(50),
+            minimumSize: const Size.fromHeight(52),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
             ),
           ),
           child: const Text(
@@ -616,7 +616,7 @@ class NearbyBottomSheetModal extends StatelessWidget {
             onPressed: () => state.closeSheet(),
             child: Text(
               'Ahora no',
-              style: TextStyle(color: theme.muted, fontWeight: FontWeight.w700),
+              style: TextStyle(color: theme.muted, fontWeight: FontWeight.w500),
             ),
           ),
         ),
@@ -660,9 +660,9 @@ class NearbyBottomSheetModal extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: NearbyColors.sos,
             foregroundColor: Colors.white,
-            minimumSize: const Size.fromHeight(50),
+            minimumSize: const Size.fromHeight(52),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
             ),
           ),
           child: const Text(
@@ -676,7 +676,7 @@ class NearbyBottomSheetModal extends StatelessWidget {
             onPressed: () => state.closeSheet(),
             child: Text(
               'Cancelar',
-              style: TextStyle(color: theme.muted, fontWeight: FontWeight.w700),
+              style: TextStyle(color: theme.muted, fontWeight: FontWeight.w500),
             ),
           ),
         ),
@@ -847,7 +847,7 @@ class _VoiceSheetState extends State<_VoiceSheet> {
           style: ElevatedButton.styleFrom(
             backgroundColor: theme.btnBg,
             foregroundColor: theme.btnInk,
-            minimumSize: const Size.fromHeight(48),
+            minimumSize: const Size.fromHeight(52),
           ),
           child: const Text('Usar este texto'),
         ),
@@ -960,7 +960,7 @@ class _SonicSheetState extends State<_SonicSheet>
           height: 56,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [NearbyColors.violet, Color(0xFF8B5CF6)],
+              colors: [NearbyColors.violet, NearbyColors.navy2],
             ),
             borderRadius: BorderRadius.circular(18),
           ),
@@ -985,7 +985,7 @@ class _SonicSheetState extends State<_SonicSheet>
           width: double.infinity,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFF0B1424),
+            color: const Color(0xFF041128),
             borderRadius: BorderRadius.circular(14),
           ),
           child: Text(
@@ -994,7 +994,7 @@ class _SonicSheetState extends State<_SonicSheet>
               fontFamily: 'monospace',
               fontWeight: FontWeight.w900,
               fontSize: 15,
-              color: Color(0xFF7BE3C6),
+              color: Color(0xFF6FE6D6),
             ),
           ),
         ),
@@ -1043,7 +1043,7 @@ class _SonicSheetState extends State<_SonicSheet>
           style: ElevatedButton.styleFrom(
             backgroundColor: widget.theme.btnBg,
             foregroundColor: widget.theme.btnInk,
-            minimumSize: const Size.fromHeight(48),
+            minimumSize: const Size.fromHeight(52),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
             ),

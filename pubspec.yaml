@@ -79,19 +79,19 @@ flutter:
   uses-material-design: true
   assets:
     - .env
+  # Tipografía de marca: Poppins (OFL, assets/fonts/OFL.txt). Sin peso 800/900: los textos
+  # que los piden usan Bold (700), así la jerarquía queda en 400/500/600/700.
   fonts:
-    - family: Nunito
+    - family: Poppins
       fonts:
-        - asset: assets/fonts/Nunito.ttf
+        - asset: assets/fonts/Poppins-Regular.ttf
           weight: 400
-        - asset: assets/fonts/Nunito.ttf
+        - asset: assets/fonts/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Poppins-SemiBold.ttf
           weight: 600
-        - asset: assets/fonts/Nunito.ttf
+        - asset: assets/fonts/Poppins-Bold.ttf
           weight: 700
-        - asset: assets/fonts/Nunito.ttf
-          weight: 800
-        - asset: assets/fonts/Nunito.ttf
-          weight: 900
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -265,13 +265,13 @@ class _MapVectorPainter extends CustomPainter {
 
     // Range radius circle
     final rangePaint = Paint()
-      ..color = (emergency ? const Color(0xFFE0344A) : const Color(0xFF00A07F))
+      ..color = (emergency ? const Color(0xFFE0344A) : const Color(0xFF00A38E))
           .withValues(alpha: 0.08)
       ..style = PaintingStyle.fill;
     canvas.drawCircle(const Offset(200, 320), 150, rangePaint);
 
     final rangeBorder = Paint()
-      ..color = (emergency ? const Color(0xFFE0344A) : const Color(0xFF00A07F))
+      ..color = (emergency ? const Color(0xFFE0344A) : const Color(0xFF00A38E))
           .withValues(alpha: 0.4)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
@@ -374,7 +374,7 @@ class _MapVectorPainter extends CustomPainter {
     final span = TextSpan(
       text: text,
       style: TextStyle(
-        fontFamily: 'Nunito',
+        fontFamily: 'Poppins',
         fontSize: fontSize,
         fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
         color: color,

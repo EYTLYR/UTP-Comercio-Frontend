@@ -66,7 +66,7 @@ class WallScreen extends StatelessWidget {
                       Text.rich(
                         TextSpan(
                           style: TextStyle(
-                            fontFamily: 'Nunito',
+                            fontFamily: 'Poppins',
                             color: theme.ink,
                             fontSize: 14,
                           ),
@@ -159,7 +159,7 @@ class WallScreen extends StatelessWidget {
                 backgroundColor: theme.surface,
                 selectedColor: theme.btnBg,
                 labelStyle: TextStyle(
-                  fontFamily: 'Nunito',
+                  fontFamily: 'Poppins',
                   color: isSel ? theme.btnInk : theme.ink,
                   fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
                   fontSize: 13,
@@ -183,8 +183,9 @@ class WallScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     color: theme.surface,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: theme.line),
+                    boxShadow: theme.cardShadow,
                   ),
                   child: Center(
                     child: Text(
@@ -250,7 +251,8 @@ class WallScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.surface,
         border: Border.all(color: theme.line),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: theme.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -288,7 +290,7 @@ class WallScreen extends StatelessWidget {
                       style: TextStyle(
                         color: theme.muted,
                         fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -353,9 +355,9 @@ class WallScreen extends StatelessWidget {
               backgroundColor: isDone ? theme.primarySoft : theme.primarySoft,
               foregroundColor: theme.primaryDark,
               elevation: 0,
-              minimumSize: const Size.fromHeight(44),
+              minimumSize: const Size.fromHeight(48),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
               ),
             ),
             icon: Icon(

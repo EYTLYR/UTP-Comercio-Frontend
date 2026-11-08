@@ -100,7 +100,7 @@ class DemoMapScreen extends StatelessWidget {
                   backgroundColor: theme.surface,
                   selectedColor: theme.btnBg,
                   labelStyle: TextStyle(
-                    fontFamily: 'Nunito',
+                    fontFamily: 'Poppins',
                     color: isSel ? theme.btnInk : theme.ink,
                     fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
                     fontSize: 13,
@@ -449,7 +449,7 @@ class RouteScreen extends StatelessWidget {
                                 style: TextStyle(
                                   color: theme.muted,
                                   fontSize: 13,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ],
@@ -506,9 +506,9 @@ class RouteScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isHelp ? NearbyColors.sos : theme.btnBg,
                     foregroundColor: Colors.white,
-                    minimumSize: const Size.fromHeight(50),
+                    minimumSize: const Size.fromHeight(52),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                   ),
                   icon: const Icon(Icons.where_to_vote, size: 20),

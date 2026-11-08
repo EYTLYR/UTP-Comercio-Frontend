@@ -18,7 +18,7 @@ Widget harness(AppState state) {
     builder: (context, _) => MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        fontFamily: 'Nunito',
+        fontFamily: 'Poppins',
         colorScheme: ColorScheme.fromSeed(
           seedColor: state.dark
               ? NearbyColors.darkPrimary
@@ -41,8 +41,8 @@ Widget harness(AppState state) {
 
 void main() {
   setUpAll(() async {
-    final font = FontLoader('Nunito')
-      ..addFont(rootBundle.load('assets/fonts/Nunito.ttf'));
+    final font = FontLoader('Poppins')
+      ..addFont(rootBundle.load('assets/fonts/Poppins-Regular.ttf'));
     await font.load();
     await (FontLoader(
       'MaterialIcons',

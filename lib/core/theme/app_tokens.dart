@@ -50,7 +50,7 @@ class AppTokens {
   // Layer 2: Direct keylight (sharp, minimal offset)
 
   static List<BoxShadow> softShadow({Color? tint, double opacity = 1.0}) {
-    final baseColor = tint ?? const Color(0xFF0C1524);
+    final baseColor = tint ?? const Color(0xFF0B2D6B);
     return [
       BoxShadow(
         color: baseColor.withValues(alpha: 0.03 * opacity),
@@ -67,7 +67,7 @@ class AppTokens {
   }
 
   static List<BoxShadow> cardShadow({Color? tint, double opacity = 1.0}) {
-    final baseColor = tint ?? const Color(0xFF15233A);
+    final baseColor = tint ?? const Color(0xFF0B2D6B);
     return [
       BoxShadow(
         color: baseColor.withValues(alpha: 0.02 * opacity),
@@ -99,12 +99,12 @@ class AppTokens {
   }
 
   // --- Typography Specs ---
-  static const String fontFamily = 'Nunito';
+  static const String fontFamily = 'Poppins';
 
   static const TextStyle display = TextStyle(
     fontFamily: fontFamily,
     fontSize: 26,
-    fontWeight: FontWeight.w900,
+    fontWeight: FontWeight.w700,
     letterSpacing: -0.6,
     height: 1.15,
   );
@@ -112,7 +112,7 @@ class AppTokens {
   static const TextStyle titleLg = TextStyle(
     fontFamily: fontFamily,
     fontSize: 20,
-    fontWeight: FontWeight.w800,
+    fontWeight: FontWeight.w700,
     letterSpacing: -0.4,
     height: 1.2,
   );
@@ -120,7 +120,7 @@ class AppTokens {
   static const TextStyle titleMd = TextStyle(
     fontFamily: fontFamily,
     fontSize: 16,
-    fontWeight: FontWeight.w800,
+    fontWeight: FontWeight.w600,
     letterSpacing: -0.2,
     height: 1.25,
   );
@@ -128,28 +128,28 @@ class AppTokens {
   static const TextStyle body = TextStyle(
     fontFamily: fontFamily,
     fontSize: 13.5,
-    fontWeight: FontWeight.w600,
+    fontWeight: FontWeight.w400,
     height: 1.35,
   );
 
   static const TextStyle bodyMuted = TextStyle(
     fontFamily: fontFamily,
     fontSize: 12,
-    fontWeight: FontWeight.w500,
+    fontWeight: FontWeight.w400,
     height: 1.3,
   );
 
   static const TextStyle caption = TextStyle(
     fontFamily: fontFamily,
     fontSize: 11,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w600,
     letterSpacing: 0.2,
   );
 
   static const TextStyle button = TextStyle(
     fontFamily: fontFamily,
     fontSize: 15,
-    fontWeight: FontWeight.w800,
+    fontWeight: FontWeight.w600,
     letterSpacing: 0.1,
   );
 }

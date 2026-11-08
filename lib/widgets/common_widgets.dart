@@ -173,7 +173,7 @@ class _SosHoldButtonState extends State<SosHoldButton>
                         Text(
                           'SOS',
                           style: TextStyle(
-                            fontFamily: 'Nunito',
+                            fontFamily: 'Poppins',
                             fontWeight: FontWeight.w900,
                             fontSize: widget.isLarge ? 54 : 36,
                             color: NearbyColors.sos,
@@ -185,7 +185,7 @@ class _SosHoldButtonState extends State<SosHoldButton>
                         Text(
                           'MANTENER',
                           style: TextStyle(
-                            fontFamily: 'Nunito',
+                            fontFamily: 'Poppins',
                             fontWeight: FontWeight.w800,
                             fontSize: widget.isLarge ? 13 : 11,
                             color: NearbyColors.sosDark,
@@ -236,6 +236,7 @@ class NearbyTopBar extends StatelessWidget {
                   color: em ? Colors.white.withValues(alpha: 0.16) : theme.line,
                 ),
                 borderRadius: BorderRadius.circular(14),
+                boxShadow: em ? null : theme.cardShadow,
               ),
               child: Center(
                 child: NearbyLogo(
@@ -269,6 +270,7 @@ class NearbyTopBar extends StatelessWidget {
                         : theme.line,
                   ),
                   borderRadius: BorderRadius.circular(999),
+                  boxShadow: em ? null : theme.cardShadow,
                 ),
                 child: Row(
                   children: [
@@ -284,7 +286,7 @@ class NearbyTopBar extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 13.5,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                           color: em ? Colors.white : theme.ink,
                         ),
                       ),
@@ -401,6 +403,7 @@ class NearbyTopBarBack extends StatelessWidget {
                       ? Colors.white.withValues(alpha: .2)
                       : theme.line,
                 ),
+                boxShadow: emergencyStyle ? null : theme.cardShadow,
               ),
               child: Icon(
                 Icons.arrow_back,
@@ -416,7 +419,8 @@ class NearbyTopBarBack extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 19,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.3,
                 color: emergencyStyle ? Colors.white : theme.ink,
               ),
             ),
@@ -529,7 +533,7 @@ class NearbyEmergencyBanner extends StatelessWidget {
                     vertical: 8,
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                 ),
                 child: const Text(
@@ -556,7 +560,7 @@ class NearbyOfflineBanner extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFF0B1220),
+        color: NearbyColors.brandNavy,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -569,7 +573,7 @@ class NearbyOfflineBanner extends StatelessWidget {
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12.5,
-                  fontFamily: 'Nunito',
+                  fontFamily: 'Poppins',
                 ),
                 children: [
                   const TextSpan(
@@ -619,7 +623,12 @@ class NearbyBottomNav extends StatelessWidget {
     final cur = _currentTab(state.screen);
 
     final activeColor = em ? theme.sosDark : theme.primaryDark;
-    final fabColor = theme.hc ? theme.btnBg : (em ? theme.sos : theme.primary);
+    final fabColor = theme.hc
+        ? theme.btnBg
+        : (em ? theme.sos : NearbyColors.brandTurquoise);
+    final fabInk = theme.hc
+        ? theme.btnInk
+        : (em ? Colors.white : NearbyColors.onPrimary);
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 16, 10, 10),
       child: Padding(
@@ -660,7 +669,7 @@ class NearbyBottomNav extends StatelessWidget {
                             ),
                             child: Icon(
                               Icons.add_rounded,
-                              color: theme.hc ? theme.btnInk : Colors.white,
+                              color: fabInk,
                               size: 32,
                             ),
                           )
@@ -691,8 +700,8 @@ class NearbyBottomNav extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: selected || tab.isFab
-                                ? FontWeight.w800
-                                : FontWeight.w600,
+                                ? FontWeight.w600
+                                : FontWeight.w500,
                             color: selected ? activeColor : theme.muted,
                           ),
                         ),
@@ -1128,7 +1137,7 @@ class _NearbyToastWidgetState extends State<NearbyToastWidget>
               }
             },
             child: Material(
-              color: const Color(0xFF1F1E1B),
+              color: const Color(0xFF0B2D6B),
               borderRadius: BorderRadius.circular(18),
               clipBehavior: Clip.antiAlias,
               elevation: 8,
@@ -1141,7 +1150,7 @@ class _NearbyToastWidgetState extends State<NearbyToastWidget>
                       children: [
                         Icon(
                           _icons[widget.icon] ?? Icons.info_outline,
-                          color: const Color(0xFF7FD6C2),
+                          color: const Color(0xFF00BFA6),
                           size: 22,
                         ),
                         const SizedBox(width: 10),
@@ -1173,7 +1182,7 @@ class _NearbyToastWidgetState extends State<NearbyToastWidget>
                       value: 1 - _timer.value,
                       minHeight: 3,
                       backgroundColor: Colors.white12,
-                      color: const Color(0xFF7FD6C2),
+                      color: const Color(0xFF00BFA6),
                     ),
                   ),
                 ],

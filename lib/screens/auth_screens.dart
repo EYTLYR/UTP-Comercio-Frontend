@@ -230,9 +230,9 @@ class _LoginScreenState extends State<LoginScreen> {
           style: ElevatedButton.styleFrom(
             backgroundColor: theme.btnBg,
             foregroundColor: theme.btnInk,
-            minimumSize: const Size.fromHeight(54),
+            minimumSize: const Size.fromHeight(52),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
             ),
           ),
           icon: Icon(Icons.sms, color: theme.primary, size: 20),
@@ -873,8 +873,8 @@ class _RegistroScreenState extends State<RegistroScreen> {
                       if (mounted) setState(() {});
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.primary,
-                      foregroundColor: Colors.white,
+                      backgroundColor: NearbyColors.brandTurquoise,
+                      foregroundColor: NearbyColors.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
@@ -985,6 +985,7 @@ class _RegistroScreenState extends State<RegistroScreen> {
                     color: theme.surface,
                     border: Border.all(color: theme.line),
                     borderRadius: BorderRadius.circular(18),
+                    boxShadow: theme.cardShadow,
                   ),
                   child: Row(
                     children: [
@@ -1028,6 +1029,7 @@ class _RegistroScreenState extends State<RegistroScreen> {
                     color: theme.surface,
                     border: Border.all(color: theme.line),
                     borderRadius: BorderRadius.circular(18),
+                    boxShadow: theme.cardShadow,
                   ),
                   child: Row(
                     children: [
@@ -1131,9 +1133,9 @@ class _RegistroScreenState extends State<RegistroScreen> {
                           color: Color(0xFF1A73E8),
                           width: 1.5,
                         ),
-                        minimumSize: const Size.fromHeight(50),
+                        minimumSize: const Size.fromHeight(52),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(14),
                         ),
                       ),
                       icon: const Icon(Icons.map, size: 20),
@@ -1151,9 +1153,9 @@ class _RegistroScreenState extends State<RegistroScreen> {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: theme.ink,
                         side: BorderSide(color: theme.line, width: 1.5),
-                        minimumSize: const Size.fromHeight(50),
+                        minimumSize: const Size.fromHeight(52),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(14),
                         ),
                       ),
                       icon: Icon(
@@ -1226,7 +1228,7 @@ class _RegistroScreenState extends State<RegistroScreen> {
               foregroundColor: theme.btnInk,
               minimumSize: const Size.fromHeight(52),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(14),
               ),
             ),
             icon: const SizedBox.shrink(),
@@ -1357,7 +1359,8 @@ class _ContactosScreenState extends State<ContactosScreen> {
                 decoration: BoxDecoration(
                   color: theme.surface,
                   border: Border.all(color: theme.line),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: theme.cardShadow,
                 ),
                 child: Row(
                   children: [
@@ -1382,7 +1385,7 @@ class _ContactosScreenState extends State<ContactosScreen> {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: theme.ink,
                     side: BorderSide(color: theme.line, width: 1.5),
-                    minimumSize: const Size.fromHeight(48),
+                    minimumSize: const Size.fromHeight(52),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -1400,7 +1403,8 @@ class _ContactosScreenState extends State<ContactosScreen> {
                 decoration: BoxDecoration(
                   color: theme.surface,
                   border: Border.all(color: theme.line),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: theme.cardShadow,
                 ),
                 child: Column(
                   children: filtered.map((c) {
@@ -1524,7 +1528,7 @@ class _ContactosScreenState extends State<ContactosScreen> {
                   foregroundColor: theme.btnInk,
                   minimumSize: const Size.fromHeight(52),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                 ),
                 icon: Icon(Icons.check, color: theme.primary, size: 20),
@@ -1544,7 +1548,7 @@ class _ContactosScreenState extends State<ContactosScreen> {
                     'Lo hago después',
                     style: TextStyle(
                       color: theme.muted,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
@@ -1646,7 +1650,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
               foregroundColor: theme.btnInk,
               minimumSize: const Size.fromHeight(52),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(14),
               ),
             ),
             child: Row(
@@ -1683,7 +1687,8 @@ class _PermisosScreenState extends State<PermisosScreen> {
       decoration: BoxDecoration(
         color: theme.surface,
         border: Border.all(color: theme.line),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: theme.cardShadow,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1749,7 +1754,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
                 backgroundColor: theme.btnBg,
                 foregroundColor: theme.btnInk,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
@@ -1814,9 +1819,9 @@ class ListoScreen extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: theme.btnBg,
               foregroundColor: theme.btnInk,
-              minimumSize: const Size.fromHeight(54),
+              minimumSize: const Size.fromHeight(52),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(14),
               ),
             ),
             icon: Icon(Icons.home, color: theme.primary, size: 22),
