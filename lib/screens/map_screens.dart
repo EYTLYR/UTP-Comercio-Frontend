@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart' show TileProvider;
 import 'package:latlong2/latlong.dart' show Distance, LatLng, LengthUnit;
 import 'package:url_launcher/url_launcher.dart';
 
+import '../widgets/interactions.dart';
 import '../widgets/navigation_chrome.dart';
 
 import '../state/app_state.dart';
@@ -812,36 +813,125 @@ class _MapScreenState extends State<MapScreen> {
           top: insets.top + 4,
           left: 4,
           right: 4,
-          child: SizedBox(
-            height: MediaQuery.textScalerOf(context).scale(16) + 32,
-            child: ListView.separated(
-              key: const ValueKey('map-filter-strip'),
-              scrollDirection: Axis.horizontal,
-              clipBehavior: Clip.none,
-              padding: EdgeInsets.zero,
-              itemCount: filters.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 8),
-              itemBuilder: (_, index) {
-                final filter = filters[index];
-                final selected = widget.state.mapFilter == filter.$1;
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 3),
-                  child: _MapFilterChip(
-                    theme: widget.theme,
-                    label: filter.$2,
-                    selected: selected,
-                    onTap: () {
-                      widget.state.mapFilter = filter.$1;
-                      widget.state.mapSel = null;
-                      widget.state.refresh();
+          child: Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: MediaQuery.textScalerOf(context).scale(16) + 32,
+                  child: ListView.separated(
+                    key: const ValueKey('map-filter-strip'),
+                    scrollDirection: Axis.horizontal,
+                    clipBehavior: Clip.none,
+                    padding: EdgeInsets.zero,
+                    itemCount: filters.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 8),
+                    itemBuilder: (_, index) {
+                      final filter = filters[index];
+                      final selected = widget.state.mapFilter == filter.$1;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 3),
+                        child: _MapFilterChip(
+                          theme: widget.theme,
+                          label: filter.$2,
+                          selected: selected,
+                          onTap: () {
+                            widget.state.mapFilter = filter.$1;
+                            widget.state.mapSel = null;
+                            widget.state.refresh();
+                          },
+                        ),
+                      );
                     },
                   ),
-                );
-              },
-            ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              NearbyFilterButton(
+                theme: widget.theme,
+                active: widget.state.mapFilter == 'all' ? 0 : 1,
+                onPressed: () => _openFilters(context, filters),
+              ),
+            ],
           ),
         ),
       ],
+    );
+  }
+
+  /// Panel lateral: qué mostrar en el mapa y qué significa cada color de pin.
+  void _openFilters(BuildContext context, List<(String, String)> filters) {
+    final state = widget.state;
+    final theme = widget.theme;
+    final ui = NearbyCommunityStyle(theme);
+    final legend = state.emergency
+        ? const [
+            ('vuln', 'Vecino vulnerable', Icons.accessible),
+            ('safe', 'Punto seguro', Icons.flag),
+            ('res', 'Recurso disponible', Icons.inventory_2),
+            ('group', 'Grupo de apoyo', Icons.diversity_3),
+          ]
+        : const [
+            ('need', 'Pide ayuda', Icons.front_hand),
+            ('offer', 'Ofrece ayuda', Icons.volunteer_activism),
+            ('svc', 'Oficio del barrio', Icons.handyman),
+          ];
+    showNearbyFilterPanel(
+      context: context,
+      theme: theme,
+      title: 'Filtrar el mapa',
+      subtitle: 'Elige qué ver cerca de ti',
+      onClear: () {
+        state.mapFilter = 'all';
+        state.mapSel = null;
+        state.refresh();
+      },
+      builder: (context, setPanel) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          NearbyFilterGroup(theme: theme, title: 'Mostrar'),
+          for (final (id, label) in filters)
+            NearbyFilterOption(
+              theme: theme,
+              label: label,
+              selected: state.mapFilter == id,
+              onTap: () {
+                state.mapFilter = id;
+                state.mapSel = null;
+                state.refresh();
+                setPanel(() {});
+              },
+            ),
+          const SizedBox(height: 8),
+          NearbyFilterGroup(theme: theme, title: 'Qué significa cada color'),
+          for (final (kind, label, icon) in legend)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                children: [
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: pinColor(kind),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: Icon(icon, size: 15, color: Colors.white),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: ui.ink,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

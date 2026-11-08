@@ -262,58 +262,42 @@ class NearbyTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final em = state.emergency;
-    final home = !em && state.screen == 'home';
-    // Diseño de la comunidad (blanco) en todas las pantallas; en emergencia, el azul de siempre.
-    final community = home || !em;
+    final home = state.screen == 'home';
+    // Diseño de la comunidad (blanco) en todas las pantallas, también en emergencia.
     final ui = NearbyCommunityStyle(theme);
-    final topBarBg = em ? NearbyColors.navy : Colors.transparent;
+    final width = MediaQuery.sizeOf(context).width;
+    // Escritorio: el logo y el SOS ya están en la navegación lateral.
+    final wide = width >= 900;
+    final gutter = width < 360 ? 16.0 : 24.0;
 
     return Container(
-      color: topBarBg,
-      padding: community
-          ? const EdgeInsets.fromLTRB(24, 8, 24, 10)
-          : const EdgeInsets.fromLTRB(16, 6, 16, 10),
+      color: Colors.transparent,
+      padding: EdgeInsets.fromLTRB(gutter, 8, gutter, 10),
       child: Row(
         children: [
           // Brandmark logo
-          PressableScale(
-            onTap: () => state.selectTab('home'),
-            child: Container(
-              width: community ? 28 : 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: em
-                    ? Colors.white.withValues(alpha: 0.08)
-                    : (community ? Colors.transparent : theme.surface),
-                border: community
-                    ? null
-                    : Border.all(
-                        color: em
-                            ? Colors.white.withValues(alpha: 0.16)
-                            : theme.line,
-                      ),
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: em || community ? null : theme.cardShadow,
-              ),
-              child: Center(
-                child: NearbyLogo(
-                  width: 28,
-                  inkColor: em
-                      ? Colors.white
-                      : (community ? ui.ink : theme.logoInk),
-                  greenColor: community && ui.light ? ui.accent : null,
-                  gapColor: em ? NearbyColors.navy : theme.surface,
+          if (!wide)
+            PressableScale(
+              onTap: () => state.selectTab('home'),
+              child: SizedBox(
+                width: 28,
+                height: 42,
+                child: Center(
+                  child: NearbyLogo(
+                    width: 28,
+                    inkColor: ui.ink,
+                    greenColor: ui.light ? ui.accent : null,
+                    gapColor: theme.surface,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: 8),
+          if (!wide) const SizedBox(width: 8),
 
-          if (home ||
-              (community && MediaQuery.sizeOf(context).width >= 390)) ...[
+          // En el celular el nombre solo va en Inicio: en las demás pantallas deja espacio a la zona.
+          if (!wide && home && width >= 360) ...[
             Flexible(
-              fit: home ? FlexFit.tight : FlexFit.loose,
+              fit: FlexFit.tight,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -331,7 +315,7 @@ class NearbyTopBar extends StatelessWidget {
                   Text(
                     'Siempre cerca para ayudar',
                     style: TextStyle(color: ui.muted, fontSize: 8),
-                    maxLines: home ? 2 : 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
@@ -352,11 +336,13 @@ class NearbyTopBar extends StatelessWidget {
                 constraints: const BoxConstraints(minHeight: 42),
                 padding: const EdgeInsets.symmetric(horizontal: 6),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisAlignment: wide || !home
+                      ? MainAxisAlignment.start
+                      : MainAxisAlignment.end,
                   children: [
                     Icon(
                       Icons.location_on_outlined,
-                      color: em ? const Color(0xFFFF8A98) : ui.ink,
+                      color: ui.ink,
                       size: 15,
                     ),
                     const SizedBox(width: 6),
@@ -367,7 +353,7 @@ class NearbyTopBar extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: em ? Colors.white : ui.ink,
+                          color: ui.ink,
                         ),
                       ),
                     ),
@@ -379,7 +365,7 @@ class NearbyTopBar extends StatelessWidget {
           const SizedBox(width: 8),
 
           // Mini SOS button (when not on home)
-          if (state.screen != 'home') ...[
+          if (!home && !wide) ...[
             PressableScale(
               onTap: () => state.go('sos'),
               scale: 0.94,
@@ -452,7 +438,7 @@ class NearbyTopBar extends StatelessWidget {
           PressableScale(
             key: state.tourTarget('profile'),
             onTap: () => state.go('perfil'),
-            child: ProfilePhotoAvatar(state: state, size: community ? 34 : 42),
+            child: ProfilePhotoAvatar(state: state, size: 34),
           ),
         ],
       ),
@@ -465,27 +451,24 @@ class NearbyTopBarBack extends StatelessWidget {
   final NearbyThemeData theme;
   final AppState state;
   final String title;
-  final bool emergencyStyle;
 
   const NearbyTopBarBack({
     super.key,
     required this.theme,
     required this.state,
     required this.title,
-    this.emergencyStyle = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final community = !emergencyStyle;
+    // Diseño nuevo también en emergencia (el aviso rojo va aparte).
     final ui = NearbyCommunityStyle(theme);
+    final width = MediaQuery.sizeOf(context).width;
+    final gutter = width < 360 ? 16.0 : 24.0;
+    // Escritorio: el SOS ya está en la navegación lateral.
+    final wide = width >= 900;
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        community ? 24 : 16,
-        6,
-        community ? 24 : 16,
-        10,
-      ),
+      padding: EdgeInsets.fromLTRB(gutter, 6, gutter, 10),
       child: Row(
         children: [
           PressableScale(
@@ -495,27 +478,11 @@ class NearbyTopBarBack extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: emergencyStyle
-                    ? Colors.white.withValues(alpha: .08)
-                    : theme.surface,
-                shape: community ? BoxShape.rectangle : BoxShape.circle,
-                borderRadius: community ? BorderRadius.circular(8) : null,
-                border: Border.all(
-                  color: emergencyStyle
-                      ? Colors.white.withValues(alpha: .2)
-                      : theme.line,
-                ),
-                boxShadow: emergencyStyle || community
-                    ? null
-                    : theme.cardShadow,
+                color: theme.surface,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: ui.line),
               ),
-              child: Icon(
-                community ? Icons.chevron_left : Icons.arrow_back,
-                color: emergencyStyle
-                    ? Colors.white
-                    : (community ? ui.ink : theme.ink),
-                size: 22,
-              ),
+              child: Icon(Icons.chevron_left, color: ui.ink, size: 22),
             ),
           ),
           const SizedBox(width: 12),
@@ -524,15 +491,14 @@ class NearbyTopBarBack extends StatelessWidget {
               title,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: community ? 15 : 19,
+                fontSize: 15,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.3,
-                color: emergencyStyle
-                    ? Colors.white
-                    : (community ? ui.ink : theme.ink),
+                color: ui.ink,
               ),
             ),
           ),
+          if (!wide)
           PressableScale(
             onTap: () => state.go('sos'),
             scale: 0.94,
@@ -581,79 +547,175 @@ class NearbyEmergencyBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      key: state.tourTarget('em-banner'),
-      onTap: () => state.openSheet('em'),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-        decoration: const BoxDecoration(
-          color: NearbyColors.navy,
-          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+    final width = MediaQuery.sizeOf(context).width;
+    final gutter = width < 360 ? 16.0 : 24.0;
+    final light = !state.dark && !state.hc;
+    final ink = light ? const Color(0xFF263B65) : Colors.white;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(gutter, 0, gutter, 8),
+      child: Material(
+        color: light ? NearbyColors.sosSoft : NearbyColors.sosDark,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: NearbyColors.sos.withValues(alpha: 0.35)),
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: NearbyColors.sos,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.crisis_alert,
-                color: Colors.white,
-                size: 22,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Modo emergencia activo',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 14.5,
+        child: InkWell(
+          key: state.tourTarget('em-banner'),
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => state.openSheet('em'),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: NearbyColors.sos,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.crisis_alert,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const NearbyPulseDot(color: NearbyColors.sos),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              'Modo emergencia activo',
+                              style: TextStyle(
+                                color: light
+                                    ? NearbyColors.sosDark
+                                    : Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        state.emSource == 'yo'
+                            ? 'Activado por ti · toca para opciones'
+                            : state.connected
+                            ? 'Activado por la Municipalidad · toca para opciones'
+                            : 'Sismo en Lima · desde las 10:42 · toca para opciones',
+                        style: TextStyle(
+                          color: ink.withValues(alpha: 0.8),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (state.isBrigade)
+                  OutlinedButton(
+                    onPressed: () => state.go('tablero'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: light
+                          ? NearbyColors.sosDark
+                          : Colors.white,
+                      side: BorderSide(
+                        color: light ? NearbyColors.sosDark : Colors.white,
+                        width: 1.2,
+                      ),
+                      minimumSize: const Size(0, 36),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'Tablero',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
-                  Text(
-                    state.emSource == 'yo'
-                        ? 'Activado por ti · toca para opciones'
-                        : state.connected
-                        ? 'Activado por la Municipalidad · toca para opciones'
-                        : 'Sismo en Lima · desde las 10:42 · toca para opciones',
-                    style: const TextStyle(color: Colors.white70, fontSize: 12),
-                  ),
-                ],
-              ),
+              ],
             ),
-            if (state.isBrigade)
-              ElevatedButton(
-                onPressed: () => state.go('tablero'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: NearbyColors.sosDark,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                child: const Text(
-                  'Tablero',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
-                ),
-              ),
-          ],
+          ),
         ),
       ),
     );
   }
+}
+
+/// Punto que late: indica algo en vivo (emergencia activa, transmisión, etc.).
+class NearbyPulseDot extends StatefulWidget {
+  final Color color;
+  final double size;
+  const NearbyPulseDot({super.key, required this.color, this.size = 8});
+
+  @override
+  State<NearbyPulseDot> createState() => _NearbyPulseDotState();
+}
+
+class _NearbyPulseDotState extends State<NearbyPulseDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1400),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    // Sin animación si la persona pidió reducir el movimiento.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!(MediaQuery.maybeOf(context)?.disableAnimations ?? false)) {
+        _c.repeat();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: widget.size * 2.2,
+    height: widget.size * 2.2,
+    child: AnimatedBuilder(
+      animation: _c,
+      builder: (context, _) => Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: widget.size * (1 + _c.value * 1.2),
+            height: widget.size * (1 + _c.value * 1.2),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: widget.color.withValues(alpha: (1 - _c.value) * 0.35),
+            ),
+          ),
+          Container(
+            width: widget.size,
+            height: widget.size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: widget.color,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 // --- Offline Banner ---
@@ -665,11 +727,11 @@ class NearbyOfflineBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      margin: const EdgeInsets.fromLTRB(24, 0, 24, 10),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: NearbyColors.brandNavy,
-        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xFF263B65),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
@@ -730,21 +792,12 @@ class NearbyBottomNav extends StatelessWidget {
 
     final cur = _currentTab(state.screen);
 
-    final community = !em;
+    // Diseño nuevo también en emergencia: Reportar e indicador en rojo.
     final ui = NearbyCommunityStyle(theme);
-    final activeColor = community
-        ? ui.ink
-        : (em ? theme.sosDark : theme.primaryDark);
-    final fabColor = community
-        ? ui.accent
-        : theme.hc
-        ? theme.btnBg
-        : (em ? theme.sos : NearbyColors.brandTurquoise);
-    final fabInk = community
-        ? ui.onAccent
-        : theme.hc
-        ? theme.btnInk
-        : (em ? Colors.white : NearbyColors.onPrimary);
+    final redAccent = em && !theme.hc;
+    final activeColor = ui.ink;
+    final fabColor = redAccent ? NearbyColors.sos : ui.accent;
+    final fabInk = redAccent ? Colors.white : ui.onAccent;
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 16, 10, 10),
       child: Padding(
@@ -769,33 +822,16 @@ class NearbyBottomNav extends StatelessWidget {
                         if (tab.isFab)
                           Container(
                             key: const ValueKey('publish-floating-button'),
-                            width: community ? 44 : 60,
-                            height: community ? 44 : 60,
+                            width: 44,
+                            height: 44,
                             decoration: BoxDecoration(
                               color: fabColor,
-                              shape: community
-                                  ? BoxShape.rectangle
-                                  : BoxShape.circle,
-                              borderRadius: community
-                                  ? BorderRadius.circular(8)
-                                  : null,
-                              border: community
-                                  ? null
-                                  : Border.all(color: theme.bg, width: 5),
-                              boxShadow: community
-                                  ? null
-                                  : [
-                                      BoxShadow(
-                                        color: fabColor.withValues(alpha: 0.32),
-                                        blurRadius: 16,
-                                        offset: const Offset(0, 8),
-                                      ),
-                                    ],
+                              borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
                               Icons.add_rounded,
                               color: fabInk,
-                              size: community ? 24 : 32,
+                              size: 24,
                             ),
                           )
                         else
@@ -807,15 +843,9 @@ class NearbyBottomNav extends StatelessWidget {
                             ),
                             decoration: BoxDecoration(
                               color: selected
-                                  ? (community
-                                        ? ui.blueSoft
-                                        : (em
-                                              ? theme.sosSoft
-                                              : theme.primarySoft))
+                                  ? (redAccent ? theme.sosSoft : ui.blueSoft)
                                   : Colors.transparent,
-                              borderRadius: BorderRadius.circular(
-                                community ? 8 : 16,
-                              ),
+                              borderRadius: BorderRadius.circular(8),
                             ),
                             child: Stack(
                               clipBehavior: Clip.none,
@@ -825,7 +855,7 @@ class NearbyBottomNav extends StatelessWidget {
                                   color: selected ? activeColor : theme.muted,
                                   size: 23,
                                 ),
-                                if (selected && !em)
+                                if (selected)
                                   Positioned(
                                     top: -5,
                                     left: 4,
@@ -833,7 +863,9 @@ class NearbyBottomNav extends StatelessWidget {
                                     child: Container(
                                       height: 3,
                                       decoration: BoxDecoration(
-                                        color: ui.accent,
+                                        color: redAccent
+                                            ? NearbyColors.sos
+                                            : ui.accent,
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                     ),
@@ -908,75 +940,8 @@ class NearbySosCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!state.emergency) return _buildHomeCard(context);
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 2, 16, 0),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        gradient: const RadialGradient(
-          center: Alignment(0, -0.6),
-          radius: 1.3,
-          colors: [Color(0xFFEE4A5E), Color(0xFFD7263D), Color(0xFFAE172C)],
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x66D7263D),
-            blurRadius: 22,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.emergency, color: Colors.white, size: 28),
-              SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '¿Estás en peligro?',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
-                      ),
-                    ),
-                    Text(
-                      'Mantén presionado el botón 2 segundos',
-                      style: TextStyle(color: Colors.white70, fontSize: 13),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Center hold button
-          _holdButton(148),
-
-          const SizedBox(height: 12),
-          const Text(
-            'Avisa a vecinos en 500 m, a tus contactos y a la brigada.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 14),
-
-          // Equal cells preserve the prototype's three-column layout.
-          EmergencyCallShortcuts(state: state),
-        ],
-      ),
-    );
+    // Misma tarjeta y mismo patrón en modo normal y en emergencia.
+    return _buildHomeCard(context);
   }
 
   Widget _buildHomeCard(BuildContext context) {

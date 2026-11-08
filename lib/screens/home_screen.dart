@@ -6,6 +6,7 @@ import '../models/models.dart';
 import '../state/app_state.dart';
 import '../theme/nearby_theme.dart';
 import '../widgets/common_widgets.dart';
+import '../widgets/interactions.dart';
 
 class HomeScreen extends StatelessWidget {
   final AppState state;
@@ -29,10 +30,12 @@ class HomeScreen extends StatelessWidget {
         // < 700: diseño móvil. ≥ 700: rejillas más anchas. ≥ 900: dos columnas.
         final wide = constraints.maxWidth >= 700;
         final split = constraints.maxWidth >= 900;
+        // Margen lateral común a todas las secciones.
+        final gutter = constraints.maxWidth < 360 ? 16.0 : 24.0;
 
         // Greeting
         final greeting = Padding(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
+          padding: EdgeInsets.fromLTRB(gutter, 12, gutter, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -61,7 +64,7 @@ class HomeScreen extends StatelessWidget {
         // Zone emergency banner if zone still in emergency
         final Widget? zoneBanner = state.zoneEm
             ? Container(
-                margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                margin: EdgeInsets.fromLTRB(gutter, 12, gutter, 0),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: theme.sosSoft,
@@ -126,7 +129,7 @@ class HomeScreen extends StatelessWidget {
 
         // Section "Día a día"
         final dayGrid = Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: EdgeInsets.symmetric(horizontal: gutter),
           child: GridView.count(
             crossAxisCount: wide && !split ? 4 : 2,
             shrinkWrap: true,
@@ -135,48 +138,56 @@ class HomeScreen extends StatelessWidget {
             mainAxisSpacing: 8,
             mainAxisExtent: (theme.lg ? 154 : 102) * theme.scaleFactor,
             children: [
-              _buildTile(
-                icon: Icons.handyman_outlined,
-                color: ui.onAccent,
-                softColor: ui.accent,
-                homeStyle: ui,
-                featured: true,
-                title: 'Buscar un servicio',
-                subtitle: 'Oficios del barrio',
-                onTap: () => state.go('servicios'),
+              NearbyHover(
+                child: _buildTile(
+                  icon: Icons.handyman_outlined,
+                  color: ui.onAccent,
+                  softColor: ui.accent,
+                  homeStyle: ui,
+                  featured: true,
+                  title: 'Buscar un servicio',
+                  subtitle: 'Oficios del barrio',
+                  onTap: () => state.go('servicios'),
+                ),
               ),
-              _buildTile(
-                icon: Icons.favorite_border_rounded,
-                color: ui.ink,
-                softColor: ui.blueSoft,
-                homeStyle: ui,
-                title: 'Pedir un favor',
-                subtitle: 'Entre vecinos',
-                onTap: () {
-                  state.pub.reset(step: 2, type: 'need');
-                  state.go('publicar');
-                },
+              NearbyHover(
+                child: _buildTile(
+                  icon: Icons.favorite_border_rounded,
+                  color: ui.ink,
+                  softColor: ui.blueSoft,
+                  homeStyle: ui,
+                  title: 'Pedir un favor',
+                  subtitle: 'Entre vecinos',
+                  onTap: () {
+                    state.pub.reset(step: 2, type: 'need');
+                    state.go('publicar');
+                  },
+                ),
               ),
-              _buildTile(
-                icon: Icons.add_rounded,
-                color: ui.ink,
-                softColor: ui.blueSoft,
-                homeStyle: ui,
-                title: 'Ofrecer ayuda',
-                subtitle: 'Presta, dona o enseña',
-                onTap: () {
-                  state.pub.reset(step: 2, type: 'offer');
-                  state.go('publicar');
-                },
+              NearbyHover(
+                child: _buildTile(
+                  icon: Icons.add_rounded,
+                  color: ui.ink,
+                  softColor: ui.blueSoft,
+                  homeStyle: ui,
+                  title: 'Ofrecer ayuda',
+                  subtitle: 'Presta, dona o enseña',
+                  onTap: () {
+                    state.pub.reset(step: 2, type: 'offer');
+                    state.go('publicar');
+                  },
+                ),
               ),
-              _buildTile(
-                icon: Icons.map_outlined,
-                color: ui.ink,
-                softColor: ui.blueSoft,
-                homeStyle: ui,
-                title: 'Ver el mapa',
-                subtitle: 'Explora tu zona',
-                onTap: () => state.go('mapa'),
+              NearbyHover(
+                child: _buildTile(
+                  icon: Icons.map_outlined,
+                  color: ui.ink,
+                  softColor: ui.blueSoft,
+                  homeStyle: ui,
+                  title: 'Ver el mapa',
+                  subtitle: 'Explora tu zona',
+                  onTap: () => state.go('mapa'),
+                ),
               ),
             ],
           ),
@@ -185,7 +196,7 @@ class HomeScreen extends StatelessWidget {
         // AI Summary Banner
         final Widget? brigadeBanner = state.isBrigade
             ? Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                padding: EdgeInsets.fromLTRB(gutter, 14, gutter, 0),
                 child: PressableScale(
                   onTap: () => state.go('red'),
                   scale: 0.98,
@@ -259,7 +270,7 @@ class HomeScreen extends StatelessWidget {
           ?zoneBanner,
         ];
         final shortcuts = <Widget>[
-          _buildSectionHeader('Día a día', homeStyle: ui),
+          _buildSectionHeader('Día a día', homeStyle: ui, gutter: gutter),
           dayGrid,
           ?brigadeBanner,
         ];
@@ -280,102 +291,106 @@ class HomeScreen extends StatelessWidget {
             _buildSectionHeader(
               'Recomendados por tus vecinos',
               homeStyle: ui,
+              gutter: gutter,
               actionText: 'Ver todos',
               onAction: () => state.go('servicios'),
             ),
             SizedBox(
               height: 100 * theme.scaleFactor,
               child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: EdgeInsets.symmetric(horizontal: gutter),
                 scrollDirection: Axis.horizontal,
                 itemCount: state.services.take(5).length,
                 separatorBuilder: (_, _) => const SizedBox(width: 12),
                 itemBuilder: (context, i) {
                   final s = state.services[i];
-                  return InkWell(
-                    onTap: () {
-                      state.selService = s.id;
-                      state.go('svc');
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      width: 164 * theme.scaleFactor,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: theme.surface,
-                        border: Border.all(color: ui.line),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 32,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  color: ui.blueSoft,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Icon(s.icon, color: ui.ink, size: 18),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      s.name,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        color: ui.ink,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                    Text(
-                                      s.job,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: ui.muted,
-                                        fontSize: 11,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Spacer(),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: ui.ivory,
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
+                  return NearbyHover(
+                    child: InkWell(
+                      onTap: () {
+                        state.selService = s.id;
+                        state.go('svc');
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        width: 164 * theme.scaleFactor,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: theme.surface,
+                          border: Border.all(color: ui.line),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
                               children: [
-                                Icon(Icons.verified, color: ui.ink, size: 14),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${s.vb + (state.vbGiven[s.id] == true ? 1 : 0)}',
-                                  style: TextStyle(
-                                    color: ui.ink,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 11,
+                                Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: ui.blueSoft,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(s.icon, color: ui.ink, size: 18),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        s.name,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          color: ui.ink,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      Text(
+                                        s.job,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: ui.muted,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                        ],
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: ui.ivory,
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.verified, color: ui.ink, size: 14),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${s.vb + (state.vbGiven[s.id] == true ? 1 : 0)}',
+                                    style: TextStyle(
+                                      color: ui.ink,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   );
@@ -386,18 +401,29 @@ class HomeScreen extends StatelessWidget {
             // In the wall right now
             _buildSectionHeader(
               'En el muro ahora',
+              homeStyle: ui,
+              gutter: gutter,
               actionText: 'Ver muro',
               onAction: () => state.go('muro'),
             ),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: wide ? 24 : 16),
+              padding: EdgeInsets.symmetric(horizontal: gutter),
               child: _cardRows(
-                state.posts.take(2).map((p) => _buildPostCard(p)).toList(),
+                state.posts
+                    .take(2)
+                    .map(
+                      (p) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: NearbyHover(child: _buildPostCard(p)),
+                      ),
+                    )
+                    .toList(),
                 wide ? 2 : 1,
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              // El ícono del botón queda alineado con el margen.
+              padding: EdgeInsets.fromLTRB(gutter - 12, 12, gutter, 0),
               child: TextButton.icon(
                 onPressed: () => state.startTour('main'),
                 icon: const Icon(Icons.touch_app_outlined),
@@ -412,6 +438,7 @@ class HomeScreen extends StatelessWidget {
 
   // --- Emergency Home ---
   Widget _buildEmergencyHome(BuildContext context) {
+    final ui = NearbyCommunityStyle(theme);
     final pendingCount = state.reports.where((r) => r.status != 'a').length;
 
     return LayoutBuilder(
@@ -419,29 +446,32 @@ class HomeScreen extends StatelessWidget {
         // < 700: diseño móvil. ≥ 700: rejillas más anchas. ≥ 900: dos columnas.
         final wide = constraints.maxWidth >= 700;
         final split = constraints.maxWidth >= 900;
+        // Margen lateral común a todas las secciones.
+        final gutter = constraints.maxWidth < 360 ? 16.0 : 24.0;
 
         // Greeting
         final greeting = Padding(
-          padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+          padding: EdgeInsets.fromLTRB(gutter, 12, gutter, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 '${state.firstName}, mantén la calma',
                 style: TextStyle(
-                  color: theme.muted,
+                  color: ui.muted,
                   fontWeight: FontWeight.w500,
-                  fontSize: 14.5,
+                  fontSize: 14,
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 4),
               Text(
                 'Tu barrio se está organizando',
                 style: TextStyle(
-                  color: theme.ink,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 24,
+                  color: ui.ink,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 28,
                   letterSpacing: -0.5,
+                  height: 1.15,
                 ),
               ),
             ],
@@ -451,30 +481,17 @@ class HomeScreen extends StatelessWidget {
         // Check-in card "¿Cómo estás?"
         final checkinCard = Container(
           key: state.tourTarget('checkin'),
-          margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+          margin: EdgeInsets.fromLTRB(gutter, 14, gutter, 0),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: theme.surface,
-            border: Border.all(color: theme.line),
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: theme.cardShadow,
+            border: Border.all(color: ui.line),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: state.checkin
               ? Row(
                   children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: theme.primarySoft,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(
-                        Icons.check_circle,
-                        color: theme.primary,
-                        size: 26,
-                      ),
-                    ),
+                    _iconSquare(Icons.check_circle, ui.ink, ui.blueSoft),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -483,8 +500,8 @@ class HomeScreen extends StatelessWidget {
                           Text(
                             'Marcaste que estás bien',
                             style: TextStyle(
-                              fontWeight: FontWeight.w800,
-                              color: theme.ink,
+                              fontWeight: FontWeight.w700,
+                              color: ui.ink,
                               fontSize: 14,
                             ),
                           ),
@@ -492,7 +509,7 @@ class HomeScreen extends StatelessWidget {
                             state.contacts.isEmpty
                                 ? 'Avisamos a la brigada de tu zona.'
                                 : 'Avisamos a tus ${state.contacts.length} contactos y a la brigada.',
-                            style: TextStyle(color: theme.muted, fontSize: 12),
+                            style: TextStyle(color: ui.muted, fontSize: 12),
                           ),
                         ],
                       ),
@@ -505,23 +522,22 @@ class HomeScreen extends StatelessWidget {
                     Text(
                       '¿Cómo estás?',
                       style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        color: theme.ink,
-                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: ui.ink,
+                        fontSize: 16,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       'Tu respuesta llega a tus contactos y al tablero del barrio.',
-                      style: TextStyle(color: theme.muted, fontSize: 12.5),
+                      style: TextStyle(color: ui.muted, fontSize: 12.5),
                     ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
                         Expanded(
-                          child: PressableScale(
-                            scale: 0.96,
-                            onTap: () async {
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
                               state.checkin = true;
                               state.refresh();
                               final sent = await state.sendCheckIn(true);
@@ -532,71 +548,36 @@ class HomeScreen extends StatelessWidget {
                                 icon: 'check_circle',
                               );
                             },
-                            child: Container(
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: NearbyColors.brandTurquoise,
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.check_circle,
-                                    size: 18,
-                                    color: NearbyColors.onPrimary,
-                                  ),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'Estoy bien',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      color: NearbyColors.onPrimary,
-                                      fontSize: 13.5,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                            style: ui.action(),
+                            icon: const Icon(Icons.check_circle, size: 18),
+                            label: const Text(
+                              'Estoy bien',
+                              textAlign: TextAlign.center,
                             ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: PressableScale(
-                            scale: 0.96,
-                            onTap: () => state.go('sos'),
-                            child: Container(
-                              height: 48,
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: NearbyColors.sos,
-                                  width: 1.5,
-                                ),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.emergency,
-                                    size: 18,
-                                    color: NearbyColors.sos,
+                          // Rojo: pedir ayuda es una acción de emergencia.
+                          child: OutlinedButton.icon(
+                            onPressed: () => state.go('sos'),
+                            style: ui
+                                .action(filled: false)
+                                .copyWith(
+                                  foregroundColor: const WidgetStatePropertyAll(
+                                    NearbyColors.sos,
                                   ),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'Necesito ayuda',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w800,
+                                  side: const WidgetStatePropertyAll(
+                                    BorderSide(
                                       color: NearbyColors.sos,
-                                      fontSize: 13.5,
+                                      width: 1.5,
                                     ),
                                   ),
-                                ],
-                              ),
+                                ),
+                            icon: const Icon(Icons.emergency, size: 18),
+                            label: const Text(
+                              'Necesito ayuda',
+                              textAlign: TextAlign.center,
                             ),
                           ),
                         ),
@@ -606,73 +587,55 @@ class HomeScreen extends StatelessWidget {
                 ),
         );
 
-        // AI Plan Button / Active summary
+        // Plan de rescate: panel informativo o botón principal
         final Widget? aiPlan = state.isBrigade
             ? Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                padding: EdgeInsets.fromLTRB(gutter, 12, gutter, 0),
                 child: state.aiStatus == 'done'
-                    ? InkWell(
-                        onTap: () => state.go('tablero'),
-                        borderRadius: BorderRadius.circular(20),
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                theme.violet.withValues(alpha: 0.14),
-                                theme.violet.withValues(alpha: 0.06),
-                              ],
-                            ),
-                            border: Border.all(
-                              color: theme.violet.withValues(alpha: 0.3),
-                            ),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      NearbyColors.violet,
-                                      NearbyColors.navy2,
-                                    ],
+                    ? NearbyHover(
+                        child: Material(
+                          color: ui.blueSoft,
+                          borderRadius: BorderRadius.circular(12),
+                          child: InkWell(
+                            onTap: () => state.go('tablero'),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Padding(
+                              padding: const EdgeInsets.all(14),
+                              child: Row(
+                                children: [
+                                  _iconSquare(
+                                    Icons.auto_awesome,
+                                    ui.ink,
+                                    theme.surface,
                                   ),
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: const Icon(
-                                  Icons.auto_awesome,
-                                  color: Colors.white,
-                                  size: 22,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Plan de rescate con IA activo',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                        color: theme.ink,
-                                        fontSize: 14,
-                                      ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Plan de rescate con IA activo',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            color: ui.ink,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        Text(
+                                          '${state.aiMissions.values.fold(0, (sum, m) => sum + m.length)} vecinos asignados · ver misiones',
+                                          style: TextStyle(
+                                            color: ui.muted,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    Text(
-                                      '${state.aiMissions.values.fold(0, (sum, m) => sum + m.length)} vecinos asignados · ver misiones',
-                                      style: TextStyle(
-                                        color: theme.muted,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                  Icon(Icons.chevron_right, color: ui.ink),
+                                ],
                               ),
-                              Icon(Icons.chevron_right, color: theme.muted),
-                            ],
+                            ),
                           ),
                         ),
                       )
@@ -681,76 +644,79 @@ class HomeScreen extends StatelessWidget {
                           state.go('tablero');
                           state.runAi();
                         },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: NearbyColors.violet,
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size.fromHeight(52),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          elevation: 3,
-                        ),
-                        icon: const Icon(Icons.auto_awesome, size: 22),
-                        label: const Text(
-                          'Generar plan de rescate con IA',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 15,
+                        style: ui.action().copyWith(
+                          minimumSize: const WidgetStatePropertyAll(
+                            Size.fromHeight(48),
                           ),
                         ),
+                        icon: const Icon(Icons.auto_awesome, size: 20),
+                        label: const Text('Generar plan de rescate con IA'),
                       ),
               )
             : null;
 
         // Section "Coordinar ayuda" (2x2 grid)
         final coordGrid = Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: EdgeInsets.symmetric(horizontal: gutter),
           child: GridView.count(
             crossAxisCount: wide && !split ? 4 : 2,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            mainAxisExtent: 154 * theme.scaleFactor,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            mainAxisExtent: (theme.lg ? 154 : 112) * theme.scaleFactor,
             children: [
-              _buildTile(
-                icon: Icons.elderly,
-                color: NearbyColors.sos,
-                softColor: theme.sosSoft,
-                title: 'Reportar vecino',
-                subtitle: 'Adultos mayores, heridos…',
-                onTap: () {
-                  state.pub.reset(step: 2, type: 'vulnerable');
-                  state.go('publicar');
-                },
+              NearbyHover(
+                child: _buildTile(
+                  icon: Icons.elderly,
+                  // Rojo: personas en riesgo.
+                  color: NearbyColors.sos,
+                  softColor: theme.sosSoft,
+                  homeStyle: ui,
+                  title: 'Reportar vecino',
+                  subtitle: 'Adultos mayores, heridos…',
+                  onTap: () {
+                    state.pub.reset(step: 2, type: 'vulnerable');
+                    state.go('publicar');
+                  },
+                ),
               ),
-              _buildTile(
-                icon: Icons.inventory_2,
-                color: theme.accent,
-                softColor: theme.accentSoft,
-                title: 'Recursos críticos',
-                subtitle: 'Agua, víveres, energía',
-                onTap: () => state.go('recursos'),
+              NearbyHover(
+                child: _buildTile(
+                  icon: Icons.inventory_2_outlined,
+                  color: ui.ink,
+                  softColor: ui.blueSoft,
+                  homeStyle: ui,
+                  title: 'Recursos críticos',
+                  subtitle: 'Agua, víveres, energía',
+                  onTap: () => state.go('recursos'),
+                ),
               ),
-              _buildTile(
-                icon: Icons.diversity_3,
-                color: theme.violet,
-                softColor: theme.violetSoft,
-                title: 'Grupos de apoyo',
-                subtitle: 'Brigadas y oficios',
-                onTap: () => state.go('apoyo'),
+              NearbyHover(
+                child: _buildTile(
+                  icon: Icons.diversity_3_outlined,
+                  color: ui.ink,
+                  softColor: ui.blueSoft,
+                  homeStyle: ui,
+                  title: 'Grupos de apoyo',
+                  subtitle: 'Brigadas y oficios',
+                  onTap: () => state.go('apoyo'),
+                ),
               ),
-              _buildTile(
-                icon: Icons.flag,
-                color: theme.info,
-                softColor: theme.infoSoft,
-                title: 'Puntos seguros',
-                subtitle: 'Reunión y refugios',
-                onTap: () {
-                  state.mapFilter = 'safe';
-                  state.mapSel = null;
-                  state.go('mapa');
-                },
+              NearbyHover(
+                child: _buildTile(
+                  icon: Icons.flag_outlined,
+                  color: ui.ink,
+                  softColor: ui.blueSoft,
+                  homeStyle: ui,
+                  title: 'Puntos seguros',
+                  subtitle: 'Reunión y refugios',
+                  onTap: () {
+                    state.mapFilter = 'safe';
+                    state.mapSel = null;
+                    state.go('mapa');
+                  },
+                ),
               ),
             ],
           ),
@@ -758,15 +724,16 @@ class HomeScreen extends StatelessWidget {
 
         // Section "Tablero del barrio" with stats
         final stats = Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: EdgeInsets.symmetric(horizontal: gutter),
           child: Row(
             children: [
               _buildStatCard(
                 '${state.connected ? state.reports.length : state.reports.length + 14}',
                 'Reportes',
+                ui,
               ),
               const SizedBox(width: 8),
-              _buildStatCard('$pendingCount', 'Por atender'),
+              _buildStatCard('$pendingCount', 'Por atender', ui),
               const SizedBox(width: 8),
               // Vecinos que dijeron «Estoy bien» desde que empezó la emergencia
               _buildStatCard(
@@ -774,6 +741,7 @@ class HomeScreen extends StatelessWidget {
                     ? '${state.zoneDashboard['safeCheckIns'] ?? 0}'
                     : '64',
                 'A salvo',
+                ui,
               ),
             ],
           ),
@@ -781,10 +749,10 @@ class HomeScreen extends StatelessWidget {
 
         // Urgent Reports previews
         final reports = Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          padding: EdgeInsets.fromLTRB(gutter, 12, gutter, 0),
           child: _cardRows(
             state.reports.where((r) => r.status != 'a').take(2).map((r) {
-              return _buildReportPreview(r);
+              return _buildReportPreview(r, ui);
             }).toList(),
             wide && !split ? 2 : 1,
           ),
@@ -792,55 +760,46 @@ class HomeScreen extends StatelessWidget {
 
         // Exit emergency mode banner
         final exitBanner = Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-          child: InkWell(
-            onTap: () => state.openSheet('em-off'),
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: theme.surface,
-                border: Border.all(color: theme.line),
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: theme.cardShadow,
+          padding: EdgeInsets.fromLTRB(gutter, 16, gutter, 0),
+          child: NearbyHover(
+            child: Material(
+              color: theme.surface,
+              shape: RoundedRectangleBorder(
+                side: BorderSide(color: ui.line),
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: theme.primarySoft,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Icon(
-                      Icons.verified_user,
-                      color: theme.primary,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '¿Ya pasó la emergencia?',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            color: theme.ink,
-                            fontSize: 14,
-                          ),
+              child: InkWell(
+                onTap: () => state.openSheet('em-off'),
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
+                    children: [
+                      _iconSquare(Icons.verified_user, ui.ink, ui.blueSoft),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '¿Ya pasó la emergencia?',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: ui.ink,
+                                fontSize: 14,
+                              ),
+                            ),
+                            Text(
+                              'Vuelve al modo normal de Nearby',
+                              style: TextStyle(color: ui.muted, fontSize: 12),
+                            ),
+                          ],
                         ),
-                        Text(
-                          'Vuelve al modo normal de Nearby',
-                          style: TextStyle(color: theme.muted, fontSize: 12),
-                        ),
-                      ],
-                    ),
+                      ),
+                      Icon(Icons.chevron_right, color: ui.ink),
+                    ],
                   ),
-                  Icon(Icons.chevron_right, color: theme.muted),
-                ],
+                ),
               ),
             ),
           ),
@@ -848,16 +807,18 @@ class HomeScreen extends StatelessWidget {
 
         final hero = <Widget>[
           greeting,
-          // SOS Card
+          // SOS Card: la misma que en el modo normal (trae su margen de 24)
           NearbySosCard(theme: theme, state: state),
           checkinCard,
           ?aiPlan,
         ];
         final board = <Widget>[
-          _buildSectionHeader('Coordinar ayuda'),
+          _buildSectionHeader('Coordinar ayuda', homeStyle: ui, gutter: gutter),
           coordGrid,
           _buildSectionHeader(
             'Tablero del barrio',
+            homeStyle: ui,
+            gutter: gutter,
             actionText: state.isBrigade ? 'Ver todo' : null,
             onAction: state.isBrigade ? () => state.go('tablero') : null,
           ),
@@ -870,10 +831,29 @@ class HomeScreen extends StatelessWidget {
           padding:
               NavigationInsets.of(context) + const EdgeInsets.only(bottom: 24),
           children: [
+            Divider(
+              height: 1,
+              indent: gutter,
+              endIndent: gutter,
+              color: ui.line,
+            ),
             if (split) _splitColumns(hero, board) else ...[...hero, ...board],
           ],
         );
       },
+    );
+  }
+
+  // Cuadrito de ícono (radio 8) de las tarjetas.
+  Widget _iconSquare(IconData icon, Color color, Color bg) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Icon(icon, color: color, size: 22),
     );
   }
 
@@ -927,12 +907,11 @@ class HomeScreen extends StatelessWidget {
     String title, {
     String? actionText,
     VoidCallback? onAction,
-    NearbyCommunityStyle? homeStyle,
+    required NearbyCommunityStyle homeStyle,
+    double gutter = 24,
   }) {
     return Padding(
-      padding: homeStyle == null
-          ? const EdgeInsets.fromLTRB(16, 20, 16, 10)
-          : const EdgeInsets.fromLTRB(24, 12, 24, 8),
+      padding: EdgeInsets.fromLTRB(gutter, 12, gutter, 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -940,13 +919,9 @@ class HomeScreen extends StatelessWidget {
             child: Text(
               title,
               style: TextStyle(
-                fontSize: homeStyle == null
-                    ? 16
-                    : (actionText == null ? 18 : 14),
-                fontWeight: homeStyle == null
-                    ? FontWeight.w900
-                    : FontWeight.w700,
-                color: homeStyle?.ink ?? theme.ink,
+                fontSize: actionText == null ? 18 : 14,
+                fontWeight: FontWeight.w700,
+                color: homeStyle.ink,
                 letterSpacing: -0.2,
               ),
             ),
@@ -955,33 +930,15 @@ class HomeScreen extends StatelessWidget {
             PressableScale(
               onTap: onAction,
               scale: 0.95,
-              child: Container(
+              child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: homeStyle != null
-                    ? null
-                    : BoxDecoration(
-                        color: theme.primarySoft,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      actionText,
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w800,
-                        color: homeStyle?.ink ?? theme.primaryDark,
-                      ),
-                    ),
-                    if (homeStyle == null)
-                      Icon(
-                        Icons.chevron_right,
-                        size: 16,
-                        color: theme.primaryDark,
-                      ),
-                  ],
+                child: Text(
+                  actionText,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: homeStyle.ink,
+                  ),
                 ),
               ),
             ),
@@ -997,22 +954,18 @@ class HomeScreen extends StatelessWidget {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
-    NearbyCommunityStyle? homeStyle,
+    required NearbyCommunityStyle homeStyle,
     bool featured = false,
   }) {
-    final isNormal = homeStyle != null;
     return PressableScale(
       onTap: onTap,
       scale: 0.96,
       child: Container(
-        padding: isNormal
-            ? const EdgeInsets.symmetric(horizontal: 12, vertical: 8)
-            : const EdgeInsets.all(14),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: featured ? homeStyle!.ivory : theme.surface,
-          border: Border.all(color: homeStyle?.line ?? theme.line),
-          borderRadius: BorderRadius.circular(isNormal ? 12 : 18),
-          boxShadow: isNormal ? null : theme.cardShadow,
+          color: featured ? homeStyle.ivory : theme.surface,
+          border: Border.all(color: homeStyle.line),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1022,22 +975,19 @@ class HomeScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  width: isNormal ? 32 : 44,
-                  height: isNormal ? 32 : 44,
+                  width: 32,
+                  height: 32,
                   decoration: BoxDecoration(
                     color: softColor,
-                    borderRadius: BorderRadius.circular(isNormal ? 8 : 14),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Center(
-                    child: Icon(icon, color: color, size: isNormal ? 22 : 24),
-                  ),
+                  child: Center(child: Icon(icon, color: color, size: 22)),
                 ),
-                if (homeStyle != null)
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    color: homeStyle.ink,
-                    size: 20,
-                  ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: homeStyle.ink,
+                  size: 20,
+                ),
               ],
             ),
             Column(
@@ -1046,10 +996,10 @@ class HomeScreen extends StatelessWidget {
                 Text(
                   title,
                   style: TextStyle(
-                    fontWeight: isNormal ? FontWeight.w600 : FontWeight.w800,
-                    color: homeStyle?.ink ?? theme.ink,
-                    fontSize: isNormal ? 12.5 : 13.5,
-                    height: isNormal ? 1.1 : 1.2,
+                    fontWeight: FontWeight.w600,
+                    color: homeStyle.ink,
+                    fontSize: 12.5,
+                    height: 1.1,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -1058,9 +1008,9 @@ class HomeScreen extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: homeStyle?.muted ?? theme.muted,
+                    color: homeStyle.muted,
                     fontSize: 11,
-                    height: isNormal ? 1.1 : null,
+                    height: 1.1,
                   ),
                 ),
               ],
@@ -1076,7 +1026,6 @@ class HomeScreen extends StatelessWidget {
     final catObj = kPostCats.where((c) => c.id == p.cat).firstOrNull;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: theme.surface,
@@ -1210,33 +1159,32 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard(String number, String label) {
+  Widget _buildStatCard(String number, String label, NearbyCommunityStyle ui) {
+    final style = TextStyle(
+      fontSize: 22,
+      fontWeight: FontWeight.w700,
+      color: ui.ink,
+      height: 1.1,
+    );
+    final value = int.tryParse(number);
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: theme.surface,
-          border: Border.all(color: theme.line),
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: theme.cardShadow,
+          color: ui.ivory,
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              number,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-                color: theme.ink,
-                height: 1.1,
-              ),
-            ),
+            value == null
+                ? Text(number, style: style)
+                : NearbyCountUp(value: value, style: style),
             const SizedBox(height: 2),
             Text(
               label,
               style: TextStyle(
-                color: theme.muted,
+                color: ui.muted,
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
               ),
@@ -1247,31 +1195,27 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildReportPreview(ReportItem r) {
+  Widget _buildReportPreview(ReportItem r, NearbyCommunityStyle ui) {
     final v =
         kVulnCats.where((x) => x.id == r.cat).firstOrNull ?? kVulnCats.first;
+    final pending = r.status == 'p';
+    // Etiqueta de prioridad: roja si está pendiente, ámbar si ya van en camino.
+    final tagBg = pending ? theme.sosSoft : theme.accentSoft;
+    final tagInk = pending ? theme.sosDark : theme.accentInk;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: theme.surface,
-        border: Border(left: BorderSide(color: NearbyColors.sos, width: 5)),
-        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: ui.line),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: theme.sosSoft,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(v.icon, color: NearbyColors.sos, size: 20),
-              ),
+              _iconSquare(v.icon, NearbyColors.sos, theme.sosSoft),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -1280,80 +1224,67 @@ class HomeScreen extends StatelessWidget {
                     Text(
                       r.who,
                       style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        color: theme.ink,
+                        fontWeight: FontWeight.w700,
+                        color: ui.ink,
                         fontSize: 13.5,
                       ),
                     ),
                     Text(
                       '${r.where} · ${r.time}',
-                      style: TextStyle(color: theme.muted, fontSize: 11.5),
+                      style: TextStyle(color: ui.muted, fontSize: 11.5),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: tagBg,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      pending ? Icons.schedule : Icons.directions_walk,
+                      size: 13,
+                      color: tagInk,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      pending ? 'Pendiente' : 'En camino',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: tagInk,
+                      ),
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(r.detail, style: TextStyle(color: theme.ink, fontSize: 12.5)),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: r.status == 'p' ? theme.sosSoft : theme.accentSoft,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      r.status == 'p' ? Icons.schedule : Icons.directions_walk,
-                      size: 14,
-                      color: r.status == 'p'
-                          ? NearbyColors.sosDark
-                          : NearbyColors.accentInk,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      r.status == 'p' ? 'Pendiente' : 'En camino',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: r.status == 'p'
-                            ? NearbyColors.sosDark
-                            : NearbyColors.accentInk,
-                      ),
-                    ),
-                  ],
-                ),
+          Text(r.detail, style: TextStyle(color: ui.ink, fontSize: 12.5)),
+          const SizedBox(height: 12),
+          Divider(height: 1, color: ui.line),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerRight,
+            child: ElevatedButton(
+              onPressed: () {
+                state.goToReport(r);
+                state.toast(
+                  'Te asignaste el reporte. La brigada lo sabe.',
+                  icon: 'directions_run',
+                );
+              },
+              style: ui.action().copyWith(
+                minimumSize: const WidgetStatePropertyAll(Size(96, 40)),
               ),
-              const Spacer(),
-              ElevatedButton(
-                onPressed: () {
-                  state.goToReport(r);
-                  state.toast(
-                    'Te asignaste el reporte. La brigada lo sabe.',
-                    icon: 'directions_run',
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: NearbyColors.sos,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
-                ),
-                child: const Text(
-                  'Voy yo',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
-                ),
-              ),
-            ],
+              child: const Text('Voy yo'),
+            ),
           ),
         ],
       ),

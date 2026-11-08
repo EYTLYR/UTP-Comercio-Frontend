@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/interactions.dart';
 import '../widgets/navigation_chrome.dart';
 
 import '../models/models.dart';
@@ -72,33 +73,48 @@ class _ServicesScreenState extends State<ServicesScreen> {
                       ),
                     ),
 
-                    // Search bar
+                    // Search bar + filtros en el panel lateral
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Container(
-                        height: 52,
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        decoration: BoxDecoration(
-                          color: theme.surface,
-                          border: Border.all(color: ui.ink, width: 1.5),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.search, color: ui.muted, size: 22),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: TextField(
-                                onChanged: (val) =>
-                                    setState(() => _search = val),
-                                decoration: const InputDecoration(
-                                  hintText: '¿Qué necesitas? Ej. gasfitero',
-                                  border: InputBorder.none,
-                                ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              height: 52,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                              ),
+                              decoration: BoxDecoration(
+                                color: theme.surface,
+                                border: Border.all(color: ui.ink, width: 1.5),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.search, color: ui.muted, size: 22),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: TextField(
+                                      onChanged: (val) =>
+                                          setState(() => _search = val),
+                                      decoration: const InputDecoration(
+                                        hintText:
+                                            '¿Qué necesitas? Ej. gasfitero',
+                                        border: InputBorder.none,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(width: 8),
+                          NearbyFilterButton(
+                            theme: theme,
+                            active: state.servCat == 'all' ? 0 : 1,
+                            onPressed: () => _openFilters(context),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -204,7 +220,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                     ? filtered.length
                     : (filtered.length / cols).ceil(),
                 itemBuilder: (context, index) => cols == 1
-                    ? _buildServiceRow(filtered[index])
+                    ? NearbyHover(child: _buildServiceRow(filtered[index]))
                     : _buildServiceGroup(filtered, index, cols),
               ),
             ),
@@ -275,6 +291,40 @@ class _ServicesScreenState extends State<ServicesScreen> {
           ],
         );
       },
+    );
+  }
+
+  /// Panel lateral de filtros: oficios por categoría (cada cambio se ve al instante).
+  void _openFilters(BuildContext context) {
+    final state = widget.state;
+    final theme = widget.theme;
+    showNearbyFilterPanel(
+      context: context,
+      theme: theme,
+      title: 'Filtrar oficios',
+      subtitle: 'Elige el tipo de servicio',
+      onClear: () {
+        state.servCat = 'all';
+        state.refresh();
+      },
+      builder: (context, setPanel) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          NearbyFilterGroup(theme: theme, title: 'Categoría'),
+          for (final c in kServCats)
+            NearbyFilterOption(
+              theme: theme,
+              icon: c.icon,
+              label: c.label,
+              selected: state.servCat == c.id,
+              onTap: () {
+                state.servCat = c.id;
+                state.refresh();
+                setPanel(() {});
+              },
+            ),
+        ],
+      ),
     );
   }
 
@@ -416,7 +466,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
             if (j > 0) const SizedBox(width: 12),
             Expanded(
               child: row * cols + j < items.length
-                  ? _buildServiceRow(items[row * cols + j])
+                  ? NearbyHover(child: _buildServiceRow(items[row * cols + j]))
                   : const SizedBox.shrink(),
             ),
           ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../widgets/common_widgets.dart';
+import '../widgets/interactions.dart';
 import 'profile/widgets/edit_address_sheet.dart';
 import 'profile/widgets/profile_ui.dart';
 import 'roles_screens.dart';
@@ -716,8 +717,9 @@ class _ProfileStat extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          val,
+        // Microinteracción: el número cuenta hasta su valor.
+        NearbyCountUp(
+          value: int.tryParse(val) ?? 0,
           style: TextStyle(
             color: ui.ink,
             fontSize: 22,

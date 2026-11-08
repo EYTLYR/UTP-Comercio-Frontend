@@ -150,11 +150,9 @@ class NearbyMasterShell extends StatelessWidget {
     required this.theme,
   });
 
-  // Diseño nuevo: página blanca en todas las pantallas (modo claro); en emergencia, el fondo del tema.
+  // Diseño nuevo: página blanca en todas las pantallas (modo claro), también en emergencia.
   Color get _pageBackground =>
-      !theme.dark && !theme.hc && !state.emergency
-      ? Colors.white
-      : theme.bg;
+      !theme.dark && !theme.hc ? Colors.white : theme.bg;
 
   @override
   Widget build(BuildContext context) {
@@ -227,7 +225,9 @@ class NearbyMasterShell extends StatelessWidget {
                       return Row(
                         children: [
                           NearbySideNav(state: state, theme: theme),
-                          Expanded(child: _buildAppContent(context, wide: true)),
+                          Expanded(
+                            child: _buildAppContent(context, wide: true),
+                          ),
                         ],
                       );
                     },
@@ -301,8 +301,8 @@ class NearbyMasterShell extends StatelessWidget {
             NavigationChrome(
               childHandlesFade: state.screen == 'mapa',
               background: screenBg,
-              topBackground: emUI ? NearbyColors.navy : screenBg,
-              top: _topChrome(meta, emUI),
+              topBackground: screenBg,
+              top: _topChrome(meta, emUI, wide),
               bottom: showBottomNav
                   ? NearbyBottomNav(state: state, theme: theme)
                   : null,
@@ -311,7 +311,7 @@ class NearbyMasterShell extends StatelessWidget {
           else
             Column(
               children: [
-                _topChrome(meta, emUI),
+                _topChrome(meta, emUI, wide),
                 Expanded(child: ClipRect(child: screen(state.screen))),
                 if (showBottomNav) NearbyBottomNav(state: state, theme: theme),
               ],
@@ -335,40 +335,49 @@ class NearbyMasterShell extends StatelessWidget {
     );
   }
 
-  Widget _topChrome(ScreenMeta meta, bool emUI) => AnimatedContainer(
+  // Cabecera blanca del diseño nuevo, también en emergencia (el aviso rojo va debajo). En escritorio
+  // se alinea con el contenido (1100 px) y en el mapa tiene fondo sólido para leerse sobre las calles.
+  Widget _topChrome(ScreenMeta meta, bool emUI, bool wide) => AnimatedContainer(
     key: const ValueKey('top-chrome'),
     duration: AppMotion.normal,
     curve: AppMotion.easeOut,
-    margin: EdgeInsets.only(bottom: emUI ? 10 : 0),
+    margin: EdgeInsets.only(bottom: emUI ? 6 : 0),
     decoration: BoxDecoration(
-      color: emUI ? NearbyColors.navy : null,
-      borderRadius: emUI
-          ? const BorderRadius.vertical(bottom: Radius.circular(24))
+      color: state.screen == 'mapa' ? theme.surface : null,
+      border: state.screen == 'mapa'
+          ? Border(bottom: BorderSide(color: theme.line))
           : null,
     ),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (meta.bar == 'main')
-          NearbyTopBar(state: state, theme: theme)
-        else if (meta.bar == 'back')
-          NearbyTopBarBack(
-            theme: theme,
-            state: state,
-            emergencyStyle: emUI,
-            title: _getScreenTitle(state.screen, state),
-          ),
-        if (emUI) NearbyEmergencyBanner(state: state),
-        if (state.prevention && meta.bar == 'main')
-          NearbyPreventionBanner(state: state),
-        if (meta.bar != null && state.offline)
-          NearbyOfflineBanner(state: state),
-        // Floating sync pill indicator
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2.0),
-          child: OfflineSyncPill(state: state),
+    child: Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: wide ? kDesktopContentMaxWidth : double.infinity,
         ),
-      ],
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (meta.bar == 'main')
+              NearbyTopBar(state: state, theme: theme)
+            else if (meta.bar == 'back')
+              NearbyTopBarBack(
+                theme: theme,
+                state: state,
+                title: _getScreenTitle(state.screen, state),
+              ),
+            if (emUI) NearbyEmergencyBanner(state: state),
+            if (state.prevention && meta.bar == 'main')
+              NearbyPreventionBanner(state: state),
+            if (meta.bar != null && state.offline)
+              NearbyOfflineBanner(state: state),
+            // Floating sync pill indicator
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2.0),
+              child: OfflineSyncPill(state: state),
+            ),
+          ],
+        ),
+      ),
     ),
   );
 

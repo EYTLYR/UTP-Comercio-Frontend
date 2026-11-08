@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/interactions.dart';
 import '../widgets/navigation_chrome.dart';
 
 import '../models/models.dart';
@@ -22,9 +23,6 @@ class WallScreen extends StatelessWidget {
       final matchesCat = state.muroCat == null || p.cat == state.muroCat;
       return matchesSeg && matchesCat;
     }).toList();
-    final selectedCategory = kPostCats
-        .where((category) => category.id == state.muroCat)
-        .firstOrNull;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -75,8 +73,8 @@ class WallScreen extends StatelessWidget {
                         child: Row(
                           children: [
                             Flexible(
-                              child: Text(
-                                '${state.posts.length}',
+                              child: NearbyCountUp(
+                                value: state.posts.length,
                                 style: TextStyle(
                                   color: ui.ink,
                                   fontSize: 26,
@@ -141,39 +139,13 @@ class WallScreen extends StatelessWidget {
                             _segButton('need', 'Necesitan'),
                             _segButton('offer', 'Ofrecen'),
                             const SizedBox(width: 8),
-                            PopupMenuButton<String>(
-                              tooltip: selectedCategory == null
-                                  ? 'Filtrar por categoría'
-                                  : 'Categoría: ${selectedCategory.label}',
-                              icon: const Icon(Icons.tune, size: 20),
-                              style: IconButton.styleFrom(
-                                foregroundColor: ui.ink,
-                                backgroundColor: selectedCategory == null
-                                    ? ui.ivory
-                                    : ui.accent,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              onSelected: (categoryId) {
-                                state.muroCat = categoryId.isEmpty
-                                    ? null
-                                    : categoryId;
-                                state.refresh();
-                              },
-                              itemBuilder: (_) => [
-                                CheckedPopupMenuItem(
-                                  value: '',
-                                  checked: selectedCategory == null,
-                                  child: const Text('Todas las categorías'),
-                                ),
-                                for (final category in kPostCats)
-                                  CheckedPopupMenuItem(
-                                    value: category.id,
-                                    checked: category.id == state.muroCat,
-                                    child: Text(category.label),
-                                  ),
-                              ],
+                            // Filtros en el panel lateral (slide-over)
+                            NearbyFilterButton(
+                              theme: theme,
+                              active:
+                                  (state.muroCat != null ? 1 : 0) +
+                                  (state.muroSeg != 'all' ? 1 : 0),
+                              onPressed: () => _openFilters(context),
                             ),
                           ],
                         ),
@@ -220,7 +192,7 @@ class WallScreen extends StatelessWidget {
                       ? filtered.length
                       : (filtered.length / cols).ceil(),
                   itemBuilder: (context, index) => cols == 1
-                      ? _buildPostCard(filtered[index])
+                      ? NearbyHover(child: _buildPostCard(filtered[index]))
                       : _buildPostGroup(filtered, index, cols),
                 ),
               ),
@@ -240,12 +212,70 @@ class WallScreen extends StatelessWidget {
             if (j > 0) const SizedBox(width: 12),
             Expanded(
               child: row * cols + j < items.length
-                  ? _buildPostCard(items[row * cols + j])
+                  ? NearbyHover(child: _buildPostCard(items[row * cols + j]))
                   : const SizedBox.shrink(),
             ),
           ],
         ],
       ),
+    );
+  }
+
+  /// Panel lateral de filtros del muro: tipo y categoría. Cada cambio se ve al instante.
+  void _openFilters(BuildContext context) {
+    showNearbyFilterPanel(
+      context: context,
+      theme: theme,
+      title: 'Filtrar el muro',
+      subtitle: 'Elige qué favores quieres ver',
+      onClear: () {
+        state.muroSeg = 'all';
+        state.muroCat = null;
+        state.refresh();
+      },
+      builder: (context, setPanel) {
+        void pick(VoidCallback change) {
+          change();
+          state.refresh();
+          setPanel(() {});
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            NearbyFilterGroup(theme: theme, title: 'Tipo'),
+            for (final (id, label, icon) in const [
+              ('all', 'Todo', Icons.all_inclusive),
+              ('need', 'Necesitan ayuda', Icons.front_hand_outlined),
+              ('offer', 'Ofrecen ayuda', Icons.volunteer_activism_outlined),
+            ])
+              NearbyFilterOption(
+                theme: theme,
+                icon: icon,
+                label: label,
+                selected: state.muroSeg == id,
+                onTap: () => pick(() => state.muroSeg = id),
+              ),
+            const SizedBox(height: 8),
+            NearbyFilterGroup(theme: theme, title: 'Categoría'),
+            NearbyFilterOption(
+              theme: theme,
+              icon: Icons.apps,
+              label: 'Todas las categorías',
+              selected: state.muroCat == null,
+              onTap: () => pick(() => state.muroCat = null),
+            ),
+            for (final category in kPostCats)
+              NearbyFilterOption(
+                theme: theme,
+                icon: category.icon,
+                label: category.label,
+                selected: state.muroCat == category.id,
+                onTap: () => pick(() => state.muroCat = category.id),
+              ),
+          ],
+        );
+      },
     );
   }
 
@@ -257,7 +287,10 @@ class WallScreen extends StatelessWidget {
           state.muroSeg = id;
           state.refresh();
         },
-        child: Container(
+        // Microinteracción: el subrayado y el texto cambian con una transición corta.
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
           constraints: const BoxConstraints(minHeight: 44),
           padding: const EdgeInsets.symmetric(vertical: 9),
           decoration: BoxDecoration(
