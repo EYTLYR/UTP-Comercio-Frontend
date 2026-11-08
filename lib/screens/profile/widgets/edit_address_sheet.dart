@@ -6,7 +6,6 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
-import '../../../config/app_environment.dart';
 import '../../../services/offline_tiles.dart';
 import '../../../state/app_state.dart';
 import '../../../theme/nearby_theme.dart';
@@ -121,14 +120,6 @@ class _EditAddressSheetState extends State<_EditAddressSheet> {
     } finally {
       if (mounted) setState(() => _locating = false);
     }
-  }
-
-  void _shortcut(String label, double lat, double lng) {
-    _point = LatLng(lat, lng);
-    _moved = true;
-    _address.text = label;
-    _map.move(_point, 17);
-    setState(() {});
   }
 
   Future<void> _save() async {
@@ -330,31 +321,6 @@ class _EditAddressSheetState extends State<_EditAddressSheet> {
                     : null,
               ),
             ),
-            if (AppEnvironment.showDevelopmentTools) ...[
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 6,
-                children: [
-                  ActionChip(
-                    label: const Text('Demo: Jr. Las Flores'),
-                    onPressed: () => _shortcut(
-                      'Jr. Las Flores 245, SJL',
-                      -11.9790,
-                      -77.0030,
-                    ),
-                  ),
-                  ActionChip(
-                    label: const Text('Demo: UTP SJL'),
-                    onPressed: () => _shortcut(
-                      'UTP Sede San Juan de Lurigancho',
-                      -11.9892,
-                      -77.0062,
-                    ),
-                  ),
-                ],
-              ),
-            ],
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _saving ? null : _save,

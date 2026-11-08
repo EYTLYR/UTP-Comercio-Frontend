@@ -867,7 +867,7 @@ class _PrevencionScreenState extends State<PrevencionScreen> {
           maxLines: 4,
           decoration: const InputDecoration(
             labelText: 'Cuéntalo en una frase (opcional)',
-            hintText: 'Ej. La acequia de Jr. Las Flores está al ras',
+            hintText: 'Ej. La acequia de mi calle está al ras',
           ),
         ),
         Row(

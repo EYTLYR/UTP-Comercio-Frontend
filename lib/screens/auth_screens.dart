@@ -738,61 +738,6 @@ class _RegistroScreenState extends State<RegistroScreen> {
                           });
                         },
                       ),
-                      ActionChip(
-                        avatar: const Icon(
-                          Icons.place,
-                          size: 16,
-                          color: Color(0xFF1A73E8),
-                        ),
-                        label: const Text(
-                          'Chiclayo (Lambayeque)',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                        onPressed: () {
-                          setModalState(() {
-                            tempLat = -6.7701;
-                            tempLng = -79.8550;
-                            addrController.text = 'Chiclayo, Lambayeque';
-                          });
-                        },
-                      ),
-                      ActionChip(
-                        avatar: const Icon(
-                          Icons.place,
-                          size: 16,
-                          color: Color(0xFF1A73E8),
-                        ),
-                        label: const Text(
-                          'Jr. Las Flores (SJL)',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                        onPressed: () {
-                          setModalState(() {
-                            tempLat = -11.9790;
-                            tempLng = -77.0030;
-                            addrController.text = 'Jr. Las Flores 245, SJL';
-                          });
-                        },
-                      ),
-                      ActionChip(
-                        avatar: const Icon(
-                          Icons.school,
-                          size: 16,
-                          color: Color(0xFFE37400),
-                        ),
-                        label: const Text(
-                          'UTP Sede SJL',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                        onPressed: () {
-                          setModalState(() {
-                            tempLat = -11.9892;
-                            tempLng = -77.0062;
-                            addrController.text =
-                                'UTP Sede San Juan de Lurigancho';
-                          });
-                        },
-                      ),
                     ],
                   ),
                   const SizedBox(height: 14),
@@ -866,7 +811,7 @@ class _RegistroScreenState extends State<RegistroScreen> {
                       state.regLng = tempLng;
                       state.regAddress = addrController.text.trim().isNotEmpty
                           ? addrController.text.trim()
-                          : 'Jr. Las Flores 245, SJL';
+                          : 'Ubicación (${tempLat.toStringAsFixed(4)}, ${tempLng.toStringAsFixed(4)})';
                       state.regLoc = 'ok';
                       state.refresh();
                       Navigator.pop(ctx);

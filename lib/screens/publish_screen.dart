@@ -21,6 +21,7 @@ class _PublishScreenState extends State<PublishScreen> {
   void initState() {
     super.initState();
     _textController = TextEditingController(text: widget.state.pub.text);
+    if (widget.state.connected) widget.state.locateForPublish();
   }
 
   @override
@@ -636,21 +637,41 @@ class _PublishScreenState extends State<PublishScreen> {
                   ),
                   children: [
                     TextSpan(
-                      text: (p.ai?['loc'] as String?) ?? 'Jr. Las Flores 245',
+                      text: p.ai?['loc'] == null && widget.state.pubLocating
+                          ? 'Buscando dónde estás…'
+                          : widget.state.publishWhere,
                       style: TextStyle(
                         fontWeight: FontWeight.w800,
                         color: theme.ink,
                       ),
                     ),
-                    TextSpan(
-                      text: p.ai?['loc'] != null
-                          ? ' · ubicación detectada por la IA'
-                          : ' · usamos tu ubicación aproximada',
-                    ),
+                    if (!widget.state.pubLocating || p.ai?['loc'] != null)
+                      TextSpan(
+                        text: p.ai?['loc'] != null
+                            ? ' · ubicación detectada por la IA'
+                            : widget.state.pubFromGps
+                            ? ' · tu ubicación actual'
+                            : ' · tu dirección guardada',
+                      ),
                   ],
                 ),
               ),
             ),
+            if (widget.state.connected && p.ai?['loc'] == null)
+              IconButton(
+                tooltip: 'Actualizar mi ubicación',
+                visualDensity: VisualDensity.compact,
+                onPressed: widget.state.pubLocating
+                    ? null
+                    : widget.state.locateForPublish,
+                icon: widget.state.pubLocating
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(Icons.refresh, color: theme.info, size: 20),
+              ),
           ],
         ),
 

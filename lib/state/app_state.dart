@@ -152,8 +152,9 @@ class AppState extends ChangeNotifier {
   double? homeZoneLat, homeZoneLng;
   BrowseZone? viewedZone;
   int zoneViewRevision = 0;
-  String get visibleZoneName =>
-      screen == 'mapa' && viewedZone != null ? viewedZone!.name : effectiveZoneName;
+  String get visibleZoneName => screen == 'mapa' && viewedZone != null
+      ? viewedZone!.name
+      : effectiveZoneName;
 
   String get effectiveZoneName {
     final parts = userAddress.split(',');
@@ -167,6 +168,7 @@ class AppState extends ChangeNotifier {
     }
     return zoneName;
   }
+
   Future<List<BrowseZone>> fetchZones() async {
     if (!connected) return [];
     return (await api.get('zones') as List)
@@ -204,6 +206,19 @@ class AppState extends ChangeNotifier {
   String effectiveMode = 'NORMAL';
   double? regLat;
   double? regLng;
+
+  /// Dónde se publica: la ubicación actual del vecino (GPS) o, si no hay GPS, su casa.
+  double? pubLat;
+  double? pubLng;
+  String? pubPlace;
+  bool pubLocating = false;
+  bool pubFromGps = false;
+
+  /// Texto de la ubicación de lo que se publica (IA, GPS o la dirección guardada).
+  String get publishWhere =>
+      (pub.ai?['loc'] as String?) ??
+      pubPlace ??
+      (userAddress.isNotEmpty ? userAddress : zoneName);
   Map<String, dynamic>? sosResult;
   Map<String, dynamic>? sosDetail;
   Map<String, dynamic>? incomingSos;
@@ -213,6 +228,7 @@ class AppState extends ChangeNotifier {
   Map<String, int> _vbBase = {};
   List<HistoryItem>? remoteInventory;
   List<HistoryItem> myLearnings = [];
+
   /// Envíos pendientes en orden FIFO. Copia en memoria de la tabla outbox_queue (SQLite).
   final List<OutboxEntry> _outbox = [];
 
@@ -274,7 +290,7 @@ class AppState extends ChangeNotifier {
   String regName = '';
   String? regLoc; // null, 'loading', 'ok'
   String regAddress = 'Detectando ubicación…';
-  String userAddress = 'Jr. Las Flores 245, SJL';
+  String userAddress = '';
   Map<String, bool> perms = {
     'loc': false,
     'notif': false,
@@ -322,7 +338,9 @@ class AppState extends ChangeNotifier {
   /// Huella, rostro o PIN antes de una acción sensible, como cerrar un SOS activo.
   Future<bool> confirmIdentity(String reason) async {
     final ok = await biometric.authorize(reason);
-    if (!ok && !_disposed) toast('No pudimos verificar que eres tú', icon: 'lock');
+    if (!ok && !_disposed) {
+      toast('No pudimos verificar que eres tú', icon: 'lock');
+    }
     return ok;
   }
 
@@ -406,7 +424,10 @@ class AppState extends ChangeNotifier {
     }
     if (c == null) {
       if (manual) {
-        toast('Guarda tu dirección para descargar el mapa', icon: 'location_on');
+        toast(
+          'Guarda tu dirección para descargar el mapa',
+          icon: 'location_on',
+        );
       }
       return;
     }
@@ -414,7 +435,10 @@ class AppState extends ChangeNotifier {
     final ok = await tiles.downloadRegion(c.lat, c.lng);
     if (_disposed) return;
     if (ok) {
-      toast('Mapa de tu zona guardado para usar sin internet', icon: 'cloud_done');
+      toast(
+        'Mapa de tu zona guardado para usar sin internet',
+        icon: 'cloud_done',
+      );
     } else if (manual) {
       toast(
         tiles.status.value.error ?? 'No se pudo descargar el mapa',
@@ -870,7 +894,7 @@ class AppState extends ChangeNotifier {
         ),
       );
     } else if (type == 'vulnerable') {
-      final where = (pub.ai?['loc'] as String?) ?? 'Jr. Las Flores 245';
+      final where = publishWhere;
       final prio = (pub.ai?['prio'] as String?) ?? 'alta';
       reports.insert(
         0,
@@ -903,7 +927,7 @@ class AppState extends ChangeNotifier {
           type: type == 'needres' ? 'need' : 'offer',
           title: text.isNotEmpty ? text : (cat?.label ?? 'Recurso'),
           user: userName,
-          where: 'Jr. Las Flores 245',
+          where: publishWhere,
         ),
       );
       if (catId != null) resSel = catId;

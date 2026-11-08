@@ -24,9 +24,7 @@ class WallScreen extends StatelessWidget {
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
-            padding: EdgeInsets.only(
-              top: NavigationInsets.of(context).top,
-            ),
+            padding: EdgeInsets.only(top: NavigationInsets.of(context).top),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -64,7 +62,11 @@ class WallScreen extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.handshake, color: NearbyColors.accentInk, size: 36),
+                        Icon(
+                          Icons.handshake,
+                          color: NearbyColors.accentInk,
+                          size: 36,
+                        ),
                         const SizedBox(width: 14),
                         Expanded(
                           child: Column(
@@ -77,33 +79,36 @@ class WallScreen extends StatelessWidget {
                                     color: theme.ink,
                                     fontSize: 14,
                                   ),
-                                  children: const [
+                                  children: [
                                     TextSpan(
-                                      text: '127 favores ',
-                                      style: TextStyle(fontWeight: FontWeight.w900),
+                                      text:
+                                          '${state.posts.length} ${state.posts.length == 1 ? 'favor' : 'favores'} ',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                      ),
                                     ),
-                                    TextSpan(text: 'esta semana en Las Flores'),
+                                    TextSpan(text: 'en ${state.zoneName}'),
                                   ],
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(4),
-                                child: LinearProgressIndicator(
-                                  value: 0.71,
-                                  minHeight: 8,
-                                  backgroundColor: NearbyColors.accentInk.withValues(
-                                    alpha: 0.15,
-                                  ),
-                                  valueColor: const AlwaysStoppedAnimation(
-                                    NearbyColors.accent,
-                                  ),
                                 ),
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                'Meta del mes: 180 · Tú hiciste 12',
-                                style: TextStyle(color: theme.muted, fontSize: 12),
+                                () {
+                                  final mine = state.posts
+                                      .where(
+                                        (p) =>
+                                            p.dist == 'tú' ||
+                                            p.user == state.userName,
+                                      )
+                                      .length;
+                                  return mine == 0
+                                      ? 'Publica el primero y suma a la cadena'
+                                      : 'Tú publicaste $mine';
+                                }(),
+                                style: TextStyle(
+                                  color: theme.muted,
+                                  fontSize: 12,
+                                ),
                               ),
                             ],
                           ),
@@ -173,7 +178,9 @@ class WallScreen extends StatelessWidget {
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(999),
-                          side: BorderSide(color: isSel ? theme.btnBg : theme.line),
+                          side: BorderSide(
+                            color: isSel ? theme.btnBg : theme.line,
+                          ),
                         ),
                         showCheckmark: false,
                       );
@@ -270,138 +277,141 @@ class WallScreen extends StatelessWidget {
 
     return RepaintBoundary(
       child: Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: theme.surface,
-        border: Border.all(color: theme.line),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: theme.cardShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: p.type == 'need'
-                      ? theme.accentSoft
-                      : theme.primarySoft,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  p.type == 'need' ? 'NECESITA' : 'OFRECE',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: theme.surface,
+          border: Border.all(color: theme.line),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: theme.cardShadow,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
                     color: p.type == 'need'
-                        ? theme.accentInk
-                        : theme.primaryDark,
-                    letterSpacing: 0.8,
+                        ? theme.accentSoft
+                        : theme.primarySoft,
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                ),
-              ),
-              if (catObj != null)
-                Row(
-                  children: [
-                    Icon(catObj.icon, size: 16, color: theme.muted),
-                    const SizedBox(width: 4),
-                    Text(
-                      catObj.short ?? catObj.label,
-                      style: TextStyle(
-                        color: theme.muted,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w500,
-                      ),
+                  child: Text(
+                    p.type == 'need' ? 'NECESITA' : 'OFRECE',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      color: p.type == 'need'
+                          ? theme.accentInk
+                          : theme.primaryDark,
+                      letterSpacing: 0.8,
                     ),
-                  ],
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            p.title,
-            style: TextStyle(
-              fontWeight: FontWeight.w800,
-              fontSize: 14.5,
-              color: theme.ink,
-              height: 1.3,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            runSpacing: 4,
-            children: [
-              CircleAvatar(
-                radius: 12,
-                backgroundColor: theme.violetSoft,
-                child: Text(
-                  p.user.split(' ').map((w) => w[0]).take(2).join(),
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: theme.violet,
-                    fontWeight: FontWeight.w800,
                   ),
                 ),
+                if (catObj != null)
+                  Row(
+                    children: [
+                      Icon(catObj.icon, size: 16, color: theme.muted),
+                      const SizedBox(width: 4),
+                      Text(
+                        catObj.short ?? catObj.label,
+                        style: TextStyle(
+                          color: theme.muted,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              p.title,
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 14.5,
+                color: theme.ink,
+                height: 1.3,
               ),
-              const SizedBox(width: 6),
-              Text(
-                p.user,
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                  color: theme.ink,
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              runSpacing: 4,
+              children: [
+                CircleAvatar(
+                  radius: 12,
+                  backgroundColor: theme.violetSoft,
+                  child: Text(
+                    p.user.split(' ').map((w) => w[0]).take(2).join(),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: theme.violet,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  p.user,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                    color: theme.ink,
+                  ),
+                ),
+                Container(
+                  width: 3,
+                  height: 3,
+                  margin: const EdgeInsets.symmetric(horizontal: 6),
+                  decoration: BoxDecoration(
+                    color: theme.muted,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                Text(
+                  '${p.dist} · ${p.time}',
+                  style: TextStyle(color: theme.muted, fontSize: 11.5),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () => state.helpPost(p.id),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isDone ? theme.primarySoft : theme.primarySoft,
+                foregroundColor: theme.primaryDark,
+                elevation: 0,
+                minimumSize: const Size.fromHeight(48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              Container(
-                width: 3,
-                height: 3,
-                margin: const EdgeInsets.symmetric(horizontal: 6),
-                decoration: BoxDecoration(
-                  color: theme.muted,
-                  shape: BoxShape.circle,
-                ),
+              icon: Icon(
+                isDone
+                    ? Icons.check_circle
+                    : (p.type == 'need'
+                          ? Icons.volunteer_activism
+                          : Icons.front_hand),
+                size: 18,
               ),
-              Text(
-                '${p.dist} · ${p.time}',
-                style: TextStyle(color: theme.muted, fontSize: 11.5),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: () => state.helpPost(p.id),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isDone ? theme.primarySoft : theme.primarySoft,
-              foregroundColor: theme.primaryDark,
-              elevation: 0,
-              minimumSize: const Size.fromHeight(48),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+              label: Text(
+                isDone
+                    ? 'Le avisamos a ${p.user.split(" ").first}'
+                    : (p.type == 'need' ? 'Yo te ayudo' : 'Me interesa'),
+                style: const TextStyle(fontWeight: FontWeight.w800),
               ),
             ),
-            icon: Icon(
-              isDone
-                  ? Icons.check_circle
-                  : (p.type == 'need'
-                        ? Icons.volunteer_activism
-                        : Icons.front_hand),
-              size: 18,
-            ),
-            label: Text(
-              isDone
-                  ? 'Le avisamos a ${p.user.split(" ").first}'
-                  : (p.type == 'need' ? 'Yo te ayudo' : 'Me interesa'),
-              style: const TextStyle(fontWeight: FontWeight.w800),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

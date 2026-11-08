@@ -605,6 +605,13 @@ class _MapScreenState extends State<MapScreen> {
                 widget.state.viewedZone?.latitude ?? widget.state.homeZoneLat,
             centerLng:
                 widget.state.viewedZone?.longitude ?? widget.state.homeZoneLng,
+            // La casa del perfil centra el mapa; mirando otra zona se centra en esa zona.
+            homeLat: widget.state.viewedZone == null
+                ? widget.state.regLat
+                : null,
+            homeLng: widget.state.viewedZone == null
+                ? widget.state.regLng
+                : null,
             location: widget.state.location,
             pins: filtered,
             onOpenPin: (pin) {

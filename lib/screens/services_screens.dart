@@ -562,7 +562,7 @@ class ServiceDetailScreen extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'de vecinos de Las Flores que ya lo contrataron',
+                        'de vecinos de ${state.zoneName} que ya lo contrataron',
                         style: TextStyle(color: theme.muted, fontSize: 12),
                       ),
                       const SizedBox(height: 8),

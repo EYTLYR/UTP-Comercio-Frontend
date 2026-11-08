@@ -509,7 +509,7 @@ class SosSentScreen extends StatelessWidget {
       final gps = state.location.last;
       state.lastCode = compressSOS(
         cat: state.sosType ?? 'otro',
-        loc: 'Jr. Las Flores 245',
+        loc: state.publishWhere,
         prio: 'alta',
         lat: gps != null && gps.real ? gps.lat : null,
         lng: gps != null && gps.real ? gps.lng : null,
@@ -600,7 +600,7 @@ class SosSentScreen extends StatelessWidget {
               Text(
                 state.connected
                     ? 'Tipo: $typeLabel · tu ubicación actual'
-                    : 'Tipo: $typeLabel · Jr. Las Flores 245 (±10 m)',
+                    : 'Tipo: $typeLabel · ${state.publishWhere}',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 13.5,

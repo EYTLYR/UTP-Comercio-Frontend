@@ -133,6 +133,10 @@ extension NearbyBackend on AppState {
 
   /// Sin datos de ejemplo una vez que hay sesión: todo viene del backend.
   void _resetToServerData() {
+    pubLat = null;
+    pubLng = null;
+    pubPlace = null;
+    pubFromGps = false;
     services = [];
     posts = [];
     reports = [];
@@ -300,7 +304,7 @@ extension NearbyBackend on AppState {
           resolvedAddress ??
           'Ubicación actual (${pos.lat.toStringAsFixed(4)}, ${pos.lng.toStringAsFixed(4)})';
     } else {
-      regAddress = 'Jr. Las Flores 245, SJL';
+      regAddress = 'Elige tu casa en el mapa';
     }
     if (pos.real && location.approximate) {
       regAddress = 'Ubicación aproximada: $regAddress';
@@ -313,7 +317,7 @@ extension NearbyBackend on AppState {
     refresh();
     if (!pos.real) {
       toast(
-        'No pudimos leer el GPS: usamos la zona por defecto',
+        'No pudimos leer el GPS: toca "Cambiar" y elige tu casa en el mapa',
         icon: 'location_on',
       );
     }
@@ -354,6 +358,8 @@ extension NearbyBackend on AppState {
     regAddress = address.trim();
     if (lat != null) regLat = lat;
     if (lng != null) regLng = lng;
+    viewedZone = null;
+    zoneViewRevision++;
     final parts = address.split(',');
     if (parts.length > 1) {
       final district = parts.last.trim();
@@ -367,9 +373,7 @@ extension NearbyBackend on AppState {
 
     if (!connected) return true;
     try {
-      final body = <String, Object?>{
-        'addressText': address.trim(),
-      };
+      final body = <String, Object?>{'addressText': address.trim()};
       if (lat != null && lng != null) {
         body['lat'] = lat;
         body['lng'] = lng;
@@ -919,6 +923,75 @@ extension NearbyBackend on AppState {
 
   // ============================================================ publicar
 
+  /// Busca dónde está el vecino ahora para lo que va a publicar. Sin GPS usa su casa.
+  Future<void> locateForPublish() async {
+    if (pubLocating) return;
+    pubLocating = true;
+    refresh();
+    try {
+      final pos = await location.current();
+      if (_disposed) return;
+      if (pos.real) {
+        pubLat = pos.lat;
+        pubLng = pos.lng;
+        pubFromGps = true;
+        pubPlace =
+            await _placeName(pos.lat, pos.lng) ??
+            (location.approximate
+                ? 'Cerca de ti (aproximado)'
+                : 'Tu ubicación actual');
+      } else {
+        pubLat = regLat;
+        pubLng = regLng;
+        pubFromGps = false;
+        pubPlace = userAddress.isNotEmpty ? userAddress : null;
+      }
+    } catch (_) {
+      pubLat = regLat;
+      pubLng = regLng;
+      pubFromGps = false;
+      pubPlace = userAddress.isNotEmpty ? userAddress : null;
+    } finally {
+      pubLocating = false;
+      if (!_disposed) refresh();
+    }
+  }
+
+  /// "Jr. Los Olivos 120, Zárate" a partir de coordenadas (OpenStreetMap). null sin internet.
+  Future<String?> _placeName(double lat, double lng) async {
+    try {
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?format=json'
+        '&lat=$lat&lon=$lng&zoom=18&addressdetails=1',
+      );
+      final res = await http
+          .get(
+            uri,
+            headers: {'User-Agent': 'NearbyApp/1.0', 'Accept-Language': 'es'},
+          )
+          .timeout(const Duration(seconds: 5));
+      if (res.statusCode != 200) return null;
+      final a =
+          (jsonDecode(res.body) as Map<String, dynamic>)['address']
+              as Map<String, dynamic>?;
+      if (a == null) return null;
+      final road = (a['road'] ?? a['pedestrian'] ?? a['footway']) as String?;
+      final number = a['house_number'] as String?;
+      final area =
+          (a['suburb'] ??
+                  a['neighbourhood'] ??
+                  a['city_district'] ??
+                  a['city'] ??
+                  a['town'])
+              as String?;
+      if (road == null) return area;
+      final street = number == null ? road : '$road $number';
+      return area == null ? street : '$street, $area';
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _publishRemote({
     required String? type,
     required String? catId,
@@ -938,6 +1011,8 @@ extension NearbyBackend on AppState {
               'category':
                   Api2App.reverse(Api2App.postCat, catId) ?? 'TEMPORARY_HELP',
               if (text.isNotEmpty) 'text': text,
+              'lat': ?pubLat,
+              'lng': ?pubLng,
             };
             if (offline) {
               await _enqueue('POST', payload);
@@ -948,7 +1023,10 @@ extension NearbyBackend on AppState {
           }
         case 'vulnerable':
           {
-            final pos = await location.current();
+            final gps = pubLat != null && pubLng != null
+                ? null
+                : await location.current();
+            final pos = (lat: pubLat ?? gps!.lat, lng: pubLng ?? gps!.lng);
             final payload = {
               'clientId': clientId,
               'category': Api2App.reverse(Api2App.vulnCat, catId) ?? 'INJURED',
@@ -995,6 +1073,8 @@ extension NearbyBackend on AppState {
                 'category':
                     Api2App.reverse(Api2App.serviceCat, catId) ?? 'OTHER',
                 'availableInEmergency': true,
+                'lat': ?pubLat,
+                'lng': ?pubLng,
               },
             );
             await _loadServices();
@@ -1083,7 +1163,10 @@ extension NearbyBackend on AppState {
       final n = _outbox.length;
       _flushOutbox().then((_) {
         if (n > 0 && _outbox.isEmpty && !_disposed) {
-          toast('Conexión recuperada · $n envío(s) sincronizado(s)', icon: 'cloud_done');
+          toast(
+            'Conexión recuperada · $n envío(s) sincronizado(s)',
+            icon: 'cloud_done',
+          );
         }
       });
     }
@@ -1098,12 +1181,10 @@ extension NearbyBackend on AppState {
       if (_outbox.isNotEmpty) {
         final batch = List<OutboxEntry>.from(_outbox);
         try {
-          final results =
-              await api.post(
-                    'sync/outbox',
-                    body: batch.map((e) => e.toItem()).toList(),
-                  )
-                  as List;
+          final results = await api.post(
+            'sync/outbox',
+            body: batch.map((e) => e.toItem()).toList(),
+          ) as List;
           // 2xx: el backend procesó la lista en orden; cada resultado es el de su elemento.
           final done = <OutboxEntry>[];
           final retry = <OutboxEntry>[];
@@ -1128,7 +1209,10 @@ extension NearbyBackend on AppState {
           final sent = done.map((e) => e.id).toSet();
           _outbox.removeWhere((e) => sent.contains(e.id));
           if (rejected > 0) {
-            toast('$rejected envío(s) no se pudieron sincronizar', icon: 'error');
+            toast(
+              '$rejected envío(s) no se pudieron sincronizar',
+              icon: 'error',
+            );
           }
           if (_outbox.isNotEmpty) {
             _scheduleOutboxRetry();
@@ -1537,8 +1621,10 @@ extension NearbyBackend on AppState {
               : 'HIGH',
           'detail': 'Recibido por SMS sin internet ($code)',
           'addressText': decoded['addressText'] ?? d['where'],
-          if (gps != null) ...{'lat': gps.lat, 'lng': gps.lng}
-          else if (decoded['lat'] != null) ...{
+          if (gps != null) ...{
+            'lat': gps.lat,
+            'lng': gps.lng,
+          } else if (decoded['lat'] != null) ...{
             'lat': decoded['lat'],
             'lng': decoded['lng'],
           },
@@ -1614,12 +1700,10 @@ extension NearbyBackend on AppState {
       return false;
     }
     try {
-      final r =
-          await api.post(
-                'me/brigade-request',
-                body: {'skills': skills.trim().isEmpty ? null : skills.trim()},
-              )
-              as Map<String, dynamic>;
+      final r = await api.post(
+        'me/brigade-request',
+        body: {'skills': skills.trim().isEmpty ? null : skills.trim()},
+      ) as Map<String, dynamic>;
       brigadeRequest = (r['status'] as String?) ?? 'PENDING';
       refresh();
       toast(
@@ -1674,9 +1758,10 @@ extension NearbyBackend on AppState {
     String newRole,
   ) async {
     try {
-      final u =
-          await api.put('admin/users/$userId/role', body: {'role': newRole})
-              as Map<String, dynamic>;
+      final u = await api.put(
+        'admin/users/$userId/role',
+        body: {'role': newRole},
+      ) as Map<String, dynamic>;
       toast('Rol actualizado', icon: 'check_circle');
       return u;
     } on ApiException catch (e) {
@@ -1770,20 +1855,18 @@ extension NearbyBackend on AppState {
     try {
       final Map<String, dynamic> created;
       if (photo != null) {
-        created =
-            await api.upload(
-                  'POST',
-                  'risk-reports',
-                  parts: () => [
-                    http.MultipartFile.fromString(
-                      'data',
-                      jsonEncode(data),
-                      contentType: MediaType('application', 'json'),
-                    ),
-                    _photoPart('photo', photo, photoName ?? 'riesgo.jpg'),
-                  ],
-                )
-                as Map<String, dynamic>;
+        created = await api.upload(
+          'POST',
+          'risk-reports',
+          parts: () => [
+            http.MultipartFile.fromString(
+              'data',
+              jsonEncode(data),
+              contentType: MediaType('application', 'json'),
+            ),
+            _photoPart('photo', photo, photoName ?? 'riesgo.jpg'),
+          ],
+        ) as Map<String, dynamic>;
       } else {
         created =
             await api.post('risk-reports', body: data) as Map<String, dynamic>;
